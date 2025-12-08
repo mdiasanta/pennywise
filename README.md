@@ -13,8 +13,27 @@ This is a monorepo containing:
 
 - Docker and Docker Compose installed
 - (Optional) Node.js 20+ and .NET 10 SDK for local development
+- (Optional) VS Code with Dev Containers extension for containerized development
 
 ## Quick Start
+
+### Option 1: Using Dev Container (Recommended)
+
+The easiest way to get started is using VS Code Dev Containers:
+
+1. Install [VS Code](https://code.visualstudio.com/) and the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+2. Open the project in VS Code
+3. Press `F1` and select "Dev Containers: Reopen in Container"
+4. Wait for the container to build (first time only)
+
+The dev container includes:
+- All required development tools (Node.js, .NET 10, Git, GitHub CLI)
+- Pre-configured VS Code extensions (ESLint, Prettier, Tailwind CSS, C#, GitHub Copilot, etc.)
+- Automatic port forwarding for frontend (3000), backend (8080), and database (5432)
+
+See [.devcontainer/README.md](.devcontainer/README.md) for detailed documentation.
+
+### Option 2: Using Docker Compose
 
 Run the entire application stack with Docker Compose:
 
@@ -57,18 +76,23 @@ The frontend will be available at http://localhost:3000
 
 ```
 pennywise/
+├── .devcontainer/
+│   ├── devcontainer.json        # Dev container configuration
+│   └── README.md                # Dev container documentation
 ├── backend/
-│   └── Pennywise.Api/          # .NET Web API project
+│   └── Pennywise.Api/           # .NET Web API project
 │       ├── Program.cs
 │       ├── Pennywise.Api.csproj
 │       └── Dockerfile
 ├── frontend/
-│   └── pennywise-ui/           # React + TypeScript + Vite
+│   └── pennywise-ui/            # React + TypeScript + Vite
 │       ├── src/
+│       │   └── components/
+│       │       └── ui/          # shadcn/ui components (30+ components)
 │       ├── package.json
 │       ├── vite.config.ts
 │       └── Dockerfile
-├── docker-compose.yml          # Docker orchestration
+├── docker-compose.yml           # Docker orchestration
 └── README.md
 ```
 
@@ -79,7 +103,8 @@ pennywise/
 - TypeScript
 - Vite
 - Tailwind CSS
-- shadcn/ui components
+- shadcn/ui components (30+ components including accordion, alert, avatar, badge, button, card, checkbox, dialog, dropdown, forms, tables, and more)
+- Radix UI primitives
 - Nginx (for production)
 
 ### Backend
@@ -106,6 +131,7 @@ pennywise/
 - **postgres**: PostgreSQL database with health checks
 - **backend**: .NET Web API with automatic restart
 - **frontend**: React app served by Nginx
+- **devcontainer**: Development environment with Node.js, .NET, and all necessary tools
 
 All services communicate through a dedicated Docker network (`pennywise-network`).
 
