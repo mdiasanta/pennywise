@@ -1,4 +1,5 @@
 # Build stage
+# Using Node 20 LTS (Active LTS until April 2026)
 FROM node:20-alpine AS build
 WORKDIR /app
 
