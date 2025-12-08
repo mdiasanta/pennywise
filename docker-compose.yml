@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: pennywise-postgres
+    environment:
+      POSTGRES_DB: pennywise
+      POSTGRES_USER: pennywise
+      POSTGRES_PASSWORD: pennywise_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - pennywise-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pennywise"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # .NET Web API Backend
+  backend:
+    build:
+      context: ./backend/Pennywise.Api
+      dockerfile: Dockerfile
+    container_name: pennywise-backend
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=pennywise;Username=pennywise;Password=pennywise_password
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - pennywise-network
+    restart: unless-stopped
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./frontend/pennywise-ui
+      dockerfile: Dockerfile
+    container_name: pennywise-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - pennywise-network
+    restart: unless-stopped
+
+networks:
+  pennywise-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

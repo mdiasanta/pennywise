@@ -1,0 +1,6 @@
+@Pennywise.Api_HostAddress = http://localhost:5064
+
+GET {{Pennywise.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
