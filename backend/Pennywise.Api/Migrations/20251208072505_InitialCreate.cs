@@ -84,13 +84,13 @@ namespace Pennywise.Api.Migrations
                 columns: new[] { "Id", "Color", "CreatedAt", "Description", "Name", "UpdatedAt" },
                 values: new object[,]
                 {
-                    { 1, "#FF6B6B", new DateTime(2025, 12, 8, 7, 23, 6, 817, DateTimeKind.Utc).AddTicks(6656), "Groceries, restaurants, and dining out", "Food & Dining", new DateTime(2025, 12, 8, 7, 23, 6, 817, DateTimeKind.Utc).AddTicks(6893) },
-                    { 2, "#4ECDC4", new DateTime(2025, 12, 8, 7, 23, 6, 817, DateTimeKind.Utc).AddTicks(7281), "Gas, public transport, car maintenance", "Transportation", new DateTime(2025, 12, 8, 7, 23, 6, 817, DateTimeKind.Utc).AddTicks(7282) },
-                    { 3, "#45B7D1", new DateTime(2025, 12, 8, 7, 23, 6, 817, DateTimeKind.Utc).AddTicks(7284), "Clothing, electronics, and general shopping", "Shopping", new DateTime(2025, 12, 8, 7, 23, 6, 817, DateTimeKind.Utc).AddTicks(7284) },
-                    { 4, "#FFA07A", new DateTime(2025, 12, 8, 7, 23, 6, 817, DateTimeKind.Utc).AddTicks(7286), "Movies, games, hobbies, and recreation", "Entertainment", new DateTime(2025, 12, 8, 7, 23, 6, 817, DateTimeKind.Utc).AddTicks(7287) },
-                    { 5, "#98D8C8", new DateTime(2025, 12, 8, 7, 23, 6, 817, DateTimeKind.Utc).AddTicks(7288), "Rent, electricity, water, internet", "Bills & Utilities", new DateTime(2025, 12, 8, 7, 23, 6, 817, DateTimeKind.Utc).AddTicks(7288) },
-                    { 6, "#F7DC6F", new DateTime(2025, 12, 8, 7, 23, 6, 817, DateTimeKind.Utc).AddTicks(7290), "Medical expenses, pharmacy, insurance", "Healthcare", new DateTime(2025, 12, 8, 7, 23, 6, 817, DateTimeKind.Utc).AddTicks(7290) },
-                    { 7, "#B19CD9", new DateTime(2025, 12, 8, 7, 23, 6, 817, DateTimeKind.Utc).AddTicks(7291), "Miscellaneous expenses", "Other", new DateTime(2025, 12, 8, 7, 23, 6, 817, DateTimeKind.Utc).AddTicks(7292) }
+                    { 1, "#FF6B6B", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "Groceries, restaurants, and dining out", "Food & Dining", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 2, "#4ECDC4", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "Gas, public transport, car maintenance", "Transportation", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 3, "#45B7D1", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "Clothing, electronics, and general shopping", "Shopping", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 4, "#FFA07A", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "Movies, games, hobbies, and recreation", "Entertainment", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 5, "#98D8C8", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "Rent, electricity, water, internet", "Bills & Utilities", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 6, "#F7DC6F", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "Medical expenses, pharmacy, insurance", "Healthcare", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 7, "#B19CD9", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "Miscellaneous expenses", "Other", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) }
                 });
 
             migrationBuilder.CreateIndex(

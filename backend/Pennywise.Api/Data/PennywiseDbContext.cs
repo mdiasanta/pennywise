@@ -65,13 +65,13 @@ public class PennywiseDbContext : DbContext
 
         // Seed data for categories
         modelBuilder.Entity<Category>().HasData(
-            new Category { Id = 1, Name = "Food & Dining", Description = "Groceries, restaurants, and dining out", Color = "#FF6B6B", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
-            new Category { Id = 2, Name = "Transportation", Description = "Gas, public transport, car maintenance", Color = "#4ECDC4", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
-            new Category { Id = 3, Name = "Shopping", Description = "Clothing, electronics, and general shopping", Color = "#45B7D1", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
-            new Category { Id = 4, Name = "Entertainment", Description = "Movies, games, hobbies, and recreation", Color = "#FFA07A", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
-            new Category { Id = 5, Name = "Bills & Utilities", Description = "Rent, electricity, water, internet", Color = "#98D8C8", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
-            new Category { Id = 6, Name = "Healthcare", Description = "Medical expenses, pharmacy, insurance", Color = "#F7DC6F", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
-            new Category { Id = 7, Name = "Other", Description = "Miscellaneous expenses", Color = "#B19CD9", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow }
+            new Category { Id = 1, Name = "Food & Dining", Description = "Groceries, restaurants, and dining out", Color = "#FF6B6B", CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+            new Category { Id = 2, Name = "Transportation", Description = "Gas, public transport, car maintenance", Color = "#4ECDC4", CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+            new Category { Id = 3, Name = "Shopping", Description = "Clothing, electronics, and general shopping", Color = "#45B7D1", CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+            new Category { Id = 4, Name = "Entertainment", Description = "Movies, games, hobbies, and recreation", Color = "#FFA07A", CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+            new Category { Id = 5, Name = "Bills & Utilities", Description = "Rent, electricity, water, internet", Color = "#98D8C8", CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+            new Category { Id = 6, Name = "Healthcare", Description = "Medical expenses, pharmacy, insurance", Color = "#F7DC6F", CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+            new Category { Id = 7, Name = "Other", Description = "Miscellaneous expenses", Color = "#B19CD9", CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) }
         );
     }
 }

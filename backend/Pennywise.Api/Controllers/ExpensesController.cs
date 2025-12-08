@@ -38,7 +38,15 @@ public class ExpensesController : ControllerBase
         [FromQuery] DateTime startDate, 
         [FromQuery] DateTime endDate)
     {
-        var expenses = await _expenseService.GetExpensesByDateRangeAsync(userId, startDate, endDate);
+        // Convert to UTC if not already
+        var startDateUtc = startDate.Kind == DateTimeKind.Unspecified 
+            ? DateTime.SpecifyKind(startDate, DateTimeKind.Utc) 
+            : startDate.ToUniversalTime();
+        var endDateUtc = endDate.Kind == DateTimeKind.Unspecified 
+            ? DateTime.SpecifyKind(endDate, DateTimeKind.Utc) 
+            : endDate.ToUniversalTime();
+            
+        var expenses = await _expenseService.GetExpensesByDateRangeAsync(userId, startDateUtc, endDateUtc);
         return Ok(expenses);
     }
 

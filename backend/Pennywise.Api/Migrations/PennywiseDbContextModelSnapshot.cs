@@ -62,64 +62,64 @@ namespace Pennywise.Api.Migrations
                         {
                             Id = 1,
                             Color = "#FF6B6B",
-                            CreatedAt = new DateTime(2025, 12, 8, 7, 23, 6, 817, DateTimeKind.Utc).AddTicks(6656),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Groceries, restaurants, and dining out",
                             Name = "Food & Dining",
-                            UpdatedAt = new DateTime(2025, 12, 8, 7, 23, 6, 817, DateTimeKind.Utc).AddTicks(6893)
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
                             Id = 2,
                             Color = "#4ECDC4",
-                            CreatedAt = new DateTime(2025, 12, 8, 7, 23, 6, 817, DateTimeKind.Utc).AddTicks(7281),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Gas, public transport, car maintenance",
                             Name = "Transportation",
-                            UpdatedAt = new DateTime(2025, 12, 8, 7, 23, 6, 817, DateTimeKind.Utc).AddTicks(7282)
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
                             Id = 3,
                             Color = "#45B7D1",
-                            CreatedAt = new DateTime(2025, 12, 8, 7, 23, 6, 817, DateTimeKind.Utc).AddTicks(7284),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Clothing, electronics, and general shopping",
                             Name = "Shopping",
-                            UpdatedAt = new DateTime(2025, 12, 8, 7, 23, 6, 817, DateTimeKind.Utc).AddTicks(7284)
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
                             Id = 4,
                             Color = "#FFA07A",
-                            CreatedAt = new DateTime(2025, 12, 8, 7, 23, 6, 817, DateTimeKind.Utc).AddTicks(7286),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Movies, games, hobbies, and recreation",
                             Name = "Entertainment",
-                            UpdatedAt = new DateTime(2025, 12, 8, 7, 23, 6, 817, DateTimeKind.Utc).AddTicks(7287)
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
                             Id = 5,
                             Color = "#98D8C8",
-                            CreatedAt = new DateTime(2025, 12, 8, 7, 23, 6, 817, DateTimeKind.Utc).AddTicks(7288),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Rent, electricity, water, internet",
                             Name = "Bills & Utilities",
-                            UpdatedAt = new DateTime(2025, 12, 8, 7, 23, 6, 817, DateTimeKind.Utc).AddTicks(7288)
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
                             Id = 6,
                             Color = "#F7DC6F",
-                            CreatedAt = new DateTime(2025, 12, 8, 7, 23, 6, 817, DateTimeKind.Utc).AddTicks(7290),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Medical expenses, pharmacy, insurance",
                             Name = "Healthcare",
-                            UpdatedAt = new DateTime(2025, 12, 8, 7, 23, 6, 817, DateTimeKind.Utc).AddTicks(7290)
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
                             Id = 7,
                             Color = "#B19CD9",
-                            CreatedAt = new DateTime(2025, 12, 8, 7, 23, 6, 817, DateTimeKind.Utc).AddTicks(7291),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Miscellaneous expenses",
                             Name = "Other",
-                            UpdatedAt = new DateTime(2025, 12, 8, 7, 23, 6, 817, DateTimeKind.Utc).AddTicks(7292)
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         });
                 });
 
