@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Pennywise.Api.DTOs;
+using Pennywise.Api.Helpers;
 using Pennywise.Api.Services;
 
 namespace Pennywise.Api.Controllers;
@@ -38,15 +39,10 @@ public class ExpensesController : ControllerBase
         [FromQuery] DateTime startDate, 
         [FromQuery] DateTime endDate)
     {
-        // Convert to UTC if not already
-        var startDateUtc = startDate.Kind == DateTimeKind.Unspecified 
-            ? DateTime.SpecifyKind(startDate, DateTimeKind.Utc) 
-            : startDate.ToUniversalTime();
-        var endDateUtc = endDate.Kind == DateTimeKind.Unspecified 
-            ? DateTime.SpecifyKind(endDate, DateTimeKind.Utc) 
-            : endDate.ToUniversalTime();
-            
-        var expenses = await _expenseService.GetExpensesByDateRangeAsync(userId, startDateUtc, endDateUtc);
+        var expenses = await _expenseService.GetExpensesByDateRangeAsync(
+            userId, 
+            startDate.ToUtc(), 
+            endDate.ToUtc());
         return Ok(expenses);
     }
 
