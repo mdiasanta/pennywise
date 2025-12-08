@@ -40,6 +40,16 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// Apply migrations automatically in development
+if (app.Environment.IsDevelopment())
+{
+    using (var scope = app.Services.CreateScope())
+    {
+        var db = scope.ServiceProvider.GetRequiredService<PennywiseDbContext>();
+        db.Database.Migrate();
+    }
+}
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
