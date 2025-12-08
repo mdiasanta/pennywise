@@ -54,6 +54,22 @@ services:
       - pennywise-network
     restart: unless-stopped
 
+  # Dev Container
+  devcontainer:
+    image: mcr.microsoft.com/devcontainers/base:ubuntu
+    container_name: pennywise-devcontainer
+    command: sleep infinity
+    volumes:
+      - ..:/workspace:cached
+    networks:
+      - pennywise-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=pennywise;Username=pennywise;Password=pennywise_password
+
 networks:
   pennywise-network:
     driver: bridge
