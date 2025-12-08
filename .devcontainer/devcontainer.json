@@ -1,8 +1,8 @@
 {
   "name": "Pennywise Dev Container",
-  "dockerComposeFile": "../docker-compose.yml",
+  "dockerComposeFile": "../compose.yml",
   "service": "devcontainer",
-  "workspaceFolder": "/workspace",
+  "workspaceFolder": "/workspace/pennywise",
   "forwardPorts": [3000, 8080, 5432],
   "portsAttributes": {
     "3000": {
@@ -72,7 +72,8 @@
         "PKief.material-icon-theme",
         "GitHub.vscode-pull-request-github",
         "mtxr.sqltools",
-        "mtxr.sqltools-driver-pg"
+        "mtxr.sqltools-driver-pg",
+        "openai.chatgpt"
       ]
     }
   },
