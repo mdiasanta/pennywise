@@ -179,6 +179,12 @@ export default function DashboardPage() {
                 Home
               </Button>
             </Link>
+            <Link to="/categories">
+              <Button variant="ghost" size="sm" className="text-foreground hover:bg-card/70">
+                <TrendingDown className="mr-2 h-4 w-4" />
+                Categories
+              </Button>
+            </Link>
             <Link to="/expenses">
               <Button variant="ghost" size="sm" className="text-foreground hover:bg-card/70">
                 <TrendingDown className="mr-2 h-4 w-4" />
