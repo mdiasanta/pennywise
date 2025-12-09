@@ -134,6 +134,9 @@ export default function HomePage() {
             <Link to="/expenses" className="hover:text-foreground">
               Expenses
             </Link>
+            <Link to="/categories" className="hover:text-foreground">
+              Categories
+            </Link>
             <ThemeToggle />
             <Link to="/dashboard">
               <Button className="bg-emerald-500 text-primary-foreground shadow-lg shadow-emerald-500/30 transition hover:-translate-y-0.5 hover:bg-emerald-400">

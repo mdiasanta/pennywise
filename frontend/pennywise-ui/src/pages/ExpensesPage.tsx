@@ -10,11 +10,11 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Wallet, Plus, Pencil, Trash2, Home, BarChart3, ArrowLeft } from 'lucide-react';
-import { expenseApi, categoryApi, userApi } from '@/lib/api';
-import type { Expense, Category, CreateExpense, UpdateExpense } from '@/lib/api';
+import { Wallet, Plus, Pencil, Trash2, Home, BarChart3, ArrowLeft, Palette } from 'lucide-react';
+import { expenseApi, userApi } from '@/lib/api';
+import type { Expense, CreateExpense, UpdateExpense } from '@/lib/api';
+import { useCategories } from '@/hooks/use-categories';
 import { useToast } from '@/hooks/use-toast';
-import { Toaster } from '@/components/ui/toaster';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 const DEMO_USER = {
@@ -24,12 +24,12 @@ const DEMO_USER = {
 
 export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [userId, setUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const { toast } = useToast();
+  const { categories, isLoading: categoriesLoading, error: categoriesError } = useCategories();
 
   // Form state
   const [formData, setFormData] = useState({
@@ -62,12 +62,8 @@ export default function ExpensesPage() {
     try {
       setLoading(true);
       const activeUserId = await getActiveUserId();
-      const [expensesData, categoriesData] = await Promise.all([
-        expenseApi.getAll(activeUserId),
-        categoryApi.getAll(),
-      ]);
+      const expensesData = await expenseApi.getAll(activeUserId);
       setExpenses(expensesData);
-      setCategories(categoriesData);
     } catch (error) {
       toast({
         variant: 'destructive',
@@ -93,6 +89,24 @@ export default function ExpensesPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (categoriesLoading) {
+      toast({
+        variant: 'destructive',
+        title: 'Please wait',
+        description: 'Categories are still loading. Try again in a moment.',
+      });
+      return;
+    }
+
+    if (categories.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Add a category first',
+        description: 'Create a category before saving an expense.',
+      });
+      return;
+    }
+
     const parsedAmount = parseFloat(formData.amount);
     const parsedCategoryId = parseInt(formData.categoryId, 10);
 
@@ -245,6 +259,12 @@ export default function ExpensesPage() {
                 Dashboard
               </Button>
             </Link>
+            <Link to="/categories">
+              <Button variant="ghost" size="sm" className="text-foreground hover:bg-card/70">
+                <Palette className="mr-2 h-4 w-4" />
+                Categories
+              </Button>
+            </Link>
             <ThemeToggle />
             <Dialog
               open={isAddDialogOpen}
@@ -318,6 +338,7 @@ export default function ExpensesPage() {
                         value={formData.categoryId}
                         onValueChange={(value) => setFormData({ ...formData, categoryId: value })}
                         required
+                        disabled={categoriesLoading || categories.length === 0}
                       >
                         <SelectTrigger className="border-border/60 bg-card text-foreground">
                           <SelectValue placeholder="Select a category" />
@@ -330,6 +351,19 @@ export default function ExpensesPage() {
                           ))}
                         </SelectContent>
                       </Select>
+                      {categoriesLoading ? (
+                        <p className="text-sm text-muted-foreground">Loading categories...</p>
+                      ) : null}
+                      {categoriesError && !categoriesLoading ? (
+                        <p className="text-sm text-destructive">
+                          Unable to load categories. Try again or manage them from the Categories page.
+                        </p>
+                      ) : null}
+                      {!categoriesLoading && categories.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">
+                          No categories found. Create one from the Categories page to start tagging expenses.
+                        </p>
+                      ) : null}
                     </div>
                     
                     <div className="space-y-2">
@@ -503,8 +537,6 @@ export default function ExpensesPage() {
           </Card>
         </div>
       </main>
-      
-      <Toaster />
     </div>
   );
 }
