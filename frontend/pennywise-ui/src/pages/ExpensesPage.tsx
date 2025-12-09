@@ -11,18 +11,21 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Wallet, Plus, Pencil, Trash2, Home, BarChart3, ArrowLeft } from 'lucide-react';
-import { expenseApi, categoryApi } from '@/lib/api';
+import { expenseApi, categoryApi, userApi } from '@/lib/api';
 import type { Expense, Category, CreateExpense, UpdateExpense } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { Toaster } from '@/components/ui/toaster';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
-// For demo purposes, using userId = 1
-const DEMO_USER_ID = 1;
+const DEMO_USER = {
+  username: 'Demo User',
+  email: 'demo@pennywise.app',
+};
 
 export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [userId, setUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
@@ -41,11 +44,26 @@ export default function ExpensesPage() {
     loadData();
   }, []);
 
+  const getActiveUserId = async () => {
+    if (userId) return userId;
+
+    const existingUser = await userApi.getByEmail(DEMO_USER.email);
+    if (existingUser) {
+      setUserId(existingUser.id);
+      return existingUser.id;
+    }
+
+    const newUser = await userApi.create(DEMO_USER);
+    setUserId(newUser.id);
+    return newUser.id;
+  };
+
   const loadData = async () => {
     try {
       setLoading(true);
+      const activeUserId = await getActiveUserId();
       const [expensesData, categoriesData] = await Promise.all([
-        expenseApi.getAll(DEMO_USER_ID),
+        expenseApi.getAll(activeUserId),
         categoryApi.getAll(),
       ]);
       setExpenses(expensesData);
@@ -75,19 +93,32 @@ export default function ExpensesPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const parsedAmount = parseFloat(formData.amount);
+    const parsedCategoryId = parseInt(formData.categoryId, 10);
+
+    if (Number.isNaN(parsedAmount) || Number.isNaN(parsedCategoryId)) {
+      toast({
+        variant: 'destructive',
+        title: 'Missing fields',
+        description: 'Please enter an amount and choose a category before saving.',
+      });
+      return;
+    }
     
     try {
+      const activeUserId = await getActiveUserId();
+
       if (editingExpense) {
         // Update existing expense
         const updateData: UpdateExpense = {
           title: formData.title,
           description: formData.description || undefined,
-          amount: parseFloat(formData.amount),
+          amount: parsedAmount,
           date: new Date(formData.date).toISOString(),
-          categoryId: parseInt(formData.categoryId),
+          categoryId: parsedCategoryId,
         };
         
-        await expenseApi.update(editingExpense.id, DEMO_USER_ID, updateData);
+        await expenseApi.update(editingExpense.id, activeUserId, updateData);
         toast({
           title: 'Success',
           description: 'Expense updated successfully.',
@@ -97,10 +128,10 @@ export default function ExpensesPage() {
         const createData: CreateExpense = {
           title: formData.title,
           description: formData.description || undefined,
-          amount: parseFloat(formData.amount),
+          amount: parsedAmount,
           date: new Date(formData.date).toISOString(),
-          userId: DEMO_USER_ID,
-          categoryId: parseInt(formData.categoryId),
+          userId: activeUserId,
+          categoryId: parsedCategoryId,
         };
         
         await expenseApi.create(createData);
@@ -137,7 +168,8 @@ export default function ExpensesPage() {
 
   const handleDelete = async (id: number) => {
     try {
-      await expenseApi.delete(id, DEMO_USER_ID);
+      const activeUserId = await getActiveUserId();
+      await expenseApi.delete(id, activeUserId);
       toast({
         title: 'Success',
         description: 'Expense deleted successfully.',

@@ -3,6 +3,24 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
 
 // Types matching backend DTOs
+export interface User {
+  id: number;
+  username: string;
+  email: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateUser {
+  username: string;
+  email: string;
+}
+
+export interface UpdateUser {
+  username?: string;
+  email?: string;
+}
+
 export interface Expense {
   id: number;
   title: string;
@@ -65,9 +83,41 @@ async function handleResponse<T>(response: Response): Promise<T> {
   if (response.status === 204) {
     return undefined as T;
   }
-  
+
   return response.json();
 }
+
+// User API
+export const userApi = {
+  async getById(id: number): Promise<User> {
+    const response = await fetch(`${API_BASE_URL}/users/${id}`);
+    return handleResponse<User>(response);
+  },
+
+  async getByEmail(email: string): Promise<User | null> {
+    const response = await fetch(`${API_BASE_URL}/users/email/${encodeURIComponent(email)}`);
+    if (response.status === 404) return null;
+    return handleResponse<User>(response);
+  },
+
+  async create(user: CreateUser): Promise<User> {
+    const response = await fetch(`${API_BASE_URL}/users`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(user),
+    });
+    return handleResponse<User>(response);
+  },
+
+  async update(id: number, user: UpdateUser): Promise<User> {
+    const response = await fetch(`${API_BASE_URL}/users/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(user),
+    });
+    return handleResponse<User>(response);
+  },
+};
 
 // Expense API
 export const expenseApi = {
