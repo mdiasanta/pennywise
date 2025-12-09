@@ -167,70 +167,72 @@ export default function ExpensesPage() {
     });
   };
 
+  const totalAmount = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Link to="/">
-                <Button variant="ghost" size="icon">
-                  <ArrowLeft className="h-5 w-5" />
-                </Button>
-              </Link>
-              <div className="flex items-center space-x-2">
-                <Wallet className="h-8 w-8 text-primary" />
-                <h1 className="text-2xl font-bold">Pennywise</h1>
+    <div className="relative min-h-screen overflow-hidden bg-background text-foreground">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -left-24 top-10 h-72 w-72 rounded-full bg-emerald-500/20 blur-3xl" />
+        <div className="absolute right-0 top-24 h-96 w-96 rounded-full bg-cyan-400/15 blur-3xl" />
+        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-amber-400/10 blur-3xl" />
+      </div>
+
+      <header className="relative z-20 border-b border-border/60 bg-background/80 backdrop-blur">
+        <div className="container mx-auto flex items-center justify-between px-4 py-4">
+          <div className="flex items-center gap-3">
+            <Link to="/">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="border border-border/60 text-foreground hover:bg-card/70"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+            </Link>
+            <div className="flex items-center gap-2">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/15 ring-1 ring-emerald-500/30">
+                <Wallet className="h-5 w-5 text-emerald-200" />
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Pennywise</p>
+                <p className="text-lg font-semibold text-foreground">Expense workspace</p>
               </div>
             </div>
-            <nav className="flex items-center space-x-2">
-              <Link to="/">
-                <Button variant="ghost" size="sm">
-                  <Home className="mr-2 h-4 w-4" />
-                  Home
-                </Button>
-              </Link>
-              <Link to="/dashboard">
-                <Button variant="ghost" size="sm">
-                  <BarChart3 className="mr-2 h-4 w-4" />
-                  Dashboard
-                </Button>
-              </Link>
-            </nav>
           </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-3xl font-bold">Expense Management</h2>
-              <p className="text-muted-foreground mt-1">
-                Track and manage all your expenses in one place
-              </p>
-            </div>
-            
-            <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
-              setIsAddDialogOpen(open);
-              if (!open) resetForm();
-            }}>
+          <nav className="flex items-center gap-2 text-sm">
+            <Link to="/">
+              <Button variant="ghost" size="sm" className="text-foreground hover:bg-card/70">
+                <Home className="mr-2 h-4 w-4" />
+                Home
+              </Button>
+            </Link>
+            <Link to="/dashboard">
+              <Button variant="ghost" size="sm" className="text-foreground hover:bg-card/70">
+                <BarChart3 className="mr-2 h-4 w-4" />
+                Dashboard
+              </Button>
+            </Link>
+            <Dialog
+              open={isAddDialogOpen}
+              onOpenChange={(open) => {
+                setIsAddDialogOpen(open);
+                if (!open) resetForm();
+              }}
+            >
               <DialogTrigger asChild>
-                <Button>
+                <Button className="bg-emerald-500 text-primary-foreground shadow-lg shadow-emerald-500/30 hover:-translate-y-0.5 hover:bg-emerald-400">
                   <Plus className="mr-2 h-4 w-4" />
-                  Add Expense
+                  Add expense
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="border-border/60 bg-card text-foreground">
                 <form onSubmit={handleSubmit}>
                   <DialogHeader>
                     <DialogTitle>
                       {editingExpense ? 'Edit Expense' : 'Add New Expense'}
                     </DialogTitle>
-                    <DialogDescription>
-                      {editingExpense 
+                    <DialogDescription className="text-muted-foreground">
+                      {editingExpense
                         ? 'Update the expense details below.'
                         : 'Fill in the details to create a new expense record.'}
                     </DialogDescription>
@@ -238,9 +240,10 @@ export default function ExpensesPage() {
                   
                   <div className="space-y-4 py-4">
                     <div className="space-y-2">
-                      <Label htmlFor="title">Title *</Label>
+                      <Label htmlFor="title" className="text-muted-foreground">Title *</Label>
                       <Input
                         id="title"
+                        className="border-border/60 bg-card text-foreground placeholder:text-muted-foreground"
                         value={formData.title}
                         onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                         required
@@ -249,12 +252,13 @@ export default function ExpensesPage() {
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="amount">Amount *</Label>
+                      <Label htmlFor="amount" className="text-muted-foreground">Amount *</Label>
                       <Input
                         id="amount"
                         type="number"
                         step="0.01"
                         min="0"
+                        className="border-border/60 bg-card text-foreground placeholder:text-muted-foreground"
                         value={formData.amount}
                         onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                         required
@@ -263,10 +267,11 @@ export default function ExpensesPage() {
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="date">Date *</Label>
+                      <Label htmlFor="date" className="text-muted-foreground">Date *</Label>
                       <Input
                         id="date"
                         type="date"
+                        className="border-border/60 bg-card text-foreground"
                         value={formData.date}
                         onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                         required
@@ -274,16 +279,16 @@ export default function ExpensesPage() {
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="category">Category *</Label>
+                      <Label htmlFor="category" className="text-muted-foreground">Category *</Label>
                       <Select
                         value={formData.categoryId}
                         onValueChange={(value) => setFormData({ ...formData, categoryId: value })}
                         required
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="border-border/60 bg-card text-foreground">
                           <SelectValue placeholder="Select a category" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="border-border/60 bg-card text-foreground">
                           {categories.map((category) => (
                             <SelectItem key={category.id} value={category.id.toString()}>
                               {category.name}
@@ -294,9 +299,10 @@ export default function ExpensesPage() {
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="description">Description</Label>
+                      <Label htmlFor="description" className="text-muted-foreground">Description</Label>
                       <Textarea
                         id="description"
+                        className="border-border/60 bg-card text-foreground placeholder:text-muted-foreground"
                         value={formData.description}
                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                         placeholder="Add any additional details..."
@@ -309,6 +315,7 @@ export default function ExpensesPage() {
                     <Button
                       type="button"
                       variant="outline"
+                      className="border-border/60 bg-card/80 text-foreground hover:bg-card/70"
                       onClick={() => {
                         setIsAddDialogOpen(false);
                         resetForm();
@@ -316,111 +323,147 @@ export default function ExpensesPage() {
                     >
                       Cancel
                     </Button>
-                    <Button type="submit">
+                    <Button
+                      type="submit"
+                      className="bg-emerald-500 text-primary-foreground hover:bg-emerald-400"
+                    >
                       {editingExpense ? 'Update' : 'Create'} Expense
                     </Button>
                   </DialogFooter>
                 </form>
               </DialogContent>
             </Dialog>
-          </div>
+          </nav>
+        </div>
+      </header>
 
-          <Card>
+      <main className="relative z-10 container mx-auto px-4 py-10">
+        <div className="mx-auto max-w-6xl space-y-8">
+          <section className="rounded-3xl border border-border/60 bg-card/80 p-6 shadow-xl shadow-black/20 backdrop-blur md:p-8">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div className="space-y-3">
+                <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Expenses</p>
+                <h1 className="text-3xl font-semibold md:text-4xl">Control every line item</h1>
+                <p className="max-w-2xl text-muted-foreground">
+                  Capture, edit, and audit expenses with the same glassy workspace as your dashboard.
+                </p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-2xl border border-border/60 bg-card/80 p-4 shadow-sm shadow-black/10">
+                  <p className="text-xs text-muted-foreground">Total spend</p>
+                  <p className="mt-1 text-xl font-semibold text-foreground">{formatCurrency(totalAmount)}</p>
+                </div>
+                <div className="rounded-2xl border border-border/60 bg-card/80 p-4 shadow-sm shadow-black/10">
+                  <p className="text-xs text-muted-foreground">Entries</p>
+                  <p className="mt-1 text-xl font-semibold text-foreground">{expenses.length}</p>
+                </div>
+                <div className="rounded-2xl border border-border/60 bg-card/80 p-4 shadow-sm shadow-black/10">
+                  <p className="text-xs text-muted-foreground">Categories</p>
+                  <p className="mt-1 text-xl font-semibold text-foreground">{categories.length}</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
             <CardHeader>
               <CardTitle>All Expenses</CardTitle>
-              <CardDescription>
+              <CardDescription className="text-muted-foreground">
                 A complete list of all your expense records
               </CardDescription>
             </CardHeader>
             <CardContent>
               {loading ? (
-                <div className="text-center py-8 text-muted-foreground">
+                <div className="py-8 text-center text-muted-foreground">
                   Loading expenses...
                 </div>
               ) : expenses.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
+                <div className="py-8 text-center text-muted-foreground">
                   <p>No expenses found.</p>
-                  <p className="text-sm mt-2">Click "Add Expense" to create your first expense record.</p>
+                  <p className="mt-2 text-sm">Click "Add expense" to create your first expense record.</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Title</TableHead>
-                        <TableHead>Category</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead className="text-right">Amount</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {expenses.map((expense) => (
-                        <TableRow key={expense.id}>
-                          <TableCell className="font-medium">
-                            {formatDate(expense.date)}
-                          </TableCell>
-                          <TableCell>{expense.title}</TableCell>
-                          <TableCell>
-                            <Badge
-                              variant="secondary"
-                              style={expense.categoryColor ? {
-                                backgroundColor: expense.categoryColor + '20',
-                                color: expense.categoryColor,
-                                borderColor: expense.categoryColor,
-                              } : undefined}
+                <Table className="text-foreground">
+                  <TableHeader className="[&_tr]:border-border/60">
+                    <TableRow className="border-border/60">
+                      <TableHead className="text-muted-foreground">Date</TableHead>
+                      <TableHead className="text-muted-foreground">Title</TableHead>
+                      <TableHead className="text-muted-foreground">Category</TableHead>
+                      <TableHead className="text-muted-foreground">Description</TableHead>
+                      <TableHead className="text-right text-muted-foreground">Amount</TableHead>
+                      <TableHead className="text-right text-muted-foreground">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {expenses.map((expense) => (
+                      <TableRow
+                        key={expense.id}
+                        className="border-border/60 hover:bg-card/80"
+                      >
+                        <TableCell className="font-medium text-foreground">
+                          {formatDate(expense.date)}
+                        </TableCell>
+                        <TableCell className="text-foreground">{expense.title}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="secondary"
+                            className="border-border/60 bg-card/70 text-foreground"
+                            style={expense.categoryColor ? {
+                              backgroundColor: expense.categoryColor + '22',
+                              color: expense.categoryColor,
+                              borderColor: expense.categoryColor,
+                            } : undefined}
+                          >
+                            {expense.categoryName || 'Uncategorized'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="max-w-xs truncate text-muted-foreground">
+                          {expense.description || '-'}
+                        </TableCell>
+                        <TableCell className="text-right font-semibold text-foreground">
+                          {formatCurrency(expense.amount)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-foreground hover:bg-card/70"
+                              onClick={() => handleEdit(expense)}
                             >
-                              {expense.categoryName || 'Uncategorized'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="max-w-xs truncate">
-                            {expense.description || '-'}
-                          </TableCell>
-                          <TableCell className="text-right font-semibold">
-                            {formatCurrency(expense.amount)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end space-x-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleEdit(expense)}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button variant="ghost" size="icon">
-                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Delete Expense</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Are you sure you want to delete this expense? This action cannot be undone.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction
-                                      onClick={() => handleDelete(expense.id)}
-                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                    >
-                                      Delete
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent className="border-border/60 bg-card text-foreground">
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Expense</AlertDialogTitle>
+                                  <AlertDialogDescription className="text-muted-foreground">
+                                    Are you sure you want to delete this expense? This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel className="border-border/60 bg-card/80 text-foreground hover:bg-card/70">Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDelete(expense.id)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               )}
             </CardContent>
           </Card>
