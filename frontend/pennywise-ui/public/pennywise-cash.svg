@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Background (emerald-500) -->
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="#10b981"></rect>
+
+  <!-- Coin rim (emerald-300) -->
+  <circle cx="32" cy="32" r="18" fill="none" stroke="#6ee7b7" stroke-width="4"></circle>
+
+  <!-- Coin fill (emerald-300) -->
+  <circle cx="32" cy="32" r="14" fill="#6ee7b7"></circle>
+
+  <!-- Money bill inside the coin -->
+  <!-- Bill body -->
+  <rect x="23" y="26" width="18" height="12" rx="2" fill="#10b981"></rect>
+
+  <!-- Bill inner border -->
+  <rect x="25" y="28" width="14" height="8" rx="1.5" fill="none" stroke="#6ee7b7" stroke-width="1.5"></rect>
+
+  <!-- Bill center circle (coin imprint / $ spot) -->
+  <circle cx="32" cy="32" r="2.5" fill="#6ee7b7"></circle>
+
+  <!-- Left and right decorative marks -->
+  <rect x="27" y="31" width="2" height="2" rx="0.7" fill="#6ee7b7"></rect>
+  <rect x="35" y="31" width="2" height="2" rx="0.7" fill="#6ee7b7"></rect>
+
+  <!-- Small sparkle for “wise/smart” money -->
+  <path d="M44 16l1.1 2.5L48 20l-2.9 1.1L44 24l-1.1-2.9L40 20l2.9-1.1L44 16z" fill="#6ee7b7"></path>
+</svg>
