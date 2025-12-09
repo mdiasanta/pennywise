@@ -7,7 +7,6 @@ public class DashboardSummaryDto
     public decimal MonthChangePercent { get; set; }
     public decimal AverageTicket { get; set; }
     public int ActiveCategories { get; set; }
-    public decimal SpentThisMonth { get; set; }
     public decimal RemainingThisMonth { get; set; }
     public IEnumerable<TransactionSummaryDto> RecentTransactions { get; set; } = Enumerable.Empty<TransactionSummaryDto>();
 }

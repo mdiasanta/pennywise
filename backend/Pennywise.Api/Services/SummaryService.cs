@@ -71,7 +71,6 @@ public class SummaryService : ISummaryService
             MonthChangePercent = monthChangePercent,
             AverageTicket = averageTicket,
             ActiveCategories = activeCategories,
-            SpentThisMonth = monthTracked,
             RemainingThisMonth = remainingThisMonth,
             RecentTransactions = recentTransactions
         };

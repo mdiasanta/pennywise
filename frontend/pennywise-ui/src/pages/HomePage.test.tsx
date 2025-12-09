@@ -32,7 +32,6 @@ const summaryResponse: DashboardSummary = {
   monthChangePercent: 12.5,
   averageTicket: 50,
   activeCategories: 4,
-  spentThisMonth: 500,
   remainingThisMonth: 200,
   recentTransactions: [
     {
@@ -77,8 +76,8 @@ describe("HomePage", () => {
       await screen.findByText(/unable to load your highlights/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/we couldn't load your cashflow/i),
-    ).toBeInTheDocument();
+      screen.getAllByText(/we couldn't load your cashflow/i).length,
+    ).toBeGreaterThan(0);
     expect(screen.getAllByText(/retry/i).length).toBeGreaterThan(0);
   });
 
@@ -102,12 +101,11 @@ describe("HomePage", () => {
   it("shows an empty state when no summary data exists", async () => {
     const emptySummary: DashboardSummary = {
       totalTracked: 0,
-      monthTracked: 0,
-      monthChangePercent: 0,
-      averageTicket: 0,
-      activeCategories: 0,
-      spentThisMonth: 0,
-      remainingThisMonth: 0,
+    monthTracked: 0,
+    monthChangePercent: 0,
+    averageTicket: 0,
+    activeCategories: 0,
+    remainingThisMonth: 0,
       recentTransactions: [],
     };
     mockSummaryApi.getDashboard.mockResolvedValue(emptySummary);

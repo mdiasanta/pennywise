@@ -79,7 +79,6 @@ export interface DashboardSummary {
   monthChangePercent: number;
   averageTicket: number;
   activeCategories: number;
-  spentThisMonth: number;
   remainingThisMonth: number;
   recentTransactions: TransactionSummary[];
 }

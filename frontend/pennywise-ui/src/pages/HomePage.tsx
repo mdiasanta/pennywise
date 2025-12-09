@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,7 +37,7 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [userId, setUserId] = useState<number | null>(null);
 
-  const getActiveUserId = async () => {
+  const getActiveUserId = useCallback(async () => {
     if (userId) return userId;
 
     const existingUser = await userApi.getByEmail(DEMO_USER.email);
@@ -49,9 +49,9 @@ export default function HomePage() {
     const createdUser = await userApi.create(DEMO_USER);
     setUserId(createdUser.id);
     return createdUser.id;
-  };
+  }, [userId]);
 
-  const loadSummary = async () => {
+  const loadSummary = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -64,12 +64,11 @@ export default function HomePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [getActiveUserId]);
 
   useEffect(() => {
     loadSummary();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loadSummary]);
 
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat("en-US", {
@@ -419,7 +418,7 @@ export default function HomePage() {
                               </span>
                             </p>
                             <p className="text-xl font-semibold text-foreground">
-                              {formatCurrency(summary?.spentThisMonth ?? 0)}
+                              {formatCurrency(summary?.monthTracked ?? 0)}
                             </p>
                           </div>
                           <div className="rounded-xl border border-border/50 bg-card/80 p-3">
@@ -427,13 +426,11 @@ export default function HomePage() {
                               Remaining{" "}
                               <span className="text-emerald-200">
                                 {summary &&
-                                summary.spentThisMonth + summary.remainingThisMonth >
-                                  0
+                                summary.monthTracked + summary.remainingThisMonth > 0
                                   ? `${Math.round(
                                       (summary.remainingThisMonth /
                                         Math.max(
-                                          summary.spentThisMonth +
-                                            summary.remainingThisMonth,
+                                          summary.monthTracked + summary.remainingThisMonth,
                                           1,
                                         )) *
                                         100,
