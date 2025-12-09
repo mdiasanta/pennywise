@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useState } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,25 +24,102 @@ import {
   Zap,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { summaryApi, userApi, type DashboardSummary } from "@/lib/api";
+
+const DEMO_USER = {
+  username: "Demo User",
+  email: "demo@pennywise.app",
+};
 
 export default function HomePage() {
-  const highlights = [
-    {
-      label: "Tracked this month",
-      value: "$12,480",
-      hint: "+8.2% vs last month",
-    },
-    {
-      label: "Average ticket",
-      value: "$48.20",
-      hint: "Intentional daily choices",
-    },
-    {
-      label: "Categories tuned",
-      value: "14 active",
-      hint: "Rules keep things tidy",
-    },
-  ];
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [userId, setUserId] = useState<number | null>(null);
+
+  const getActiveUserId = useCallback(async () => {
+    if (userId) return userId;
+
+    const existingUser = await userApi.getByEmail(DEMO_USER.email);
+    if (existingUser) {
+      setUserId(existingUser.id);
+      return existingUser.id;
+    }
+
+    const createdUser = await userApi.create(DEMO_USER);
+    setUserId(createdUser.id);
+    return createdUser.id;
+  }, [userId]);
+
+  const loadSummary = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const activeUserId = await getActiveUserId();
+      const data = await summaryApi.getDashboard(activeUserId);
+      setSummary(data);
+    } catch (err) {
+      console.error("Error loading summary:", err);
+      setError("We couldn't load your summary right now.");
+    } finally {
+      setLoading(false);
+    }
+  }, [getActiveUserId]);
+
+  useEffect(() => {
+    loadSummary();
+  }, [loadSummary]);
+
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
+
+  const formatPercent = (value: number) =>
+    `${value >= 0 ? "+" : ""}${value.toFixed(1)}%`;
+
+  const hasSummaryData =
+    summary != null &&
+    (summary.monthTracked > 0 ||
+      summary.averageTicket > 0 ||
+      summary.activeCategories > 0 ||
+      summary.recentTransactions.length > 0);
+
+  const highlightCards =
+    summary && hasSummaryData
+      ? [
+          {
+            label: "Tracked this month",
+            value: formatCurrency(summary.monthTracked),
+            hint:
+              summary.monthChangePercent !== 0
+                ? `${formatPercent(summary.monthChangePercent)} vs last month`
+                : "No previous month data yet",
+          },
+          {
+            label: "Average ticket",
+            value: formatCurrency(summary.averageTicket),
+            hint:
+              summary.averageTicket > 0
+                ? "Across your logged spend"
+                : "Add a transaction to see insights",
+          },
+          {
+            label: "Categories tuned",
+            value: `${summary.activeCategories} active`,
+            hint:
+              summary.activeCategories > 0
+                ? "Based on your categorized spend"
+                : "Capture expenses to activate categories",
+          },
+        ]
+      : [];
+
+  const hasTransactions = (summary?.recentTransactions.length ?? 0) > 0;
+  const cashflowBadge = loading ? "Loading" : error ? "Offline" : "Synced";
 
   const features = [
     {
@@ -199,20 +277,66 @@ export default function HomePage() {
               </div>
 
               <div className="grid gap-4 sm:grid-cols-3">
-                {highlights.map((item) => (
-                  <div
-                    key={item.label}
-                    className="rounded-2xl border border-border/60 bg-card/80 px-4 py-3 shadow-sm shadow-border/40"
-                  >
-                    <p className="text-sm text-muted-foreground">
-                      {item.label}
+                {loading ? (
+                  Array.from({ length: 3 }).map((_, index) => (
+                    <div
+                      key={index}
+                      className="rounded-2xl border border-border/60 bg-card/80 px-4 py-3 shadow-sm shadow-border/40"
+                    >
+                      <p className="text-sm text-muted-foreground">Loading...</p>
+                      <div className="mt-2 h-6 w-24 animate-pulse rounded bg-muted/40" />
+                      <div className="mt-2 h-4 w-32 animate-pulse rounded bg-muted/30" />
+                    </div>
+                  ))
+                ) : error ? (
+                  <div className="sm:col-span-3 rounded-2xl border border-border/60 bg-card/80 px-4 py-3 shadow-sm shadow-border/40">
+                    <p className="text-sm font-semibold text-foreground">
+                      Unable to load your highlights.
                     </p>
-                    <p className="mt-1 text-2xl font-semibold text-foreground">
-                      {item.value}
+                    <p className="text-xs text-muted-foreground">
+                      Check your connection or try again in a moment.
                     </p>
-                    <p className="text-xs text-emerald-200/90">{item.hint}</p>
+                    <Button
+                      variant="outline"
+                      className="mt-3 border-border/60 bg-card/70 text-foreground"
+                      onClick={loadSummary}
+                    >
+                      Retry
+                    </Button>
                   </div>
-                ))}
+                ) : hasSummaryData ? (
+                  highlightCards.map((item) => (
+                    <div
+                      key={item.label}
+                      className="rounded-2xl border border-border/60 bg-card/80 px-4 py-3 shadow-sm shadow-border/40"
+                    >
+                      <p className="text-sm text-muted-foreground">
+                        {item.label}
+                      </p>
+                      <p className="mt-1 text-2xl font-semibold text-foreground">
+                        {item.value}
+                      </p>
+                      <p className="text-xs text-emerald-200/90">{item.hint}</p>
+                    </div>
+                  ))
+                ) : (
+                  <div className="sm:col-span-3 rounded-2xl border border-dashed border-border/60 bg-card/80 px-4 py-3 shadow-sm shadow-border/40">
+                    <p className="text-sm font-semibold text-foreground">
+                      No spending to show yet.
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Add an expense to see your live highlights appear here.
+                    </p>
+                    <Link to="/expenses" className="inline-block">
+                      <Button
+                        size="sm"
+                        className="mt-3 bg-emerald-500 text-primary-foreground shadow-emerald-500/30 hover:bg-emerald-400"
+                      >
+                        Capture an expense
+                      </Button>
+                    </Link>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -224,99 +348,178 @@ export default function HomePage() {
                     <CardTitle className="text-xl text-foreground">
                       Live cashflow
                     </CardTitle>
-                    <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-100">
-                      Synced
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                        error
+                          ? "bg-destructive/15 text-destructive-foreground"
+                          : "bg-emerald-500/20 text-emerald-100"
+                      }`}
+                    >
+                      {cashflowBadge}
                     </span>
                   </div>
                   <CardDescription className="text-muted-foreground">
-                    Updated moments ago across all accounts
+                    {loading
+                      ? "Fetching your latest totals..."
+                      : error
+                        ? "We couldn't sync right now."
+                        : hasSummaryData
+                          ? "Updated from your recent activity"
+                          : "Add an expense to see live cashflow"}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="rounded-2xl border border-border/60 bg-card/80 p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">
-                          Total tracked
-                        </p>
-                        <p className="text-3xl font-semibold text-foreground">
-                          $24,180
-                        </p>
-                      </div>
-                      <Badge
+                  {loading ? (
+                    <div className="space-y-4 text-muted-foreground">
+                      <div className="h-6 w-24 animate-pulse rounded bg-muted/30" />
+                      <div className="h-16 w-full animate-pulse rounded bg-muted/20" />
+                      <div className="h-24 w-full animate-pulse rounded bg-muted/20" />
+                    </div>
+                  ) : error ? (
+                    <div className="rounded-2xl border border-border/60 bg-card/80 p-4 text-sm text-muted-foreground">
+                      <p className="font-semibold text-foreground">
+                        We couldn't load your cashflow.
+                      </p>
+                      <p>Check your connection and try again.</p>
+                      <Button
                         variant="outline"
-                        className="border-emerald-500/30 bg-emerald-500/15 text-emerald-100 hover:bg-emerald-500/25"
+                        className="mt-3 border-border/60 bg-card/70 text-foreground"
+                        onClick={loadSummary}
                       >
-                        +12.4% this month
-                      </Badge>
+                        Retry
+                      </Button>
                     </div>
-                    <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-muted-foreground">
-                      <div className="rounded-xl border border-border/50 bg-card/80 p-3">
-                        <p className="flex items-center justify-between text-xs text-muted-foreground">
-                          Spent <span className="text-emerald-200">-3.2%</span>
-                        </p>
-                        <p className="text-xl font-semibold text-foreground">
-                          $8,240
-                        </p>
-                      </div>
-                      <div className="rounded-xl border border-border/50 bg-card/80 p-3">
-                        <p className="flex items-center justify-between text-xs text-muted-foreground">
-                          Remaining{" "}
-                          <span className="text-emerald-200">62%</span>
-                        </p>
-                        <p className="text-xl font-semibold text-foreground">
-                          $5,140
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    {[
-                      {
-                        name: "Groceries · Market Square",
-                        amount: "-$132.40",
-                        badge: "Need",
-                        color: "text-amber-200",
-                      },
-                      {
-                        name: "Cab · Downtown to home",
-                        amount: "-$18.70",
-                        badge: "Everyday",
-                        color: "text-cyan-200",
-                      },
-                      {
-                        name: "Salary · Remote Studio",
-                        amount: "+$3,900.00",
-                        badge: "Income",
-                        color: "text-emerald-200",
-                      },
-                    ].map((line) => (
-                      <div
-                        key={line.name}
-                        className="flex items-center justify-between rounded-2xl border border-border/50 bg-card/80 px-4 py-3 text-sm text-muted-foreground"
-                      >
-                        <div>
-                          <p className="font-semibold text-foreground">
-                            {line.name}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Just now
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="rounded-full bg-card/70 px-3 py-1 text-xs text-muted-foreground">
-                            {line.badge}
-                          </span>
-                          <p
-                            className={`text-base font-semibold ${line.color}`}
+                  ) : (
+                    <>
+                      <div className="rounded-2xl border border-border/60 bg-card/80 p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm text-muted-foreground">
+                              Total tracked
+                            </p>
+                            <p className="text-3xl font-semibold text-foreground">
+                              {formatCurrency(summary?.totalTracked ?? 0)}
+                            </p>
+                          </div>
+                          <Badge
+                            variant="outline"
+                            className="border-emerald-500/30 bg-emerald-500/15 text-emerald-100 hover:bg-emerald-500/25"
                           >
-                            {line.amount}
-                          </p>
+                            {summary
+                              ? `${formatPercent(
+                                  summary.monthChangePercent,
+                                )} this month`
+                              : "No data yet"}
+                          </Badge>
+                        </div>
+                        <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-muted-foreground">
+                          <div className="rounded-xl border border-border/50 bg-card/80 p-3">
+                            <p className="flex items-center justify-between text-xs text-muted-foreground">
+                              Spent{" "}
+                              <span className="text-emerald-200">
+                                {formatPercent(summary?.monthChangePercent ?? 0)}
+                              </span>
+                            </p>
+                            <p className="text-xl font-semibold text-foreground">
+                              {formatCurrency(summary?.monthTracked ?? 0)}
+                            </p>
+                          </div>
+                          <div className="rounded-xl border border-border/50 bg-card/80 p-3">
+                            <p className="flex items-center justify-between text-xs text-muted-foreground">
+                              Remaining{" "}
+                              <span className="text-emerald-200">
+                                {summary &&
+                                summary.monthTracked + summary.remainingThisMonth > 0
+                                  ? `${Math.round(
+                                      (summary.remainingThisMonth /
+                                        Math.max(
+                                          summary.monthTracked + summary.remainingThisMonth,
+                                          1,
+                                        )) *
+                                        100,
+                                    )}%`
+                                  : "0%"}
+                              </span>
+                            </p>
+                            <p className="text-xl font-semibold text-foreground">
+                              {formatCurrency(summary?.remainingThisMonth ?? 0)}
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
+
+                      <div className="space-y-3">
+                        {hasTransactions ? (
+                          (summary?.recentTransactions ?? []).map((line) => {
+                            const isOutflow = line.amount >= 0;
+                            const displayAmount = `${isOutflow ? "-" : "+"}${formatCurrency(
+                              Math.abs(line.amount),
+                            )}`;
+
+                            return (
+                              <div
+                                key={line.id}
+                                className="flex items-center justify-between rounded-2xl border border-border/50 bg-card/80 px-4 py-3 text-sm text-muted-foreground"
+                              >
+                                <div>
+                                  <p className="font-semibold text-foreground">
+                                    {line.title}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {new Date(line.date).toLocaleString("en-US", {
+                                      month: "short",
+                                      day: "numeric",
+                                    })}
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <span
+                                    className="rounded-full bg-card/70 px-3 py-1 text-xs text-muted-foreground"
+                                    style={
+                                      line.categoryColor
+                                        ? {
+                                            backgroundColor: `${line.categoryColor}22`,
+                                            color: line.categoryColor,
+                                            borderColor: line.categoryColor,
+                                            borderWidth: 1,
+                                          }
+                                        : undefined
+                                    }
+                                  >
+                                    {line.category ?? "Uncategorized"}
+                                  </span>
+                                  <p
+                                    className={`text-base font-semibold ${
+                                      isOutflow ? "text-rose-200" : "text-emerald-200"
+                                    }`}
+                                  >
+                                    {displayAmount}
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <div className="rounded-2xl border border-dashed border-border/60 bg-card/80 px-4 py-6 text-sm text-muted-foreground">
+                            <p className="font-semibold text-foreground">
+                              No recent transactions yet.
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Capture an expense to see it flow into your live view.
+                            </p>
+                            <Link to="/expenses" className="inline-block">
+                              <Button
+                                size="sm"
+                                className="mt-3 bg-emerald-500 text-primary-foreground hover:bg-emerald-400"
+                              >
+                                Add expense
+                              </Button>
+                            </Link>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </div>

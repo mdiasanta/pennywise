@@ -73,6 +73,25 @@ export interface UpdateCategory {
   color?: string;
 }
 
+export interface DashboardSummary {
+  totalTracked: number;
+  monthTracked: number;
+  monthChangePercent: number;
+  averageTicket: number;
+  activeCategories: number;
+  remainingThisMonth: number;
+  recentTransactions: TransactionSummary[];
+}
+
+export interface TransactionSummary {
+  id: number;
+  title: string;
+  amount: number;
+  date: string;
+  category?: string;
+  categoryColor?: string;
+}
+
 // Helper for handling API responses
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
@@ -210,5 +229,13 @@ export const categoryApi = {
       method: 'DELETE',
     });
     return handleResponse<void>(response);
+  },
+};
+
+// Summary API
+export const summaryApi = {
+  async getDashboard(userId: number): Promise<DashboardSummary> {
+    const response = await fetch(`${API_BASE_URL}/summary/user/${userId}`);
+    return handleResponse<DashboardSummary>(response);
   },
 };
