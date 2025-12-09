@@ -119,7 +119,7 @@ export default function HomePage() {
                 Pennywise
               </p>
               <p className="text-lg font-semibold">
-                Personal finance empowered
+                Feel in control of your finances
               </p>
             </div>
           </div>
