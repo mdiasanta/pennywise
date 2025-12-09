@@ -20,12 +20,14 @@ builder.Services.AddDbContext<PennywiseDbContext>(options =>
 builder.Services.AddScoped<IExpenseRepository, ExpenseRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IExportAuditRepository, ExportAuditRepository>();
 
 // Register services
 builder.Services.AddScoped<IExpenseService, ExpenseService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ISummaryService, SummaryService>();
+builder.Services.AddScoped<IExportAuditService, ExportAuditService>();
 
 // Add CORS
 builder.Services.AddCors(options =>

@@ -4,7 +4,18 @@ namespace Pennywise.Api.Repositories;
 
 public interface IExpenseRepository
 {
-    Task<IEnumerable<Expense>> GetAllAsync(int userId);
+    Task<IEnumerable<Expense>> GetAllAsync(
+        int userId,
+        DateTime? startDate = null,
+        DateTime? endDate = null,
+        int? categoryId = null,
+        string? search = null);
+    IAsyncEnumerable<Expense> StreamAllAsync(
+        int userId,
+        DateTime? startDate = null,
+        DateTime? endDate = null,
+        int? categoryId = null,
+        string? search = null);
     Task<Expense?> GetByIdAsync(int id, int userId);
     Task<Expense> CreateAsync(Expense expense);
     Task<Expense?> UpdateAsync(Expense expense);

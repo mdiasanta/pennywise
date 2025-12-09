@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Wallet, Plus, Pencil, Trash2, Home, BarChart3, ArrowLeft, Palette } from 'lucide-react';
+import { Wallet, Plus, Pencil, Trash2, Home, BarChart3, ArrowLeft, Palette, Download } from 'lucide-react';
 import { expenseApi, userApi } from '@/lib/api';
 import type { Expense, CreateExpense, UpdateExpense } from '@/lib/api';
 import { useCategories } from '@/hooks/use-categories';
@@ -28,6 +28,14 @@ export default function ExpensesPage() {
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [filters, setFilters] = useState({
+    startDate: '',
+    endDate: '',
+    categoryId: '',
+    search: '',
+  });
+  const [exportFormat, setExportFormat] = useState<'csv' | 'xlsx'>('csv');
+  const [exporting, setExporting] = useState(false);
   const { toast } = useToast();
   const { categories, isLoading: categoriesLoading, error: categoriesError } = useCategories();
 
@@ -44,6 +52,13 @@ export default function ExpensesPage() {
     loadData();
   }, []);
 
+  const buildFilterPayload = (state = filters) => ({
+    startDate: state.startDate || undefined,
+    endDate: state.endDate || undefined,
+    categoryId: state.categoryId ? parseInt(state.categoryId, 10) : undefined,
+    search: state.search.trim() ? state.search.trim() : undefined,
+  });
+
   const getActiveUserId = async () => {
     if (userId) return userId;
 
@@ -58,11 +73,11 @@ export default function ExpensesPage() {
     return newUser.id;
   };
 
-  const loadData = async () => {
+  const loadData = async (overrideFilters = filters) => {
     try {
       setLoading(true);
       const activeUserId = await getActiveUserId();
-      const expensesData = await expenseApi.getAll(activeUserId);
+      const expensesData = await expenseApi.getAll(activeUserId, buildFilterPayload(overrideFilters));
       setExpenses(expensesData);
     } catch (error) {
       toast({
@@ -85,6 +100,49 @@ export default function ExpensesPage() {
       categoryId: '',
     });
     setEditingExpense(null);
+  };
+
+  const handleApplyFilters = () => {
+    loadData(filters);
+  };
+
+  const handleClearFilters = () => {
+    const cleared = { startDate: '', endDate: '', categoryId: '', search: '' };
+    setFilters(cleared);
+    loadData(cleared);
+  };
+
+  const handleExport = async () => {
+    try {
+      setExporting(true);
+      const activeUserId = await getActiveUserId();
+      const { blob, filename } = await expenseApi.export(
+        activeUserId,
+        exportFormat,
+        buildFilterPayload(filters)
+      );
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: 'Export ready',
+        description: `Downloaded ${exportFormat.toUpperCase()} export.`,
+      });
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Export failed',
+        description: 'Could not export expenses. Please try again.',
+      });
+      console.error('Error exporting expenses:', error);
+    } finally {
+      setExporting(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -441,6 +499,102 @@ export default function ExpensesPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              <div className="mb-6 space-y-4 rounded-2xl border border-border/60 bg-card/60 p-4">
+                <div className="grid gap-4 md:grid-cols-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="search" className="text-muted-foreground">Search</Label>
+                    <Input
+                      id="search"
+                      placeholder="Search title or description"
+                      className="border-border/60 bg-card text-foreground placeholder:text-muted-foreground"
+                      value={filters.search}
+                      onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="startDateFilter" className="text-muted-foreground">Start date</Label>
+                    <Input
+                      id="startDateFilter"
+                      type="date"
+                      className="border-border/60 bg-card text-foreground"
+                      value={filters.startDate}
+                      onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="endDateFilter" className="text-muted-foreground">End date</Label>
+                    <Input
+                      id="endDateFilter"
+                      type="date"
+                      className="border-border/60 bg-card text-foreground"
+                      value={filters.endDate}
+                      onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="categoryFilter" className="text-muted-foreground">Category</Label>
+                    <Select
+                      value={filters.categoryId}
+                      onValueChange={(value) => setFilters({ ...filters, categoryId: value })}
+                      disabled={categoriesLoading || categories.length === 0}
+                    >
+                      <SelectTrigger id="categoryFilter" className="border-border/60 bg-card text-foreground">
+                        <SelectValue placeholder="All categories" />
+                      </SelectTrigger>
+                      <SelectContent className="border-border/60 bg-card text-foreground">
+                        <SelectItem value="">All categories</SelectItem>
+                        {categories.map((category) => (
+                          <SelectItem key={category.id} value={category.id.toString()}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      className="border-border/60 bg-card/80 text-foreground hover:bg-card/70"
+                      onClick={handleApplyFilters}
+                      disabled={loading}
+                    >
+                      Apply filters
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="text-foreground hover:bg-card/70"
+                      onClick={handleClearFilters}
+                      disabled={loading && expenses.length === 0}
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Select
+                      value={exportFormat}
+                      onValueChange={(value) => setExportFormat(value as 'csv' | 'xlsx')}
+                    >
+                      <SelectTrigger className="w-[140px] border-border/60 bg-card text-foreground">
+                        <SelectValue placeholder="Format" />
+                      </SelectTrigger>
+                      <SelectContent className="border-border/60 bg-card text-foreground">
+                        <SelectItem value="csv">CSV</SelectItem>
+                        <SelectItem value="xlsx">Excel</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      className="bg-emerald-500 text-primary-foreground hover:bg-emerald-400"
+                      onClick={handleExport}
+                      disabled={exporting || expenses.length === 0}
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      {exporting ? 'Exporting...' : 'Export'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
               {loading ? (
                 <div className="py-8 text-center text-muted-foreground">
                   Loading expenses...
