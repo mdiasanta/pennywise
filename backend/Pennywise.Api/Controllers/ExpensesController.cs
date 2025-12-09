@@ -68,7 +68,7 @@ public class ExpensesController : ControllerBase
             search
         });
 
-        var fileName = $"expenses-{DateTime.UtcNow:yyyyMMddHHmmss}.{(normalizedFormat == "csv" ? "csv" : "xlsx")}";
+        var fileName = $"expenses-{DateTime.UtcNow:yyyyMMddHHmmss}.{normalizedFormat}";
         Response.Headers["Content-Disposition"] = $"attachment; filename=\"{fileName}\"";
 
         if (normalizedFormat == "csv")
@@ -158,6 +158,7 @@ public class ExpensesController : ControllerBase
         string? search,
         string filterParams)
     {
+        // Use UTF-8 without BOM for better compatibility with spreadsheet tools.
         var encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
         await using var writer = new StreamWriter(Response.Body, encoding, leaveOpen: true);
         await writer.WriteLineAsync("Date,Title,Category,Description,Amount,CreatedAt,UpdatedAt,UserId");

@@ -127,7 +127,11 @@ public class ExpenseRepository : IExpenseRepository
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var pattern = $"%{search.Trim()}%";
+            var sanitized = search.Trim()
+                .Replace("\\", "\\\\")
+                .Replace("%", "\\%")
+                .Replace("_", "\\_");
+            var pattern = $"%{sanitized}%";
             query = query.Where(e =>
                 EF.Functions.ILike(e.Title, pattern) ||
                 (e.Description != null && EF.Functions.ILike(e.Description, pattern)));

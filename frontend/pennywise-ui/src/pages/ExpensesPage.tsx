@@ -31,7 +31,7 @@ export default function ExpensesPage() {
   const [filters, setFilters] = useState({
     startDate: '',
     endDate: '',
-    categoryId: '',
+    categoryId: 'all',
     search: '',
   });
   const [exportFormat, setExportFormat] = useState<'csv' | 'xlsx'>('csv');
@@ -55,7 +55,8 @@ export default function ExpensesPage() {
   const buildFilterPayload = (state = filters) => ({
     startDate: state.startDate || undefined,
     endDate: state.endDate || undefined,
-    categoryId: state.categoryId ? parseInt(state.categoryId, 10) : undefined,
+    categoryId:
+      state.categoryId && state.categoryId !== 'all' ? parseInt(state.categoryId, 10) : undefined,
     search: state.search.trim() ? state.search.trim() : undefined,
   });
 
@@ -107,7 +108,7 @@ export default function ExpensesPage() {
   };
 
   const handleClearFilters = () => {
-    const cleared = { startDate: '', endDate: '', categoryId: '', search: '' };
+    const cleared = { startDate: '', endDate: '', categoryId: 'all', search: '' };
     setFilters(cleared);
     loadData(cleared);
   };
@@ -542,7 +543,7 @@ export default function ExpensesPage() {
                         <SelectValue placeholder="All categories" />
                       </SelectTrigger>
                       <SelectContent className="border-border/60 bg-card text-foreground">
-                        <SelectItem value="">All categories</SelectItem>
+                        <SelectItem value="all">All categories</SelectItem>
                         {categories.map((category) => (
                           <SelectItem key={category.id} value={category.id.toString()}>
                             {category.name}
@@ -566,7 +567,7 @@ export default function ExpensesPage() {
                       variant="ghost"
                       className="text-foreground hover:bg-card/70"
                       onClick={handleClearFilters}
-                      disabled={loading && expenses.length === 0}
+                      disabled={loading}
                     >
                       Clear
                     </Button>

@@ -258,8 +258,9 @@ export const expenseApi = {
     }
 
     const blob = await response.blob();
-    const disposition = response.headers.get('Content-Disposition');
-    const filename = disposition?.split('filename=')[1]?.replace(/"/g, '') || `expenses.${format}`;
+    const disposition = response.headers.get('Content-Disposition') ?? '';
+    const match = disposition.match(/filename\*?=['"]?([^;'"]+)/i);
+    const filename = match?.[1]?.replace(/"/g, '') || `expenses.${format}`;
 
     return {
       blob,
