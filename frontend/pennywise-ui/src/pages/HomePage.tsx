@@ -1,198 +1,517 @@
-import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  Wallet, 
-  TrendingDown, 
-  PieChart, 
-  Shield, 
-  Zap, 
-  BarChart3 
-} from 'lucide-react';
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  ArrowRight,
+  BarChart3,
+  CheckCircle2,
+  CircleDollarSign,
+  Clock3,
+  LineChart,
+  PieChart,
+  Shield,
+  Sparkles,
+  TrendingDown,
+  Wallet,
+  Zap,
+} from "lucide-react";
+import { Link } from "react-router-dom";
 
 export default function HomePage() {
+  const highlights = [
+    {
+      label: "Tracked this month",
+      value: "$12,480",
+      hint: "+8.2% vs last month",
+    },
+    {
+      label: "Average ticket",
+      value: "$48.20",
+      hint: "Intentional daily choices",
+    },
+    {
+      label: "Categories tuned",
+      value: "14 active",
+      hint: "Rules keep things tidy",
+    },
+  ];
+
+  const features = [
+    {
+      icon: TrendingDown,
+      title: "Live spend radar",
+      copy: "Spot burn rates early with trending views and weekly digest summaries.",
+      badge: "Control",
+    },
+    {
+      icon: BarChart3,
+      title: "Clarity dashboards",
+      copy: "Purpose-built reports for cash flow, recurring spend, and category drift.",
+      badge: "Visibility",
+    },
+    {
+      icon: PieChart,
+      title: "Smart categories",
+      copy: "Adaptive rules keep new expenses organized without manual cleanup.",
+      badge: "Automation",
+    },
+    {
+      icon: Zap,
+      title: "Capture in seconds",
+      copy: "Forward a receipt, tap add, or paste a link—Pennywise normalizes it.",
+      badge: "Speed",
+    },
+    {
+      icon: Shield,
+      title: "Secure vault",
+      copy: "Encrypted by default with audit-friendly exports for your records.",
+      badge: "Trust",
+    },
+    {
+      icon: Wallet,
+      title: "Envelope guardrails",
+      copy: "Create envelopes for trips or teams and keep spend aligned to intent.",
+      badge: "Discipline",
+    },
+  ];
+
+  const workflow = [
+    {
+      icon: Clock3,
+      title: "Capture once",
+      copy: "Drop a receipt, quick-add on mobile, or import from your card feed.",
+    },
+    {
+      icon: LineChart,
+      title: "Auto-classify",
+      copy: "Rules apply tags, merchants, and budgets so every dollar is contextual.",
+    },
+    {
+      icon: CheckCircle2,
+      title: "Decide faster",
+      copy: "Answers for 'Can we afford it?' or 'Where did it go?' in two clicks.",
+    },
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
-      {/* Header */}
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Wallet className="h-8 w-8 text-primary" />
-            <h1 className="text-2xl font-bold">Pennywise</h1>
+    <div className="relative min-h-screen overflow-hidden bg-slate-950 text-slate-50">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -left-24 top-10 h-72 w-72 rounded-full bg-emerald-500/20 blur-3xl" />
+        <div className="absolute right-0 top-24 h-96 w-96 rounded-full bg-cyan-400/20 blur-3xl" />
+        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-amber-400/10 blur-3xl" />
+      </div>
+
+      <header className="relative z-20 border-b border-white/5 bg-slate-950/70 backdrop-blur">
+        <div className="container mx-auto flex items-center justify-between px-4 py-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-500/15 ring-1 ring-emerald-500/30">
+              <Wallet className="h-6 w-6 text-emerald-300" />
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-white/60">
+                Pennywise
+              </p>
+              <p className="text-lg font-semibold text-white">
+                Personal finance OS
+              </p>
+            </div>
           </div>
-          <nav className="flex items-center space-x-4">
+
+          <nav className="hidden items-center gap-6 text-sm text-white/80 md:flex">
+            <a className="hover:text-white" href="#features">
+              Platform
+            </a>
+            <a className="hover:text-white" href="#workflow">
+              How it works
+            </a>
+            <Link to="/expenses" className="hover:text-white">
+              Expenses
+            </Link>
             <Link to="/dashboard">
-              <Button variant="default">Get Started</Button>
+              <Button className="bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/30 transition hover:-translate-y-0.5 hover:bg-emerald-400">
+                Launch app
+              </Button>
             </Link>
           </nav>
+
+          <div className="flex items-center gap-3 md:hidden">
+            <Link to="/dashboard">
+              <Button
+                size="sm"
+                className="bg-emerald-500 text-slate-950 hover:bg-emerald-400"
+              >
+                Launch
+              </Button>
+            </Link>
+          </div>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="container mx-auto px-4 py-16 md:py-24">
-        <div className="max-w-4xl mx-auto text-center space-y-6">
-          <h2 className="text-4xl md:text-6xl font-bold tracking-tight">
-            Take Control of Your
-            <span className="text-primary"> Finances</span>
-          </h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Track expenses, analyze spending patterns, and achieve your financial goals with Pennywise - 
-            your personal finance companion.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
+      <main className="relative z-10">
+        <section className="container mx-auto px-4 pb-20 pt-14 md:pb-24 md:pt-20">
+          <div className="grid items-center gap-12 lg:grid-cols-2">
+            <div className="space-y-8">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80 shadow-sm shadow-emerald-500/20 backdrop-blur">
+                <Sparkles className="h-4 w-4 text-amber-300" />
+                Intentional money management
+              </div>
+              <div className="space-y-4">
+                <h1 className="text-4xl font-semibold leading-tight md:text-6xl">
+                  A calmer home for your spending
+                </h1>
+                <p className="text-lg text-white/70">
+                  Pennywise keeps every transaction organized, contextual, and
+                  ready to answer the questions that matter: where did it go,
+                  and what happens next.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <Link to="/dashboard">
+                  <Button
+                    size="lg"
+                    className="w-full sm:w-auto bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/30 transition hover:-translate-y-0.5 hover:bg-emerald-400"
+                  >
+                    Open dashboard
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </Link>
+                <Link to="/expenses">
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="w-full sm:w-auto border-white/20 bg-white/5 text-white hover:bg-white/10"
+                  >
+                    Add an expense
+                  </Button>
+                </Link>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-3">
+                {highlights.map((item) => (
+                  <div
+                    key={item.label}
+                    className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 shadow-sm shadow-white/10"
+                  >
+                    <p className="text-sm text-white/60">{item.label}</p>
+                    <p className="mt-1 text-2xl font-semibold text-white">
+                      {item.value}
+                    </p>
+                    <p className="text-xs text-emerald-200/90">{item.hint}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="relative">
+              <div className="absolute -inset-6 rounded-3xl bg-gradient-to-br from-emerald-500/20 via-transparent to-cyan-400/20 blur-3xl" />
+              <Card className="relative overflow-hidden border-white/10 bg-white/5 text-slate-50 shadow-2xl backdrop-blur">
+                <CardHeader className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-xl text-white">
+                      Live cashflow
+                    </CardTitle>
+                    <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-100">
+                      Synced
+                    </span>
+                  </div>
+                  <CardDescription className="text-white/60">
+                    Updated moments ago across all accounts
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-white/60">Total tracked</p>
+                        <p className="text-3xl font-semibold text-white">
+                          $24,180
+                        </p>
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className="border-emerald-500/30 bg-emerald-500/15 text-emerald-100 hover:bg-emerald-500/25"
+                      >
+                        +12.4% this month
+                      </Badge>
+                    </div>
+                    <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-white/70">
+                      <div className="rounded-xl border border-white/5 bg-white/5 p-3">
+                        <p className="flex items-center justify-between text-xs text-white/60">
+                          Spent <span className="text-emerald-200">-3.2%</span>
+                        </p>
+                        <p className="text-xl font-semibold text-white">
+                          $8,240
+                        </p>
+                      </div>
+                      <div className="rounded-xl border border-white/5 bg-white/5 p-3">
+                        <p className="flex items-center justify-between text-xs text-white/60">
+                          Remaining{" "}
+                          <span className="text-emerald-200">62%</span>
+                        </p>
+                        <p className="text-xl font-semibold text-white">
+                          $5,140
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    {[
+                      {
+                        name: "Groceries · Market Square",
+                        amount: "-$132.40",
+                        badge: "Need",
+                        color: "text-amber-200",
+                      },
+                      {
+                        name: "Cab · Downtown to home",
+                        amount: "-$18.70",
+                        badge: "Everyday",
+                        color: "text-cyan-200",
+                      },
+                      {
+                        name: "Salary · Remote Studio",
+                        amount: "+$3,900.00",
+                        badge: "Income",
+                        color: "text-emerald-200",
+                      },
+                    ].map((line) => (
+                      <div
+                        key={line.name}
+                        className="flex items-center justify-between rounded-2xl border border-white/5 bg-white/5 px-4 py-3 text-sm text-white/80"
+                      >
+                        <div>
+                          <p className="font-semibold text-white">
+                            {line.name}
+                          </p>
+                          <p className="text-xs text-white/60">Just now</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/70">
+                            {line.badge}
+                          </span>
+                          <p
+                            className={`text-base font-semibold ${line.color}`}
+                          >
+                            {line.amount}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </section>
+
+        <section id="features" className="container mx-auto px-4 pb-20">
+          <div className="mb-12 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div className="space-y-2">
+              <p className="text-sm uppercase tracking-[0.2em] text-white/50">
+                Platform
+              </p>
+              <h2 className="text-3xl font-semibold text-white md:text-4xl">
+                Designed for clarity
+              </h2>
+              <p className="max-w-2xl text-white/70">
+                The Pennywise home base blends live insights, crisp
+                visualizations, and automation so you can get to confident
+                decisions faster.
+              </p>
+            </div>
             <Link to="/dashboard">
-              <Button size="lg" className="w-full sm:w-auto">
-                <BarChart3 className="mr-2 h-5 w-5" />
-                View Dashboard
-              </Button>
-            </Link>
-            <Link to="/expenses">
-              <Button size="lg" variant="outline" className="w-full sm:w-auto">
-                <TrendingDown className="mr-2 h-5 w-5" />
-                Manage Expenses
+              <Button
+                variant="secondary"
+                className="border-white/20 bg-white/5 text-white hover:bg-white/10"
+              >
+                View a sample dashboard
               </Button>
             </Link>
           </div>
-        </div>
-      </section>
 
-      {/* Features Section */}
-      <section className="container mx-auto px-4 py-16">
-        <div className="text-center mb-12">
-          <h3 className="text-3xl font-bold mb-4">Everything you need to manage expenses</h3>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Powerful features designed to make expense tracking simple and effective
-          </p>
-        </div>
-
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center space-x-2">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <TrendingDown className="h-6 w-6 text-primary" />
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {features.map((feature) => (
+              <div
+                key={feature.title}
+                className="group relative rounded-3xl border border-white/10 bg-gradient-to-br from-white/10 via-slate-900/80 to-slate-900/30 p-px shadow-lg shadow-black/30"
+              >
+                <div className="h-full rounded-[22px] bg-slate-950/70 p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/5 text-white">
+                      <feature.icon className="h-6 w-6" />
+                    </div>
+                    <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-100">
+                      {feature.badge}
+                    </span>
+                  </div>
+                  <h3 className="mt-6 text-xl font-semibold text-white">
+                    {feature.title}
+                  </h3>
+                  <p className="mt-2 text-sm text-white/70">{feature.copy}</p>
+                  <div className="mt-6 flex items-center gap-2 text-sm font-semibold text-emerald-200">
+                    Learn more
+                    <ArrowRight className="h-4 w-4 transition duration-150 group-hover:translate-x-1" />
+                  </div>
                 </div>
-                <CardTitle>Expense Tracking</CardTitle>
               </div>
-            </CardHeader>
-            <CardContent>
-              <CardDescription>
-                Easily record and categorize all your expenses. Keep track of where your money goes 
-                with detailed descriptions and custom categories.
-              </CardDescription>
+            ))}
+          </div>
+        </section>
+
+        <section id="workflow" className="container mx-auto px-4 pb-20">
+          <div className="rounded-3xl border border-white/10 bg-gradient-to-r from-slate-900/80 via-slate-900/60 to-slate-900/30 p-8 shadow-2xl">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-sm uppercase tracking-[0.2em] text-white/50">
+                  Flow
+                </p>
+                <h2 className="text-3xl font-semibold text-white md:text-4xl">
+                  From capture to clarity
+                </h2>
+                <p className="max-w-2xl text-white/70">
+                  The Pennywise loop is built to keep you proactive—no dusty
+                  spreadsheets or surprise bills.
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/15 text-emerald-200">
+                  <CircleDollarSign className="h-6 w-6" />
+                </div>
+                <p className="text-sm text-white/70">
+                  Built for teams and households that want answers on demand.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-8 grid gap-4 md:grid-cols-3">
+              {workflow.map((step) => (
+                <div
+                  key={step.title}
+                  className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-sm shadow-black/20 backdrop-blur"
+                >
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-200">
+                    <step.icon className="h-5 w-5" />
+                  </div>
+                  <h3 className="mt-4 text-lg font-semibold text-white">
+                    {step.title}
+                  </h3>
+                  <p className="mt-2 text-sm text-white/70">{step.copy}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="container mx-auto px-4 pb-24">
+          <Card className="relative overflow-hidden border-white/10 bg-gradient-to-r from-emerald-500/20 via-emerald-500/10 to-cyan-400/10 text-white shadow-2xl">
+            <div className="absolute inset-0 opacity-40 blur-3xl">
+              <div className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-emerald-500/50 to-transparent" />
+              <div className="absolute inset-y-0 right-0 w-1/3 bg-gradient-to-l from-cyan-400/40 to-transparent" />
+            </div>
+            <CardContent className="relative z-10 px-6 py-12 md:px-12">
+              <div className="grid items-center gap-10 md:grid-cols-[2fr,1fr]">
+                <div className="space-y-4">
+                  <p className="text-sm uppercase tracking-[0.2em] text-emerald-100">
+                    Get started
+                  </p>
+                  <h3 className="text-3xl font-semibold md:text-4xl">
+                    Bring Pennywise into your week and stay two steps ahead.
+                  </h3>
+                  <p className="text-lg text-white/80">
+                    Spin up your dashboard, set envelopes for the month, and
+                    watch every transaction land exactly where it belongs.
+                  </p>
+                  <div className="flex flex-col gap-3 sm:flex-row">
+                    <Link to="/dashboard">
+                      <Button
+                        size="lg"
+                        className="w-full sm:w-auto bg-slate-950 text-white shadow-lg shadow-black/30 transition hover:-translate-y-0.5"
+                      >
+                        Go to dashboard
+                      </Button>
+                    </Link>
+                    <Link to="/expenses">
+                      <Button
+                        size="lg"
+                        variant="secondary"
+                        className="w-full sm:w-auto border-white/40 bg-white/10 text-white hover:bg-white/20"
+                      >
+                        Capture an expense
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+                <div className="rounded-3xl border border-white/20 bg-white/10 p-5 text-sm text-white/80 shadow-lg backdrop-blur">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs uppercase tracking-[0.2em] text-white/60">
+                      In sync
+                    </span>
+                    <span className="rounded-full bg-white/15 px-3 py-1 text-xs text-white">
+                      Realtime
+                    </span>
+                  </div>
+                  <div className="mt-4 space-y-3">
+                    <div className="flex items-center justify-between rounded-2xl bg-white/10 px-4 py-3">
+                      <div>
+                        <p className="text-xs text-white/60">Recurring</p>
+                        <p className="text-base font-semibold text-white">
+                          Bills cleared
+                        </p>
+                      </div>
+                      <p className="text-lg font-semibold text-emerald-100">
+                        92%
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between rounded-2xl bg-white/10 px-4 py-3">
+                      <div>
+                        <p className="text-xs text-white/60">On budget</p>
+                        <p className="text-base font-semibold text-white">
+                          Envelope health
+                        </p>
+                      </div>
+                      <p className="text-lg font-semibold text-amber-100">
+                        88%
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between rounded-2xl bg-white/10 px-4 py-3">
+                      <div>
+                        <p className="text-xs text-white/60">Time saved</p>
+                        <p className="text-base font-semibold text-white">
+                          Manual cleanup
+                        </p>
+                      </div>
+                      <p className="text-lg font-semibold text-cyan-100">
+                        -12 hr/mo
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
+        </section>
+      </main>
 
-          <Card>
-            <CardHeader>
-              <div className="flex items-center space-x-2">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <PieChart className="h-6 w-6 text-primary" />
-                </div>
-                <CardTitle>Visual Analytics</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <CardDescription>
-                Beautiful charts and graphs help you understand your spending patterns. 
-                See where you're spending the most at a glance.
-              </CardDescription>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <div className="flex items-center space-x-2">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <BarChart3 className="h-6 w-6 text-primary" />
-                </div>
-                <CardTitle>Dashboard Insights</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <CardDescription>
-                Get instant insights with your personalized dashboard. View daily, monthly, 
-                and yearly expense summaries all in one place.
-              </CardDescription>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <div className="flex items-center space-x-2">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <Zap className="h-6 w-6 text-primary" />
-                </div>
-                <CardTitle>Quick Actions</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <CardDescription>
-                Add, edit, or delete expenses in seconds. Our intuitive interface makes 
-                managing your finances effortless and fast.
-              </CardDescription>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <div className="flex items-center space-x-2">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <Shield className="h-6 w-6 text-primary" />
-                </div>
-                <CardTitle>Secure & Reliable</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <CardDescription>
-                Your financial data is stored securely with enterprise-grade database technology. 
-                Built with .NET and PostgreSQL for reliability.
-              </CardDescription>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <div className="flex items-center space-x-2">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <Wallet className="h-6 w-6 text-primary" />
-                </div>
-                <CardTitle>Category Management</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <CardDescription>
-                Organize expenses with custom categories. Create, edit, and color-code 
-                categories to match your personal financial structure.
-              </CardDescription>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="container mx-auto px-4 py-16">
-        <Card className="max-w-4xl mx-auto bg-primary text-primary-foreground">
-          <CardContent className="py-12 text-center space-y-6">
-            <h3 className="text-3xl font-bold">Ready to get started?</h3>
-            <p className="text-lg opacity-90 max-w-2xl mx-auto">
-              Start tracking your expenses today and gain control over your financial future.
-            </p>
-            <Link to="/dashboard">
-              <Button size="lg" variant="secondary" className="mt-4">
-                Go to Dashboard
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-      </section>
-
-      {/* Footer */}
-      <footer className="border-t mt-16">
+      <footer className="border-t border-white/5 bg-slate-950/80">
         <div className="container mx-auto px-4 py-8">
-          <div className="text-center text-sm text-muted-foreground">
-            <p>Built with React, TypeScript, .NET, and PostgreSQL</p>
-            <p className="mt-2">© 2024 Pennywise - Personal Finance Application</p>
+          <div className="flex flex-col items-center justify-between gap-3 text-sm text-white/70 md:flex-row">
+            <div className="flex items-center gap-2">
+              <Wallet className="h-5 w-5 text-emerald-300" />
+              <p className="font-semibold text-white">Pennywise</p>
+            </div>
+            <p>
+              Built with React, TypeScript, and a secure .NET + PostgreSQL
+              stack.
+            </p>
+            <p className="text-white/60">© 2024 Pennywise</p>
           </div>
         </div>
       </footer>
