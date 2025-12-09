@@ -1,3 +1,4 @@
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -117,7 +118,9 @@ export default function HomePage() {
               <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
                 Pennywise
               </p>
-              <p className="text-lg font-semibold">Personal finance OS</p>
+              <p className="text-lg font-semibold">
+                Personal finance empowered
+              </p>
             </div>
           </div>
 
@@ -131,6 +134,7 @@ export default function HomePage() {
             <Link to="/expenses" className="hover:text-foreground">
               Expenses
             </Link>
+            <ThemeToggle />
             <Link to="/dashboard">
               <Button className="bg-emerald-500 text-primary-foreground shadow-lg shadow-emerald-500/30 transition hover:-translate-y-0.5 hover:bg-emerald-400">
                 Launch app
@@ -197,7 +201,9 @@ export default function HomePage() {
                     key={item.label}
                     className="rounded-2xl border border-border/60 bg-card/80 px-4 py-3 shadow-sm shadow-border/40"
                   >
-                    <p className="text-sm text-muted-foreground">{item.label}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {item.label}
+                    </p>
                     <p className="mt-1 text-2xl font-semibold text-foreground">
                       {item.value}
                     </p>
@@ -227,7 +233,9 @@ export default function HomePage() {
                   <div className="rounded-2xl border border-border/60 bg-card/80 p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-muted-foreground">Total tracked</p>
+                        <p className="text-sm text-muted-foreground">
+                          Total tracked
+                        </p>
                         <p className="text-3xl font-semibold text-foreground">
                           $24,180
                         </p>
@@ -289,7 +297,9 @@ export default function HomePage() {
                           <p className="font-semibold text-foreground">
                             {line.name}
                           </p>
-                          <p className="text-xs text-muted-foreground">Just now</p>
+                          <p className="text-xs text-muted-foreground">
+                            Just now
+                          </p>
                         </div>
                         <div className="flex items-center gap-3">
                           <span className="rounded-full bg-card/70 px-3 py-1 text-xs text-muted-foreground">
@@ -353,7 +363,9 @@ export default function HomePage() {
                   <h3 className="mt-6 text-xl font-semibold text-foreground">
                     {feature.title}
                   </h3>
-                  <p className="mt-2 text-sm text-muted-foreground">{feature.copy}</p>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {feature.copy}
+                  </p>
                   <div className="mt-6 flex items-center gap-2 text-sm font-semibold text-emerald-200">
                     Learn more
                     <ArrowRight className="h-4 w-4 transition duration-150 group-hover:translate-x-1" />
@@ -401,7 +413,9 @@ export default function HomePage() {
                   <h3 className="mt-4 text-lg font-semibold text-foreground">
                     {step.title}
                   </h3>
-                  <p className="mt-2 text-sm text-muted-foreground">{step.copy}</p>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {step.copy}
+                  </p>
                 </div>
               ))}
             </div>
@@ -459,7 +473,9 @@ export default function HomePage() {
                   <div className="mt-4 space-y-3">
                     <div className="flex items-center justify-between rounded-2xl bg-card/70 px-4 py-3">
                       <div>
-                        <p className="text-xs text-muted-foreground">Recurring</p>
+                        <p className="text-xs text-muted-foreground">
+                          Recurring
+                        </p>
                         <p className="text-base font-semibold text-foreground">
                           Bills cleared
                         </p>
@@ -470,7 +486,9 @@ export default function HomePage() {
                     </div>
                     <div className="flex items-center justify-between rounded-2xl bg-card/70 px-4 py-3">
                       <div>
-                        <p className="text-xs text-muted-foreground">On budget</p>
+                        <p className="text-xs text-muted-foreground">
+                          On budget
+                        </p>
                         <p className="text-base font-semibold text-foreground">
                           Envelope health
                         </p>
@@ -481,7 +499,9 @@ export default function HomePage() {
                     </div>
                     <div className="flex items-center justify-between rounded-2xl bg-card/70 px-4 py-3">
                       <div>
-                        <p className="text-xs text-muted-foreground">Time saved</p>
+                        <p className="text-xs text-muted-foreground">
+                          Time saved
+                        </p>
                         <p className="text-base font-semibold text-foreground">
                           Manual cleanup
                         </p>
@@ -509,7 +529,9 @@ export default function HomePage() {
               Built with React, TypeScript, and a secure .NET + PostgreSQL
               stack.
             </p>
-            <p className="text-muted-foreground">© 2024 Pennywise</p>
+            <p className="text-muted-foreground">
+              © {new Date().getFullYear()} Pennywise
+            </p>
           </div>
         </div>
       </footer>

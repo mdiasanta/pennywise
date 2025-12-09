@@ -15,6 +15,7 @@ import { expenseApi, categoryApi } from '@/lib/api';
 import type { Expense, Category, CreateExpense, UpdateExpense } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { Toaster } from '@/components/ui/toaster';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 // For demo purposes, using userId = 1
 const DEMO_USER_ID = 1;
@@ -212,6 +213,7 @@ export default function ExpensesPage() {
                 Dashboard
               </Button>
             </Link>
+            <ThemeToggle />
             <Dialog
               open={isAddDialogOpen}
               onOpenChange={(open) => {

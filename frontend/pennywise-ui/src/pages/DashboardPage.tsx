@@ -13,28 +13,16 @@ import {
   Calendar,
   DollarSign,
   CreditCard,
-  Settings2,
-  Sun,
-  Moon,
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { expenseApi } from '@/lib/api';
 import type { Expense } from '@/lib/api';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 // For demo purposes, using userId = 1
 const DEMO_USER_ID = 1;
 
 type TimeRange = 'day' | 'week' | 'month' | 'year';
-type Theme = 'light' | 'dark';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FFC658', '#FF6B9D'];
 
@@ -42,22 +30,10 @@ export default function DashboardPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [timeRange, setTimeRange] = useState<TimeRange>('month');
   const [loading, setLoading] = useState(true);
-  const [theme, setTheme] = useState<Theme>(() => {
-    if (typeof window === 'undefined') return 'dark';
-    const stored = localStorage.getItem('theme');
-    if (stored === 'light' || stored === 'dark') return stored;
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  });
 
   useEffect(() => {
     loadData();
   }, [timeRange]);
-
-  useEffect(() => {
-    if (typeof document === 'undefined') return;
-    document.documentElement.classList.toggle('dark', theme === 'dark');
-    localStorage.setItem('theme', theme);
-  }, [theme]);
 
   const loadData = async () => {
     try {
@@ -209,35 +185,7 @@ export default function DashboardPage() {
                 Expenses
               </Button>
             </Link>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-foreground hover:bg-card/70"
-                  aria-label="Settings"
-                >
-                  <Settings2 className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                className="border-border/60 bg-card text-foreground"
-              >
-                <DropdownMenuLabel className="text-muted-foreground">Appearance</DropdownMenuLabel>
-                <DropdownMenuSeparator className="bg-card/70" />
-                <DropdownMenuRadioGroup value={theme} onValueChange={(value) => setTheme(value as Theme)}>
-                  <DropdownMenuRadioItem value="light" className="flex items-center gap-2">
-                    <Sun className="h-4 w-4" />
-                    Light
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="dark" className="flex items-center gap-2">
-                    <Moon className="h-4 w-4" />
-                    Dark
-                  </DropdownMenuRadioItem>
-                </DropdownMenuRadioGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <ThemeToggle />
             <Link to="/expenses">
               <Button size="sm" className="bg-emerald-500 text-primary-foreground shadow-lg shadow-emerald-500/30 hover:-translate-y-0.5 hover:bg-emerald-400">
                 Add expense
