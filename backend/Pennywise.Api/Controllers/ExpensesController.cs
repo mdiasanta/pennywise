@@ -48,45 +48,52 @@ public class ExpensesController : ControllerBase
         [FromQuery] int? categoryId = null,
         [FromQuery] string? search = null)
     {
-        if (userId <= 0)
+        try
         {
-            return BadRequest("Invalid user ID.");
+            if (userId <= 0)
+            {
+                return BadRequest("Invalid user ID.");
+            }
+            var normalizedFormat = string.IsNullOrWhiteSpace(format)
+                ? "csv"
+                : format.Trim().ToLowerInvariant();
+
+            if (normalizedFormat != "csv" && normalizedFormat != "xlsx")
+            {
+                return BadRequest("Unsupported format. Use csv or xlsx.");
+            }
+
+            var normalizedStart = startDate?.ToUtc();
+            var normalizedEnd = endDate?.ToUtc();
+
+            var filterParams = JsonSerializer.Serialize(new
+            {
+                startDate = normalizedStart,
+                endDate = normalizedEnd,
+                categoryId,
+                search
+            });
+
+            var fileName = $"expenses-{DateTime.UtcNow:yyyyMMddHHmmss}.{normalizedFormat}";
+            Response.Headers["Content-Disposition"] = $"attachment; filename=\"{fileName}\"";
+
+            if (normalizedFormat == "csv")
+            {
+                Response.ContentType = "text/csv";
+                await WriteCsvAsync(userId, normalizedStart, normalizedEnd, categoryId, search, filterParams);
+            }
+            else
+            {
+                Response.ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+                await WriteExcelAsync(userId, normalizedStart, normalizedEnd, categoryId, search, filterParams);
+            }
+
+            return new EmptyResult();
         }
-        var normalizedFormat = string.IsNullOrWhiteSpace(format)
-            ? "csv"
-            : format.Trim().ToLowerInvariant();
-
-        if (normalizedFormat != "csv" && normalizedFormat != "xlsx")
+        catch (Exception)
         {
-            return BadRequest("Unsupported format. Use csv or xlsx.");
+            return StatusCode(StatusCodes.Status500InternalServerError, "Failed to export expenses. Please try again.");
         }
-
-        var normalizedStart = startDate?.ToUtc();
-        var normalizedEnd = endDate?.ToUtc();
-
-        var filterParams = JsonSerializer.Serialize(new
-        {
-            startDate = normalizedStart,
-            endDate = normalizedEnd,
-            categoryId,
-            search
-        });
-
-        var fileName = $"expenses-{DateTime.UtcNow:yyyyMMddHHmmss}.{normalizedFormat}";
-        Response.Headers["Content-Disposition"] = $"attachment; filename=\"{fileName}\"";
-
-        if (normalizedFormat == "csv")
-        {
-            Response.ContentType = "text/csv";
-            await WriteCsvAsync(userId, normalizedStart, normalizedEnd, categoryId, search, filterParams);
-        }
-        else
-        {
-            Response.ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-            await WriteExcelAsync(userId, normalizedStart, normalizedEnd, categoryId, search, filterParams);
-        }
-
-        return new EmptyResult();
     }
 
     [HttpGet("{id}/user/{userId}")]

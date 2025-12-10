@@ -104,17 +104,27 @@ export default function ExpensesPage() {
   };
 
   const handleApplyFilters = () => {
-    if (
-      filters.startDate &&
-      filters.endDate &&
-      filters.startDate > filters.endDate
-    ) {
-      toast({
-        variant: 'destructive',
-        title: 'Invalid date range',
-        description: 'Start date must be before or equal to end date.',
-      });
-      return;
+    if (filters.startDate && filters.endDate) {
+      const start = new Date(filters.startDate);
+      const end = new Date(filters.endDate);
+
+      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+        toast({
+          variant: 'destructive',
+          title: 'Invalid date format',
+          description: 'Please enter valid dates.',
+        });
+        return;
+      }
+
+      if (start.getTime() > end.getTime()) {
+        toast({
+          variant: 'destructive',
+          title: 'Invalid date range',
+          description: 'Start date must be before or equal to end date.',
+        });
+        return;
+      }
     }
     loadData(filters);
   };

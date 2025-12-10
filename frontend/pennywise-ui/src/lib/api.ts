@@ -233,7 +233,7 @@ export const expenseApi = {
     userId: number,
     format: 'csv' | 'xlsx',
     filters?: ExpenseFilters
-  ): Promise<{ blob: Blob; filename: string; contentType: string }> {
+  ): Promise<{ blob: Blob; filename: string }> {
     const filterQuery = buildExpenseQuery(filters);
     const queryParts = [`userId=${userId}`, `format=${format}`];
     if (filterQuery) {
@@ -268,7 +268,6 @@ export const expenseApi = {
     return {
       blob,
       filename,
-      contentType: response.headers.get('Content-Type') ?? accept,
     };
   },
 };
