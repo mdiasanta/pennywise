@@ -259,8 +259,11 @@ export const expenseApi = {
 
     const blob = await response.blob();
     const disposition = response.headers.get('Content-Disposition') ?? '';
-    const match = disposition.match(/filename\*?=['"]?([^;'"]+)/i);
-    const filename = match?.[1]?.replace(/"/g, '') || `expenses.${format}`;
+    // Robust filename extraction: RFC 5987, quoted, and unquoted
+    const match = disposition.match(/filename\*=([^']+)''([^;]+)|filename="([^"]+)"|filename=([^;]+)/i);
+    const filename = match?.[2]
+      ? decodeURIComponent(match[2])
+      : (match?.[3] || match?.[4] || `expenses.${format}`);
 
     return {
       blob,
