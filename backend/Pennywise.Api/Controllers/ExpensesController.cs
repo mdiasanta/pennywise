@@ -48,6 +48,10 @@ public class ExpensesController : ControllerBase
         [FromQuery] int? categoryId = null,
         [FromQuery] string? search = null)
     {
+        if (userId <= 0)
+        {
+            return BadRequest("Invalid user ID.");
+        }
         var normalizedFormat = string.IsNullOrWhiteSpace(format)
             ? "csv"
             : format.Trim().ToLowerInvariant();
