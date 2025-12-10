@@ -2,6 +2,7 @@
   "name": "Pennywise Dev Container",
   "dockerComposeFile": "../compose.yml",
   "service": "devcontainer",
+  "runServices": ["devcontainer"],
   "workspaceFolder": "/workspace/pennywise",
   "forwardPorts": [3000, 8080, 5432],
   "portsAttributes": {
