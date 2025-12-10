@@ -197,6 +197,7 @@ public class ExpensesController : ControllerBase
             // Log the error but don't fail the export
             // _logger.LogError(ex, "Failed to record export audit for user {UserId}", userId);
         }
+    }
 
     private async Task WriteExcelAsync(
         int userId,
