@@ -232,7 +232,11 @@ public class ExpensesController : ControllerBase
         }
 
         worksheet.Columns().AdjustToContents();
-        workbook.SaveAs(Response.Body);
+
+        await using var tempStream = new MemoryStream();
+        workbook.SaveAs(tempStream);
+        tempStream.Position = 0;
+        await tempStream.CopyToAsync(Response.Body);
         await Response.Body.FlushAsync();
 
         await _exportAuditService.RecordAsync(userId, "xlsx", filterParams, rowCount, GetClientIp());
