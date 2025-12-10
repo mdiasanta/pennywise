@@ -250,7 +250,14 @@ public class ExpensesController : ControllerBase
         await tempStream.CopyToAsync(Response.Body);
         await Response.Body.FlushAsync();
 
-        await _exportAuditService.RecordAsync(userId, "xlsx", filterParams, rowCount, GetClientIp());
+        try
+        {
+            await _exportAuditService.RecordAsync(userId, "xlsx", filterParams, rowCount, GetClientIp());
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Failed to record export audit log: {ex}");
+        }
     }
 
     private static string EscapeCsv(string value)
