@@ -52,6 +52,13 @@ export interface UpdateExpense {
   categoryId?: number;
 }
 
+export interface ExpenseFilters {
+  startDate?: string;
+  endDate?: string;
+  categoryId?: number;
+  search?: string;
+}
+
 export interface Category {
   id: number;
   name: string;
@@ -138,10 +145,39 @@ export const userApi = {
   },
 };
 
+export function buildExpenseQuery(filters?: ExpenseFilters): string {
+  if (!filters) return '';
+
+  const params = new URLSearchParams();
+
+  if (filters.startDate) {
+    params.set('startDate', filters.startDate);
+  }
+
+  if (filters.endDate) {
+    params.set('endDate', filters.endDate);
+  }
+
+  if (filters.categoryId !== undefined) {
+    params.set('categoryId', filters.categoryId.toString());
+  }
+
+  const searchValue = filters.search?.trim();
+  if (searchValue) {
+    params.set('search', searchValue);
+  }
+
+  return params.toString();
+}
+
 // Expense API
 export const expenseApi = {
-  async getAll(userId: number): Promise<Expense[]> {
-    const response = await fetch(`${API_BASE_URL}/expenses/user/${userId}`);
+  async getAll(userId: number, filters?: ExpenseFilters): Promise<Expense[]> {
+    const filterQuery = buildExpenseQuery(filters);
+    const url = filterQuery
+      ? `${API_BASE_URL}/expenses/user/${userId}?${filterQuery}`
+      : `${API_BASE_URL}/expenses/user/${userId}`;
+    const response = await fetch(url);
     return handleResponse<Expense[]>(response);
   },
 
@@ -191,6 +227,48 @@ export const expenseApi = {
       method: 'DELETE',
     });
     return handleResponse<void>(response);
+  },
+
+  async export(
+    userId: number,
+    format: 'csv' | 'xlsx',
+    filters?: ExpenseFilters
+  ): Promise<{ blob: Blob; filename: string }> {
+    const filterQuery = buildExpenseQuery(filters);
+    const queryParts = [`userId=${userId}`, `format=${format}`];
+    if (filterQuery) {
+      queryParts.push(filterQuery);
+    }
+
+    const url = `${API_BASE_URL}/expenses/export?${queryParts.join('&')}`;
+    const accept =
+      format === 'xlsx'
+        ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        : 'text/csv';
+
+    const response = await fetch(url, {
+      headers: {
+        Accept: accept,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(error || 'Failed to export expenses');
+    }
+
+    const blob = await response.blob();
+    const disposition = response.headers.get('Content-Disposition') ?? '';
+    // Robust filename extraction: RFC 5987, quoted, and unquoted
+    const match = disposition.match(/filename\*=([^']+)''([^;]+)|filename="([^"]+)"|filename=([^;]+)/i);
+    const filename = match?.[2]
+      ? decodeURIComponent(match[2])
+      : (match?.[3] || match?.[4] || `expenses.${format}`);
+
+    return {
+      blob,
+      filename,
+    };
   },
 };
 

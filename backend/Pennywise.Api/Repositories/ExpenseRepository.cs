@@ -13,18 +13,30 @@ public class ExpenseRepository : IExpenseRepository
         _context = context;
     }
 
-    public async Task<IEnumerable<Expense>> GetAllAsync(int userId)
+    public async Task<IEnumerable<Expense>> GetAllAsync(
+        int userId,
+        DateTime? startDate = null,
+        DateTime? endDate = null,
+        int? categoryId = null,
+        string? search = null)
     {
-        return await _context.Expenses
-            .Include(e => e.Category)
-            .Where(e => e.UserId == userId)
-            .OrderByDescending(e => e.Date)
-            .ToListAsync();
+        return await BuildQuery(userId, startDate, endDate, categoryId, search).ToListAsync();
+    }
+
+    public IAsyncEnumerable<Expense> StreamAllAsync(
+        int userId,
+        DateTime? startDate = null,
+        DateTime? endDate = null,
+        int? categoryId = null,
+        string? search = null)
+    {
+        return BuildQuery(userId, startDate, endDate, categoryId, search).AsAsyncEnumerable();
     }
 
     public async Task<Expense?> GetByIdAsync(int id, int userId)
     {
         return await _context.Expenses
+            .AsNoTracking()
             .Include(e => e.Category)
             .FirstOrDefaultAsync(e => e.Id == id && e.UserId == userId);
     }
@@ -78,19 +90,50 @@ public class ExpenseRepository : IExpenseRepository
 
     public async Task<IEnumerable<Expense>> GetByDateRangeAsync(int userId, DateTime startDate, DateTime endDate)
     {
-        return await _context.Expenses
-            .Include(e => e.Category)
-            .Where(e => e.UserId == userId && e.Date >= startDate && e.Date <= endDate)
-            .OrderByDescending(e => e.Date)
-            .ToListAsync();
+        return await BuildQuery(userId, startDate, endDate, null, null).ToListAsync();
     }
 
     public async Task<IEnumerable<Expense>> GetByCategoryAsync(int userId, int categoryId)
     {
-        return await _context.Expenses
+        return await BuildQuery(userId, null, null, categoryId, null).ToListAsync();
+    }
+
+    private IQueryable<Expense> BuildQuery(
+        int userId,
+        DateTime? startDate,
+        DateTime? endDate,
+        int? categoryId,
+        string? search)
+    {
+        var query = _context.Expenses
+            .AsNoTracking()
             .Include(e => e.Category)
-            .Where(e => e.UserId == userId && e.CategoryId == categoryId)
-            .OrderByDescending(e => e.Date)
-            .ToListAsync();
+            .Where(e => e.UserId == userId);
+
+        if (startDate.HasValue)
+        {
+            query = query.Where(e => e.Date >= startDate.Value);
+        }
+
+        if (endDate.HasValue)
+        {
+            query = query.Where(e => e.Date <= endDate.Value);
+        }
+
+        if (categoryId.HasValue)
+        {
+            query = query.Where(e => e.CategoryId == categoryId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim();
+            var pattern = $"%{term}%";
+            query = query.Where(e =>
+                EF.Functions.ILike(e.Title, pattern) ||
+                (e.Description != null && EF.Functions.ILike(e.Description, pattern)));
+        }
+
+        return query.OrderByDescending(e => e.Date);
     }
 }

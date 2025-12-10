@@ -13,9 +13,14 @@ public class ExpenseService : IExpenseService
         _expenseRepository = expenseRepository;
     }
 
-    public async Task<IEnumerable<ExpenseDto>> GetAllExpensesAsync(int userId)
+    public async Task<IEnumerable<ExpenseDto>> GetAllExpensesAsync(
+        int userId,
+        DateTime? startDate = null,
+        DateTime? endDate = null,
+        int? categoryId = null,
+        string? search = null)
     {
-        var expenses = await _expenseRepository.GetAllAsync(userId);
+        var expenses = await _expenseRepository.GetAllAsync(userId, startDate, endDate, categoryId, search);
         return expenses.Select(MapToDto);
     }
 
@@ -77,6 +82,16 @@ public class ExpenseService : IExpenseService
     {
         var expenses = await _expenseRepository.GetByCategoryAsync(userId, categoryId);
         return expenses.Select(MapToDto);
+    }
+
+    public IAsyncEnumerable<Expense> StreamExpensesAsync(
+        int userId,
+        DateTime? startDate = null,
+        DateTime? endDate = null,
+        int? categoryId = null,
+        string? search = null)
+    {
+        return _expenseRepository.StreamAllAsync(userId, startDate, endDate, categoryId, search);
     }
 
     private static ExpenseDto MapToDto(Expense expense)

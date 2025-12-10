@@ -13,6 +13,7 @@ public class PennywiseDbContext : DbContext
     public DbSet<User> Users { get; set; }
     public DbSet<Category> Categories { get; set; }
     public DbSet<Expense> Expenses { get; set; }
+    public DbSet<ExportAudit> ExportAudits { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -61,6 +62,18 @@ public class PennywiseDbContext : DbContext
                 .WithMany(c => c.Expenses)
                 .HasForeignKey(e => e.CategoryId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Export audit configuration
+        modelBuilder.Entity<ExportAudit>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Format).IsRequired().HasMaxLength(10);
+            entity.Property(e => e.FilterParams).HasMaxLength(2000);
+            entity.Property(e => e.ClientIp).HasMaxLength(45);
+            entity.Property(e => e.Timestamp).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.HasIndex(e => e.Timestamp);
+            entity.HasIndex(e => e.UserId);
         });
 
         // Seed data for categories
