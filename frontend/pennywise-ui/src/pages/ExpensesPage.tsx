@@ -104,6 +104,18 @@ export default function ExpensesPage() {
   };
 
   const handleApplyFilters = () => {
+    if (
+      filters.startDate &&
+      filters.endDate &&
+      filters.startDate > filters.endDate
+    ) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid date range',
+        description: 'Start date must be before or equal to end date.',
+      });
+      return;
+    }
     loadData(filters);
   };
 
