@@ -252,8 +252,11 @@ public class ExpensesController : ControllerBase
     private static string EscapeCsv(string value)
     {
         var needsQuotes = value.Contains(',') || value.Contains('"') || value.Contains('\n') || value.Contains('\r');
-        var escaped = value.Replace("\"", "\"\"");
-        return needsQuotes ? $"\"{escaped}\"" : escaped;
+        if (needsQuotes)
+        {
+            return $"\"{value.Replace("\"", "\"\"")}\"";
+        }
+        return value;
     }
 
     private string? GetClientIp()
