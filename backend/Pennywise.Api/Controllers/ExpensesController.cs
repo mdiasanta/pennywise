@@ -64,7 +64,7 @@ public class ExpensesController : ControllerBase
     }
 
     [HttpPost("import")]
-    [RequestFormLimits(MultipartBodyLengthLimit = 12 * 1024 * 1024)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 10 * 1024 * 1024)]
     public async Task<ActionResult<ExpenseImportResponseDto>> ImportExpenses(
         [FromForm] IFormFile file,
         [FromForm] int userId,

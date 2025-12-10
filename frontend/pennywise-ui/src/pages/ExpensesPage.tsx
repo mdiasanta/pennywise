@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,6 +17,19 @@ import type { Expense, CreateExpense, UpdateExpense, ExpenseImportResponse } fro
 import { useCategories } from '@/hooks/use-categories';
 import { useToast } from '@/hooks/use-toast';
 import { ThemeToggle } from '@/components/ThemeToggle';
+
+const US_TIMEZONES = [
+  'America/New_York',
+  'America/Chicago',
+  'America/Denver',
+  'America/Los_Angeles',
+  'America/Phoenix',
+  'America/Anchorage',
+  'Pacific/Honolulu',
+  'America/Detroit',
+  'America/Indiana/Indianapolis',
+  'America/Puerto_Rico',
+];
 
 const DEMO_USER = {
   username: 'Demo User',
@@ -42,10 +55,11 @@ export default function ExpensesPage() {
   const [previewingImport, setPreviewingImport] = useState(false);
   const [applyingImport, setApplyingImport] = useState(false);
   const [duplicateStrategy, setDuplicateStrategy] = useState<'skip' | 'update'>('skip');
-  const [timezone, setTimezone] = useState(
-    () => Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
-  );
+  const resolvedTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  const initialTz = US_TIMEZONES.includes(resolvedTz) ? resolvedTz : US_TIMEZONES[0];
+  const [timezone, setTimezone] = useState(initialTz);
   const [showImportErrorsOnly, setShowImportErrorsOnly] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { toast } = useToast();
   const { categories, isLoading: categoriesLoading, error: categoriesError } = useCategories();
 
@@ -82,6 +96,15 @@ export default function ExpensesPage() {
     const newUser = await userApi.create(DEMO_USER);
     setUserId(newUser.id);
     return newUser.id;
+  };
+
+  const clearImportState = () => {
+    setImportPreview(null);
+    setImportFile(null);
+    setShowImportErrorsOnly(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const loadData = async (overrideFilters = filters) => {
@@ -209,7 +232,7 @@ export default function ExpensesPage() {
       setTimeout(() => URL.revokeObjectURL(url), 100);
       toast({
         title: 'Template downloaded',
-        description: `Opened ${format.toUpperCase()} template with categories.`,
+        description: `Downloaded ${format.toUpperCase()} template with categories.`,
       });
     } catch (error) {
       toast({
@@ -316,6 +339,10 @@ export default function ExpensesPage() {
     link.download = 'import-errors.csv';
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 100);
+    toast({
+      title: 'Exported errors',
+      description: 'Downloaded import errors as CSV.',
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -715,13 +742,21 @@ export default function ExpensesPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="timezone" className="text-muted-foreground">Timezone</Label>
-                  <Input
-                    id="timezone"
-                    className="border-border/60 bg-card text-foreground"
+                  <Select
                     value={timezone}
-                    onChange={(e) => setTimezone(e.target.value)}
-                    placeholder="e.g., America/New_York"
-                  />
+                    onValueChange={(value) => setTimezone(value)}
+                  >
+                    <SelectTrigger id="timezone" className="border-border/60 bg-card text-foreground">
+                      <SelectValue placeholder="Select timezone" />
+                    </SelectTrigger>
+                    <SelectContent className="border-border/60 bg-card text-foreground">
+                      {US_TIMEZONES.map((tz) => (
+                        <SelectItem key={tz} value={tz}>
+                          {tz}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2 md:col-span-2 lg:col-span-3">
                   <Label htmlFor="importFile" className="text-muted-foreground">Upload CSV or Excel</Label>
@@ -738,13 +773,14 @@ export default function ExpensesPage() {
                           handleImportPreview(file);
                         }
                       }}
+                      ref={fileInputRef}
                     />
                     <div className="flex flex-wrap gap-2">
                       <Button
                         variant="outline"
                         className="border-border/60 bg-card/80 text-foreground hover:bg-card/70"
                         disabled={!importPreview || previewingImport}
-                        onClick={() => setImportPreview(null)}
+                        onClick={clearImportState}
                       >
                         Clear preview
                       </Button>

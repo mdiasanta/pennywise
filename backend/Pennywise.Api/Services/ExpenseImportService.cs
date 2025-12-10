@@ -261,11 +261,11 @@ public class ExpenseImportService : IExpenseImportService
     private static string BuildCsvTemplate(string exampleCategory)
     {
         var builder = new StringBuilder();
-        builder.AppendLine("Date,Amount,Category,Description,Notes,ReceiptUrl,PaymentMethod,Tags,Merchant");
+        builder.AppendLine("Date,Amount,Category,Description,Notes");
         builder.AppendLine(
-            $"{DateTime.UtcNow:yyyy-MM-dd},42.50,\"{exampleCategory}\",\"Grocery run\",\"Weekly produce\",,,\"food;weekend\",\"Local Market\"");
+            $"{DateTime.UtcNow:yyyy-MM-dd},42.50,\"{exampleCategory}\",\"Grocery run\",\"Weekly produce\"");
         builder.AppendLine(
-            $"{DateTime.UtcNow.AddDays(-2):yyyy-MM-dd},18.00,\"{exampleCategory}\",\"Coffee with team\",\"\",,,\"coffee\",\"Brew Co\"");
+            $"{DateTime.UtcNow.AddDays(-2):yyyy-MM-dd},18.00,\"{exampleCategory}\",\"Coffee with team\",\"\"");
         return builder.ToString();
     }
 
@@ -280,11 +280,7 @@ public class ExpenseImportService : IExpenseImportService
             "Amount",
             "Category",
             "Description",
-            "Notes",
-            "ReceiptUrl",
-            "PaymentMethod",
-            "Tags",
-            "Merchant"
+            "Notes"
         };
 
         for (var i = 0; i < headers.Length; i++)
@@ -297,13 +293,10 @@ public class ExpenseImportService : IExpenseImportService
         sheet.Cell(2, 3).Value = exampleCategory;
         sheet.Cell(2, 4).Value = "Grocery run";
         sheet.Cell(2, 5).Value = "Weekly produce";
-        sheet.Cell(2, 9).Value = "Local Market";
-
         sheet.Cell(3, 1).Value = DateTime.UtcNow.AddDays(-2).Date;
         sheet.Cell(3, 2).Value = 18.00;
         sheet.Cell(3, 3).Value = exampleCategory;
         sheet.Cell(3, 4).Value = "Coffee with team";
-        sheet.Cell(3, 9).Value = "Brew Co";
 
         var categoriesSheet = workbook.Worksheets.Add("Categories");
         categoriesSheet.Cell(1, 1).Value = "Name";
@@ -315,13 +308,13 @@ public class ExpenseImportService : IExpenseImportService
         }
 
         var validationRange = "Categories!$A$2:$A$" + (row - 1);
-        sheet.Range("C2:C3000").CreateDataValidation().List($"={validationRange}", true);
+        sheet.Range($"C2:C{MaxRows + 1}").CreateDataValidation().List($"={validationRange}", true);
         sheet.Columns().AdjustToContents();
 
         var instructions = workbook.Worksheets.Add("Instructions");
         instructions.Cell(1, 1).Value = "Expense Import Template";
         instructions.Cell(2, 1).Value = "Required columns: Date (yyyy-MM-dd), Amount (> 0), Category (must match existing), Description.";
-        instructions.Cell(3, 1).Value = "Optional columns: Notes, ReceiptUrl, PaymentMethod, Tags, Merchant.";
+        instructions.Cell(3, 1).Value = "Optional columns: Notes.";
         instructions.Cell(4, 1).Value = "Use Categories sheet dropdown for valid categories.";
 
         using var ms = new MemoryStream();
@@ -369,7 +362,9 @@ public class ExpenseImportService : IExpenseImportService
     {
         stream.Position = 0;
         using var workbook = new XLWorkbook(stream);
-        var worksheet = workbook.Worksheets.First();
+        var worksheet = workbook.Worksheet("Import") ?? workbook.Worksheets.FirstOrDefault();
+        if (worksheet == null)
+            throw new InvalidOperationException("The Excel file does not contain a worksheet named 'Import'.");
         var headerRow = worksheet.Row(1);
         var headers = new List<string>();
         var column = 1;
