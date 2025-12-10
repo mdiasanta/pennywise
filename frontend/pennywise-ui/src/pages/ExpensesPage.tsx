@@ -147,10 +147,28 @@ export default function ExpensesPage() {
         description: `Downloaded ${exportFormat.toUpperCase()} export.`,
       });
     } catch (error) {
+      let message = 'Could not export expenses. Please try again.';
+      // Try to extract more specific error information
+      if (error && typeof error === 'object') {
+        // Axios-style error
+        if ('response' in error && error.response) {
+          // Try to get message from response data
+          const data = (error as any).response.data;
+          if (data && typeof data === 'object' && 'message' in data) {
+            message = data.message;
+          } else if (typeof data === 'string') {
+            message = data;
+          } else if ((error as any).response.status) {
+            message = `Server error (${(error as any).response.status}) during export.`;
+          }
+        } else if ('message' in error && typeof (error as any).message === 'string') {
+          message = (error as any).message;
+        }
+      }
       toast({
         variant: 'destructive',
         title: 'Export failed',
-        description: 'Could not export expenses. Please try again.',
+        description: message,
       });
       console.error('Error exporting expenses:', error);
     } finally {
