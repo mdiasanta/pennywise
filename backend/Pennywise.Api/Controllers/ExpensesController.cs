@@ -192,7 +192,7 @@ public class ExpensesController : ControllerBase
         {
             await _exportAuditService.RecordAsync(userId, "csv", filterParams, rowCount, GetClientIp());
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             // Log the error but don't fail the export
             // _logger.LogError(ex, "Failed to record export audit for user {UserId}", userId);
