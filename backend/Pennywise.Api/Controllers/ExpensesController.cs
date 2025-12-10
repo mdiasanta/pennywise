@@ -184,8 +184,15 @@ public class ExpensesController : ControllerBase
 
         await writer.FlushAsync();
 
-        await _exportAuditService.RecordAsync(userId, "csv", filterParams, rowCount, GetClientIp());
-    }
+        try
+        {
+            await _exportAuditService.RecordAsync(userId, "csv", filterParams, rowCount, GetClientIp());
+        }
+        catch (Exception ex)
+        {
+            // Log the error but don't fail the export
+            // _logger.LogError(ex, "Failed to record export audit for user {UserId}", userId);
+        }
 
     private async Task WriteExcelAsync(
         int userId,
