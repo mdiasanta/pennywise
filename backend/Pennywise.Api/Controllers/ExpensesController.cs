@@ -15,11 +15,16 @@ public class ExpensesController : ControllerBase
 {
     private readonly IExpenseService _expenseService;
     private readonly IExportAuditService _exportAuditService;
+    private readonly IExpenseImportService _expenseImportService;
 
-    public ExpensesController(IExpenseService expenseService, IExportAuditService exportAuditService)
+    public ExpensesController(
+        IExpenseService expenseService,
+        IExportAuditService exportAuditService,
+        IExpenseImportService expenseImportService)
     {
         _expenseService = expenseService;
         _exportAuditService = exportAuditService;
+        _expenseImportService = expenseImportService;
     }
 
     [HttpGet("user/{userId}")]
@@ -37,6 +42,71 @@ public class ExpensesController : ControllerBase
             categoryId,
             search);
         return Ok(expenses);
+    }
+
+    [HttpGet("template")]
+    public async Task<IActionResult> GetTemplate([FromQuery] string format = "csv")
+    {
+        try
+        {
+            var template = await _expenseImportService.GenerateTemplateAsync(format);
+            Response.Headers["Content-Disposition"] = $"attachment; filename=\"{template.FileName}\"";
+            return File(template.Content, template.ContentType);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, "Failed to generate template.");
+        }
+    }
+
+    [HttpPost("import")]
+    [RequestFormLimits(MultipartBodyLengthLimit = 12 * 1024 * 1024)]
+    public async Task<ActionResult<ExpenseImportResponseDto>> ImportExpenses(
+        [FromForm] IFormFile file,
+        [FromForm] int userId,
+        [FromForm] string duplicateStrategy = "skip",
+        [FromForm] string? timezone = null,
+        [FromForm] bool dryRun = true,
+        [FromForm] string? externalBatchId = null)
+    {
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest("No file uploaded.");
+        }
+
+        if (userId <= 0)
+        {
+            return BadRequest("Invalid user ID.");
+        }
+
+        try
+        {
+            await using var stream = file.OpenReadStream();
+            var result = await _expenseImportService.ImportAsync(new ExpenseImportRequest
+            {
+                FileStream = stream,
+                FileName = file.FileName,
+                UserId = userId,
+                DuplicateStrategy = duplicateStrategy,
+                Timezone = timezone,
+                DryRun = dryRun,
+                ExternalBatchId = externalBatchId
+            });
+
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, "Failed to import expenses. Please try again.");
+        }
     }
 
     [HttpGet("export")]

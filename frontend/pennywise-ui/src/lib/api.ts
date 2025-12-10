@@ -59,6 +59,25 @@ export interface ExpenseFilters {
   search?: string;
 }
 
+export interface ExpenseImportRowResult {
+  rowNumber: number;
+  status: string;
+  message?: string;
+}
+
+export interface ExpenseImportResponse {
+  fileName: string;
+  dryRun: boolean;
+  duplicateStrategy: string;
+  timezone?: string;
+  totalRows: number;
+  inserted: number;
+  updated: number;
+  skipped: number;
+  errors: number;
+  rows: ExpenseImportRowResult[];
+}
+
 export interface Category {
   id: number;
   name: string;
@@ -269,6 +288,60 @@ export const expenseApi = {
       blob,
       filename,
     };
+  },
+
+  async downloadTemplate(format: 'csv' | 'xlsx'): Promise<{ blob: Blob; filename: string }> {
+    const response = await fetch(`${API_BASE_URL}/expenses/template?format=${format}`);
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(error || 'Failed to download template');
+    }
+
+    const blob = await response.blob();
+    const disposition = response.headers.get('Content-Disposition') ?? '';
+    const match = disposition.match(/filename\*=([^']+)''([^;]+)|filename="([^"]+)"|filename=([^;]+)/i);
+    const filename = match?.[2]
+      ? decodeURIComponent(match[2])
+      : (match?.[3] || match?.[4] || `expenses-template.${format}`);
+
+    return { blob, filename };
+  },
+
+  async importExpenses(
+    userId: number,
+    file: File,
+    options?: { duplicateStrategy?: 'skip' | 'update'; timezone?: string; dryRun?: boolean; externalBatchId?: string }
+  ): Promise<ExpenseImportResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('userId', userId.toString());
+
+    if (options?.duplicateStrategy) {
+      formData.append('duplicateStrategy', options.duplicateStrategy);
+    }
+
+    if (options?.timezone) {
+      formData.append('timezone', options.timezone);
+    }
+
+    formData.append('dryRun', options?.dryRun === false ? 'false' : 'true');
+
+    if (options?.externalBatchId) {
+      formData.append('externalBatchId', options.externalBatchId);
+    }
+
+    const response = await fetch(`${API_BASE_URL}/expenses/import`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const message = await response.text();
+      throw new Error(message || 'Failed to import expenses');
+    }
+
+    return response.json() as Promise<ExpenseImportResponse>;
   },
 };
 

@@ -14,6 +14,7 @@ public class PennywiseDbContext : DbContext
     public DbSet<Category> Categories { get; set; }
     public DbSet<Expense> Expenses { get; set; }
     public DbSet<ExportAudit> ExportAudits { get; set; }
+    public DbSet<ImportAudit> ImportAudits { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -73,6 +74,19 @@ public class PennywiseDbContext : DbContext
             entity.Property(e => e.ClientIp).HasMaxLength(45);
             entity.Property(e => e.Timestamp).HasDefaultValueSql("CURRENT_TIMESTAMP");
             entity.HasIndex(e => e.Timestamp);
+            entity.HasIndex(e => e.UserId);
+        });
+
+        modelBuilder.Entity<ImportAudit>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.FileName).IsRequired().HasMaxLength(255);
+            entity.Property(e => e.DuplicateStrategy).IsRequired().HasMaxLength(20);
+            entity.Property(e => e.Timezone).HasMaxLength(100);
+            entity.Property(e => e.ExternalBatchId).HasMaxLength(100);
+            entity.Property(e => e.ErrorsJson).HasMaxLength(4000);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.HasIndex(e => e.CreatedAt);
             entity.HasIndex(e => e.UserId);
         });
 
