@@ -150,7 +150,9 @@ export default function ExpensesPage() {
       link.href = url;
       link.download = filename;
       link.click();
-      URL.revokeObjectURL(url);
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 100);
 
       toast({
         title: 'Export ready',
