@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,12 +10,26 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Wallet, Plus, Pencil, Trash2, Home, BarChart3, ArrowLeft, Palette, Download } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Wallet, Plus, Pencil, Trash2, Home, BarChart3, ArrowLeft, Palette, Download, Upload, FileWarning, CheckCircle2 } from 'lucide-react';
 import { expenseApi, userApi } from '@/lib/api';
-import type { Expense, CreateExpense, UpdateExpense } from '@/lib/api';
+import type { Expense, CreateExpense, UpdateExpense, ExpenseImportResponse } from '@/lib/api';
 import { useCategories } from '@/hooks/use-categories';
 import { useToast } from '@/hooks/use-toast';
 import { ThemeToggle } from '@/components/ThemeToggle';
+
+const US_TIMEZONES = [
+  'America/New_York',
+  'America/Chicago',
+  'America/Denver',
+  'America/Los_Angeles',
+  'America/Phoenix',
+  'America/Anchorage',
+  'Pacific/Honolulu',
+  'America/Detroit',
+  'America/Indiana/Indianapolis',
+  'America/Puerto_Rico',
+];
 
 const DEMO_USER = {
   username: 'Demo User',
@@ -36,6 +50,16 @@ export default function ExpensesPage() {
   });
   const [exportFormat, setExportFormat] = useState<'csv' | 'xlsx'>('csv');
   const [exporting, setExporting] = useState(false);
+  const [importPreview, setImportPreview] = useState<ExpenseImportResponse | null>(null);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [previewingImport, setPreviewingImport] = useState(false);
+  const [applyingImport, setApplyingImport] = useState(false);
+  const [duplicateStrategy, setDuplicateStrategy] = useState<'skip' | 'update'>('skip');
+  const resolvedTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  const initialTz = US_TIMEZONES.includes(resolvedTz) ? resolvedTz : US_TIMEZONES[0];
+  const [timezone, setTimezone] = useState(initialTz);
+  const [showImportErrorsOnly, setShowImportErrorsOnly] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { toast } = useToast();
   const { categories, isLoading: categoriesLoading, error: categoriesError } = useCategories();
 
@@ -72,6 +96,15 @@ export default function ExpensesPage() {
     const newUser = await userApi.create(DEMO_USER);
     setUserId(newUser.id);
     return newUser.id;
+  };
+
+  const clearImportState = () => {
+    setImportPreview(null);
+    setImportFile(null);
+    setShowImportErrorsOnly(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const loadData = async (overrideFilters = filters) => {
@@ -186,6 +219,130 @@ export default function ExpensesPage() {
     } finally {
       setExporting(false);
     }
+  };
+
+  const handleDownloadTemplate = async (format: 'csv' | 'xlsx') => {
+    try {
+      const { blob, filename } = await expenseApi.downloadTemplate(format);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+      toast({
+        title: 'Template downloaded',
+        description: `Downloaded ${format.toUpperCase()} template with categories.`,
+      });
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Template download failed',
+        description: error instanceof Error ? error.message : 'Could not download template.',
+      });
+    }
+  };
+
+  const handleImportPreview = async (file: File) => {
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    if (!extension || (extension !== 'csv' && extension !== 'xlsx')) {
+      toast({
+        variant: 'destructive',
+        title: 'Unsupported file',
+        description: 'Please upload a CSV or Excel (.xlsx) file.',
+      });
+      return;
+    }
+
+    try {
+      setPreviewingImport(true);
+      setImportFile(file);
+      const activeUserId = await getActiveUserId();
+      const preview = await expenseApi.importExpenses(activeUserId, file, {
+        duplicateStrategy,
+        timezone,
+        dryRun: true,
+      });
+      setImportPreview(preview);
+      setShowImportErrorsOnly(false);
+      toast({
+        title: 'Validation complete',
+        description: `Found ${preview.totalRows} rows (${preview.errors} errors).`,
+      });
+    } catch (error) {
+      setImportPreview(null);
+      toast({
+        variant: 'destructive',
+        title: 'Import validation failed',
+        description: error instanceof Error ? error.message : 'Could not validate file.',
+      });
+    } finally {
+      setPreviewingImport(false);
+    }
+  };
+
+  const handleApplyImport = async () => {
+    if (!importFile) {
+      toast({
+        variant: 'destructive',
+        title: 'No file selected',
+        description: 'Upload and validate a CSV or Excel file first.',
+      });
+      return;
+    }
+
+    try {
+      setApplyingImport(true);
+      const activeUserId = await getActiveUserId();
+      const result = await expenseApi.importExpenses(activeUserId, importFile, {
+        duplicateStrategy,
+        timezone,
+        dryRun: false,
+      });
+      setImportPreview(result);
+      toast({
+        title: 'Import applied',
+        description: `Inserted ${result.inserted}, updated ${result.updated}, skipped ${result.skipped}.`,
+      });
+      loadData();
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Import failed',
+        description: error instanceof Error ? error.message : 'Could not apply import.',
+      });
+    } finally {
+      setApplyingImport(false);
+    }
+  };
+
+  const handleExportErrors = () => {
+    if (!importPreview) return;
+    const errorRows = importPreview.rows.filter((row) => row.status === 'error');
+    if (errorRows.length === 0) {
+      toast({
+        title: 'No errors to export',
+        description: 'All rows are valid.',
+      });
+      return;
+    }
+
+    const header = 'Row,Status,Message';
+    const lines = errorRows.map(
+      (row) => `${row.rowNumber},${row.status},"${(row.message ?? '').replace(/"/g, '""')}"`
+    );
+    const csv = [header, ...lines].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'import-errors.csv';
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+    toast({
+      title: 'Exported errors',
+      description: 'Downloaded import errors as CSV.',
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -316,6 +473,10 @@ export default function ExpensesPage() {
   };
 
   const totalAmount = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+  const filteredImportRows =
+    importPreview?.rows.filter((row) => (showImportErrorsOnly ? row.status === 'error' : true)) ??
+    [];
+  const importErrorCount = importPreview?.errors ?? 0;
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-background text-foreground">
@@ -533,6 +694,216 @@ export default function ExpensesPage() {
               </div>
             </div>
           </section>
+
+          <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
+            <CardHeader>
+              <CardTitle>Import expenses</CardTitle>
+              <CardDescription className="text-muted-foreground">
+                Download a guided template, validate your file, and apply imports with duplicate handling.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground">Download template</Label>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      className="border-border/60 bg-card/80 text-foreground hover:bg-card/70"
+                      onClick={() => handleDownloadTemplate('csv')}
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      CSV
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="border-border/60 bg-card/80 text-foreground hover:bg-card/70"
+                      onClick={() => handleDownloadTemplate('xlsx')}
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Excel
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground">Duplicate handling</Label>
+                  <Select
+                    value={duplicateStrategy}
+                    onValueChange={(value) => setDuplicateStrategy(value as 'skip' | 'update')}
+                  >
+                    <SelectTrigger className="border-border/60 bg-card text-foreground">
+                      <SelectValue placeholder="Strategy" />
+                    </SelectTrigger>
+                    <SelectContent className="border-border/60 bg-card text-foreground">
+                      <SelectItem value="skip">Skip duplicates</SelectItem>
+                      <SelectItem value="update">Update duplicates</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="timezone" className="text-muted-foreground">Timezone</Label>
+                  <Select
+                    value={timezone}
+                    onValueChange={(value) => setTimezone(value)}
+                  >
+                    <SelectTrigger id="timezone" className="border-border/60 bg-card text-foreground">
+                      <SelectValue placeholder="Select timezone" />
+                    </SelectTrigger>
+                    <SelectContent className="border-border/60 bg-card text-foreground">
+                      {US_TIMEZONES.map((tz) => (
+                        <SelectItem key={tz} value={tz}>
+                          {tz}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2 md:col-span-2 lg:col-span-3">
+                  <Label htmlFor="importFile" className="text-muted-foreground">Upload CSV or Excel</Label>
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <Input
+                      id="importFile"
+                      type="file"
+                      accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                      className="border-border/60 bg-card text-foreground"
+                      disabled={previewingImport}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          handleImportPreview(file);
+                        }
+                      }}
+                      ref={fileInputRef}
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant="outline"
+                        className="border-border/60 bg-card/80 text-foreground hover:bg-card/70"
+                        disabled={!importPreview || previewingImport}
+                        onClick={clearImportState}
+                      >
+                        Clear preview
+                      </Button>
+                      <Button
+                        className="bg-emerald-500 text-primary-foreground hover:bg-emerald-400"
+                        disabled={!importPreview || applyingImport || previewingImport}
+                        onClick={handleApplyImport}
+                      >
+                        <Upload className="mr-2 h-4 w-4" />
+                        {applyingImport ? 'Applying...' : 'Apply import'}
+                      </Button>
+                    </div>
+                  </div>
+                  {importFile && (
+                    <p className="text-sm text-muted-foreground">
+                      Ready to import: <span className="font-medium text-foreground">{importFile.name}</span>
+                    </p>
+                  )}
+                  {previewingImport && (
+                    <p className="text-sm text-muted-foreground">Validating file...</p>
+                  )}
+                </div>
+              </div>
+
+              {importPreview && (
+                <div className="space-y-3 rounded-2xl border border-border/60 bg-card/60 p-4">
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="rounded-lg border border-border/60 bg-card/80 p-3">
+                      <p className="text-xs text-muted-foreground">Rows</p>
+                      <p className="text-xl font-semibold text-foreground">{importPreview.totalRows}</p>
+                    </div>
+                    <div className="rounded-lg border border-border/60 bg-card/80 p-3">
+                      <p className="text-xs text-muted-foreground">Inserted</p>
+                      <p className="flex items-center gap-2 text-xl font-semibold text-foreground">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                        {importPreview.inserted}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-border/60 bg-card/80 p-3">
+                      <p className="text-xs text-muted-foreground">Updated / Skipped</p>
+                      <p className="text-xl font-semibold text-foreground">
+                        {importPreview.updated} / {importPreview.skipped}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-border/60 bg-card/80 p-3">
+                      <p className="text-xs text-muted-foreground">Errors</p>
+                      <p className="flex items-center gap-2 text-xl font-semibold text-foreground">
+                        <FileWarning className="h-4 w-4 text-amber-500" />
+                        {importErrorCount}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="errorsOnly"
+                        checked={showImportErrorsOnly}
+                        onCheckedChange={(checked) => setShowImportErrorsOnly(Boolean(checked))}
+                      />
+                      <Label htmlFor="errorsOnly" className="text-muted-foreground">Show errors only</Label>
+                    </div>
+                    <Button
+                      variant="outline"
+                      className="border-border/60 bg-card/80 text-foreground hover:bg-card/70"
+                      onClick={handleExportErrors}
+                      disabled={importErrorCount === 0}
+                    >
+                      Export errors
+                    </Button>
+                    <div className="text-sm text-muted-foreground">
+                      Strategy: <span className="font-medium text-foreground uppercase">{importPreview.duplicateStrategy}</span> · Timezone: {importPreview.timezone || 'UTC'} · {importPreview.dryRun ? 'Dry run preview' : 'Applied'}
+                    </div>
+                  </div>
+
+                  <div className="overflow-auto rounded-xl border border-border/60">
+                    <Table className="min-w-[480px] text-foreground">
+                      <TableHeader className="[&_tr]:border-border/60">
+                        <TableRow className="border-border/60">
+                          <TableHead className="w-24 text-muted-foreground">Row</TableHead>
+                          <TableHead className="w-32 text-muted-foreground">Status</TableHead>
+                          <TableHead className="text-muted-foreground">Message</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredImportRows.map((row) => (
+                          <TableRow key={row.rowNumber} className="border-border/60">
+                            <TableCell className="font-medium">{row.rowNumber}</TableCell>
+                            <TableCell>
+                              <Badge
+                                variant="secondary"
+                                className={
+                                  row.status === 'error'
+                                    ? 'border-red-500/60 bg-red-500/10 text-red-500'
+                                    : row.status === 'updated'
+                                      ? 'border-amber-500/60 bg-amber-500/10 text-amber-500'
+                                      : row.status === 'skipped'
+                                        ? 'border-muted-foreground/40 bg-muted/30 text-muted-foreground'
+                                        : 'border-emerald-500/60 bg-emerald-500/10 text-emerald-500'
+                                }
+                              >
+                                {row.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {row.message || '-'}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                        {filteredImportRows.length === 0 && (
+                          <TableRow>
+                            <TableCell colSpan={3} className="text-center text-muted-foreground">
+                              No rows to display.
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
             <CardHeader>
