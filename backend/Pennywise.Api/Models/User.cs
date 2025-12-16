@@ -10,6 +10,7 @@ public class User
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
-    // Navigation property
+    // Navigation properties
     public ICollection<Expense> Expenses { get; set; } = new List<Expense>();
+    public ICollection<Asset> Assets { get; set; } = new List<Asset>();
 }
