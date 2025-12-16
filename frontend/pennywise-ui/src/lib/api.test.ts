@@ -105,7 +105,11 @@ describe('expenseApi.importExpenses and template download', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     const file = new File(['row'], 'expenses.csv', { type: 'text/csv' });
-    await expenseApi.importExpenses(2, file, { duplicateStrategy: 'update', timezone: 'UTC', dryRun: true });
+    await expenseApi.importExpenses(2, file, {
+      duplicateStrategy: 'update',
+      timezone: 'UTC',
+      dryRun: true,
+    });
 
     const [, options] = fetchMock.mock.calls[0];
     const body = options?.body as FormData;

@@ -1,15 +1,10 @@
-import {
-  categoryApi,
-  type Category,
-  type CreateCategory,
-  type UpdateCategory,
-} from "@/lib/api";
-import { useCallback, useEffect, useState } from "react";
-import { useAuth } from "./use-auth";
+import { categoryApi, type Category, type CreateCategory, type UpdateCategory } from '@/lib/api';
+import { useCallback, useEffect, useState } from 'react';
+import { useAuth } from './use-auth';
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
-  return "Something went wrong. Please try again.";
+  return 'Something went wrong. Please try again.';
 }
 
 export function useCategories() {
@@ -55,25 +50,20 @@ export function useCategories() {
     }
   }, []);
 
-  const updateCategory = useCallback(
-    async (id: number, payload: UpdateCategory) => {
-      try {
-        setIsSaving(true);
-        setError(undefined);
-        const updated = await categoryApi.update(id, payload);
-        setCategories((prev) =>
-          prev.map((category) => (category.id === id ? updated : category))
-        );
-        return updated;
-      } catch (err) {
-        setError(getErrorMessage(err));
-        throw err;
-      } finally {
-        setIsSaving(false);
-      }
-    },
-    []
-  );
+  const updateCategory = useCallback(async (id: number, payload: UpdateCategory) => {
+    try {
+      setIsSaving(true);
+      setError(undefined);
+      const updated = await categoryApi.update(id, payload);
+      setCategories((prev) => prev.map((category) => (category.id === id ? updated : category)));
+      return updated;
+    } catch (err) {
+      setError(getErrorMessage(err));
+      throw err;
+    } finally {
+      setIsSaving(false);
+    }
+  }, []);
 
   const deleteCategory = useCallback(async (id: number) => {
     try {

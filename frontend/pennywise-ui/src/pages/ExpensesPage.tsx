@@ -1,5 +1,5 @@
-import { AppLayout } from "@/components/AppLayout";
-import { GoogleSignInButton } from "@/components/GoogleSignInButton";
+import { AppLayout } from '@/components/AppLayout';
+import { GoogleSignInButton } from '@/components/GoogleSignInButton';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,17 +10,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
+} from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -29,16 +23,16 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -46,40 +40,27 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Textarea } from "@/components/ui/textarea";
-import { useAuth } from "@/hooks/use-auth";
-import { useCategories } from "@/hooks/use-categories";
-import { useToast } from "@/hooks/use-toast";
-import type {
-  CreateExpense,
-  Expense,
-  ExpenseImportResponse,
-  UpdateExpense,
-} from "@/lib/api";
-import { expenseApi } from "@/lib/api";
-import {
-  CheckCircle2,
-  Download,
-  FileWarning,
-  Pencil,
-  Plus,
-  Trash2,
-  Upload,
-} from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+} from '@/components/ui/table';
+import { Textarea } from '@/components/ui/textarea';
+import { useAuth } from '@/hooks/use-auth';
+import { useCategories } from '@/hooks/use-categories';
+import { useToast } from '@/hooks/use-toast';
+import type { CreateExpense, Expense, ExpenseImportResponse, UpdateExpense } from '@/lib/api';
+import { expenseApi } from '@/lib/api';
+import { CheckCircle2, Download, FileWarning, Pencil, Plus, Trash2, Upload } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 const US_TIMEZONES = [
-  "America/New_York",
-  "America/Chicago",
-  "America/Denver",
-  "America/Los_Angeles",
-  "America/Phoenix",
-  "America/Anchorage",
-  "Pacific/Honolulu",
-  "America/Detroit",
-  "America/Indiana/Indianapolis",
-  "America/Puerto_Rico",
+  'America/New_York',
+  'America/Chicago',
+  'America/Denver',
+  'America/Los_Angeles',
+  'America/Phoenix',
+  'America/Anchorage',
+  'Pacific/Honolulu',
+  'America/Detroit',
+  'America/Indiana/Indianapolis',
+  'America/Puerto_Rico',
 ];
 
 export default function ExpensesPage() {
@@ -89,42 +70,33 @@ export default function ExpensesPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [filters, setFilters] = useState({
-    startDate: "",
-    endDate: "",
-    categoryId: "all",
-    search: "",
+    startDate: '',
+    endDate: '',
+    categoryId: 'all',
+    search: '',
   });
-  const [exportFormat, setExportFormat] = useState<"csv" | "xlsx">("csv");
+  const [exportFormat, setExportFormat] = useState<'csv' | 'xlsx'>('csv');
   const [exporting, setExporting] = useState(false);
-  const [importPreview, setImportPreview] =
-    useState<ExpenseImportResponse | null>(null);
+  const [importPreview, setImportPreview] = useState<ExpenseImportResponse | null>(null);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [previewingImport, setPreviewingImport] = useState(false);
   const [applyingImport, setApplyingImport] = useState(false);
-  const [duplicateStrategy, setDuplicateStrategy] = useState<"skip" | "update">(
-    "skip"
-  );
-  const resolvedTz = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-  const initialTz = US_TIMEZONES.includes(resolvedTz)
-    ? resolvedTz
-    : US_TIMEZONES[0];
+  const [duplicateStrategy, setDuplicateStrategy] = useState<'skip' | 'update'>('skip');
+  const resolvedTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  const initialTz = US_TIMEZONES.includes(resolvedTz) ? resolvedTz : US_TIMEZONES[0];
   const [timezone, setTimezone] = useState(initialTz);
   const [showImportErrorsOnly, setShowImportErrorsOnly] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { toast } = useToast();
-  const {
-    categories,
-    isLoading: categoriesLoading,
-    error: categoriesError,
-  } = useCategories();
+  const { categories, isLoading: categoriesLoading, error: categoriesError } = useCategories();
 
   // Form state
   const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    amount: "",
-    date: new Date().toISOString().split("T")[0],
-    categoryId: "",
+    title: '',
+    description: '',
+    amount: '',
+    date: new Date().toISOString().split('T')[0],
+    categoryId: '',
   });
 
   const buildFilterPayload = useCallback(
@@ -132,9 +104,7 @@ export default function ExpensesPage() {
       startDate: state.startDate || undefined,
       endDate: state.endDate || undefined,
       categoryId:
-        state.categoryId && state.categoryId !== "all"
-          ? parseInt(state.categoryId, 10)
-          : undefined,
+        state.categoryId && state.categoryId !== 'all' ? parseInt(state.categoryId, 10) : undefined,
       search: state.search.trim() ? state.search.trim() : undefined,
     }),
     [filters]
@@ -145,7 +115,7 @@ export default function ExpensesPage() {
     setImportFile(null);
     setShowImportErrorsOnly(false);
     if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+      fileInputRef.current.value = '';
     }
   };
 
@@ -162,18 +132,15 @@ export default function ExpensesPage() {
 
       try {
         setLoading(true);
-        const expensesData = await expenseApi.getAll(
-          user.id,
-          buildFilterPayload(overrideFilters)
-        );
+        const expensesData = await expenseApi.getAll(user.id, buildFilterPayload(overrideFilters));
         setExpenses(expensesData);
       } catch (error) {
         toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to load data. Please try again.",
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Failed to load data. Please try again.',
         });
-        console.error("Error loading data:", error);
+        console.error('Error loading data:', error);
       } finally {
         setLoading(false);
       }
@@ -187,11 +154,11 @@ export default function ExpensesPage() {
 
   const resetForm = () => {
     setFormData({
-      title: "",
-      description: "",
-      amount: "",
-      date: new Date().toISOString().split("T")[0],
-      categoryId: "",
+      title: '',
+      description: '',
+      amount: '',
+      date: new Date().toISOString().split('T')[0],
+      categoryId: '',
     });
     setEditingExpense(null);
   };
@@ -203,18 +170,18 @@ export default function ExpensesPage() {
 
       if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
         toast({
-          variant: "destructive",
-          title: "Invalid date format",
-          description: "Please enter valid dates.",
+          variant: 'destructive',
+          title: 'Invalid date format',
+          description: 'Please enter valid dates.',
         });
         return;
       }
 
       if (start.getTime() > end.getTime()) {
         toast({
-          variant: "destructive",
-          title: "Invalid date range",
-          description: "Start date must be before or equal to end date.",
+          variant: 'destructive',
+          title: 'Invalid date range',
+          description: 'Start date must be before or equal to end date.',
         });
         return;
       }
@@ -224,10 +191,10 @@ export default function ExpensesPage() {
 
   const handleClearFilters = () => {
     const cleared = {
-      startDate: "",
-      endDate: "",
-      categoryId: "all",
-      search: "",
+      startDate: '',
+      endDate: '',
+      categoryId: 'all',
+      search: '',
     };
     setFilters(cleared);
     loadData(cleared);
@@ -245,7 +212,7 @@ export default function ExpensesPage() {
       );
 
       const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
+      const link = document.createElement('a');
       link.href = url;
       link.download = filename;
       link.click();
@@ -254,65 +221,57 @@ export default function ExpensesPage() {
       }, 100);
 
       toast({
-        title: "Export ready",
+        title: 'Export ready',
         description: `Downloaded ${exportFormat.toUpperCase()} export.`,
       });
     } catch (error) {
-      let message = "Could not export expenses. Please try again.";
+      let message = 'Could not export expenses. Please try again.';
       // Try to extract more specific error information
-      if (error && typeof error === "object") {
+      if (error && typeof error === 'object') {
         // Axios-style error
-        if ("response" in error && error.response) {
+        if ('response' in error && error.response) {
           // Try to get message from response data
           const data = (error as any).response.data;
-          if (data && typeof data === "object" && "message" in data) {
+          if (data && typeof data === 'object' && 'message' in data) {
             message = data.message;
-          } else if (typeof data === "string") {
+          } else if (typeof data === 'string') {
             message = data;
           } else if ((error as any).response.status) {
-            message = `Server error (${
-              (error as any).response.status
-            }) during export.`;
+            message = `Server error (${(error as any).response.status}) during export.`;
           }
-        } else if (
-          "message" in error &&
-          typeof (error as any).message === "string"
-        ) {
+        } else if ('message' in error && typeof (error as any).message === 'string') {
           message = (error as any).message;
         }
       }
       toast({
-        variant: "destructive",
-        title: "Export failed",
+        variant: 'destructive',
+        title: 'Export failed',
         description: message,
       });
-      console.error("Error exporting expenses:", error);
+      console.error('Error exporting expenses:', error);
     } finally {
       setExporting(false);
     }
   };
 
-  const handleDownloadTemplate = async (format: "csv" | "xlsx") => {
+  const handleDownloadTemplate = async (format: 'csv' | 'xlsx') => {
     try {
       const { blob, filename } = await expenseApi.downloadTemplate(format);
       const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
+      const link = document.createElement('a');
       link.href = url;
       link.download = filename;
       link.click();
       setTimeout(() => URL.revokeObjectURL(url), 100);
       toast({
-        title: "Template downloaded",
+        title: 'Template downloaded',
         description: `Downloaded ${format.toUpperCase()} template with categories.`,
       });
     } catch (error) {
       toast({
-        variant: "destructive",
-        title: "Template download failed",
-        description:
-          error instanceof Error
-            ? error.message
-            : "Could not download template.",
+        variant: 'destructive',
+        title: 'Template download failed',
+        description: error instanceof Error ? error.message : 'Could not download template.',
       });
     }
   };
@@ -320,12 +279,12 @@ export default function ExpensesPage() {
   const handleImportPreview = async (file: File) => {
     if (!user) return;
 
-    const extension = file.name.split(".").pop()?.toLowerCase();
-    if (!extension || (extension !== "csv" && extension !== "xlsx")) {
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    if (!extension || (extension !== 'csv' && extension !== 'xlsx')) {
       toast({
-        variant: "destructive",
-        title: "Unsupported file",
-        description: "Please upload a CSV or Excel (.xlsx) file.",
+        variant: 'destructive',
+        title: 'Unsupported file',
+        description: 'Please upload a CSV or Excel (.xlsx) file.',
       });
       return;
     }
@@ -341,16 +300,15 @@ export default function ExpensesPage() {
       setImportPreview(preview);
       setShowImportErrorsOnly(false);
       toast({
-        title: "Validation complete",
+        title: 'Validation complete',
         description: `Found ${preview.totalRows} rows (${preview.errors} errors).`,
       });
     } catch (error) {
       setImportPreview(null);
       toast({
-        variant: "destructive",
-        title: "Import validation failed",
-        description:
-          error instanceof Error ? error.message : "Could not validate file.",
+        variant: 'destructive',
+        title: 'Import validation failed',
+        description: error instanceof Error ? error.message : 'Could not validate file.',
       });
     } finally {
       setPreviewingImport(false);
@@ -360,9 +318,9 @@ export default function ExpensesPage() {
   const handleApplyImport = async () => {
     if (!importFile || !user) {
       toast({
-        variant: "destructive",
-        title: "No file selected",
-        description: "Upload and validate a CSV or Excel file first.",
+        variant: 'destructive',
+        title: 'No file selected',
+        description: 'Upload and validate a CSV or Excel file first.',
       });
       return;
     }
@@ -376,16 +334,15 @@ export default function ExpensesPage() {
       });
       setImportPreview(result);
       toast({
-        title: "Import applied",
+        title: 'Import applied',
         description: `Inserted ${result.inserted}, updated ${result.updated}, skipped ${result.skipped}.`,
       });
       loadData();
     } catch (error) {
       toast({
-        variant: "destructive",
-        title: "Import failed",
-        description:
-          error instanceof Error ? error.message : "Could not apply import.",
+        variant: 'destructive',
+        title: 'Import failed',
+        description: error instanceof Error ? error.message : 'Could not apply import.',
       });
     } finally {
       setApplyingImport(false);
@@ -394,36 +351,30 @@ export default function ExpensesPage() {
 
   const handleExportErrors = () => {
     if (!importPreview) return;
-    const errorRows = importPreview.rows.filter(
-      (row) => row.status === "error"
-    );
+    const errorRows = importPreview.rows.filter((row) => row.status === 'error');
     if (errorRows.length === 0) {
       toast({
-        title: "No errors to export",
-        description: "All rows are valid.",
+        title: 'No errors to export',
+        description: 'All rows are valid.',
       });
       return;
     }
 
-    const header = "Row,Status,Message";
+    const header = 'Row,Status,Message';
     const lines = errorRows.map(
-      (row) =>
-        `${row.rowNumber},${row.status},"${(row.message ?? "").replace(
-          /"/g,
-          '""'
-        )}"`
+      (row) => `${row.rowNumber},${row.status},"${(row.message ?? '').replace(/"/g, '""')}"`
     );
-    const csv = [header, ...lines].join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
+    const csv = [header, ...lines].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
+    const link = document.createElement('a');
     link.href = url;
-    link.download = "import-errors.csv";
+    link.download = 'import-errors.csv';
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 100);
     toast({
-      title: "Exported errors",
-      description: "Downloaded import errors as CSV.",
+      title: 'Exported errors',
+      description: 'Downloaded import errors as CSV.',
     });
   };
 
@@ -431,18 +382,18 @@ export default function ExpensesPage() {
     e.preventDefault();
     if (categoriesLoading) {
       toast({
-        variant: "destructive",
-        title: "Please wait",
-        description: "Categories are still loading. Try again in a moment.",
+        variant: 'destructive',
+        title: 'Please wait',
+        description: 'Categories are still loading. Try again in a moment.',
       });
       return;
     }
 
     if (categories.length === 0) {
       toast({
-        variant: "destructive",
-        title: "Add a category first",
-        description: "Create a category before saving an expense.",
+        variant: 'destructive',
+        title: 'Add a category first',
+        description: 'Create a category before saving an expense.',
       });
       return;
     }
@@ -452,10 +403,9 @@ export default function ExpensesPage() {
 
     if (Number.isNaN(parsedAmount) || Number.isNaN(parsedCategoryId)) {
       toast({
-        variant: "destructive",
-        title: "Missing fields",
-        description:
-          "Please enter an amount and choose a category before saving.",
+        variant: 'destructive',
+        title: 'Missing fields',
+        description: 'Please enter an amount and choose a category before saving.',
       });
       return;
     }
@@ -475,8 +425,8 @@ export default function ExpensesPage() {
 
         await expenseApi.update(editingExpense.id, user.id, updateData);
         toast({
-          title: "Success",
-          description: "Expense updated successfully.",
+          title: 'Success',
+          description: 'Expense updated successfully.',
         });
       } else {
         // Create new expense
@@ -491,8 +441,8 @@ export default function ExpensesPage() {
 
         await expenseApi.create(createData);
         toast({
-          title: "Success",
-          description: "Expense created successfully.",
+          title: 'Success',
+          description: 'Expense created successfully.',
         });
       }
 
@@ -501,11 +451,11 @@ export default function ExpensesPage() {
       loadData();
     } catch (error) {
       toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to save expense. Please try again.",
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to save expense. Please try again.',
       });
-      console.error("Error saving expense:", error);
+      console.error('Error saving expense:', error);
     }
   };
 
@@ -513,9 +463,9 @@ export default function ExpensesPage() {
     setEditingExpense(expense);
     setFormData({
       title: expense.title,
-      description: expense.description || "",
+      description: expense.description || '',
       amount: expense.amount.toString(),
-      date: new Date(expense.date).toISOString().split("T")[0],
+      date: new Date(expense.date).toISOString().split('T')[0],
       categoryId: expense.categoryId.toString(),
     });
     setIsAddDialogOpen(true);
@@ -527,61 +477,51 @@ export default function ExpensesPage() {
     try {
       await expenseApi.delete(id, user.id);
       toast({
-        title: "Success",
-        description: "Expense deleted successfully.",
+        title: 'Success',
+        description: 'Expense deleted successfully.',
       });
       loadData();
     } catch (error) {
       toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to delete expense. Please try again.",
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to delete expense. Please try again.',
       });
-      console.error("Error deleting expense:", error);
+      console.error('Error deleting expense:', error);
     }
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
     }).format(amount);
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
     });
   };
 
-  const totalAmount = expenses.reduce(
-    (sum, expense) => sum + expense.amount,
-    0
-  );
+  const totalAmount = expenses.reduce((sum, expense) => sum + expense.amount, 0);
   const filteredImportRows =
-    importPreview?.rows.filter((row) =>
-      showImportErrorsOnly ? row.status === "error" : true
-    ) ?? [];
+    importPreview?.rows.filter((row) => (showImportErrorsOnly ? row.status === 'error' : true)) ??
+    [];
   const importErrorCount = importPreview?.errors ?? 0;
 
   // Show sign-in prompt for unauthenticated users
   if (!isAuthenticated) {
     return (
-      <AppLayout
-        title="Expenses"
-        description="Capture, edit, and audit expenses"
-      >
+      <AppLayout title="Expenses" description="Capture, edit, and audit expenses">
         <div className="mx-auto max-w-2xl py-12">
           <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl">
-                Sign in to manage expenses
-              </CardTitle>
+              <CardTitle className="text-2xl">Sign in to manage expenses</CardTitle>
               <CardDescription className="text-muted-foreground">
-                Connect your account to add, edit, import, and export your
-                expense records.
+                Connect your account to add, edit, import, and export your expense records.
               </CardDescription>
             </CardHeader>
             <CardContent className="flex justify-center">
@@ -607,15 +547,11 @@ export default function ExpensesPage() {
             </div>
             <div className="rounded-2xl border border-border/60 bg-card/80 p-4 shadow-sm shadow-black/10">
               <p className="text-xs text-muted-foreground">Entries</p>
-              <p className="mt-1 text-xl font-semibold text-foreground">
-                {expenses.length}
-              </p>
+              <p className="mt-1 text-xl font-semibold text-foreground">{expenses.length}</p>
             </div>
             <div className="rounded-2xl border border-border/60 bg-card/80 p-4 shadow-sm shadow-black/10">
               <p className="text-xs text-muted-foreground">Categories</p>
-              <p className="mt-1 text-xl font-semibold text-foreground">
-                {categories.length}
-              </p>
+              <p className="mt-1 text-xl font-semibold text-foreground">{categories.length}</p>
             </div>
           </div>
           <Dialog
@@ -634,13 +570,11 @@ export default function ExpensesPage() {
             <DialogContent className="border-border/60 bg-card text-foreground">
               <form onSubmit={handleSubmit}>
                 <DialogHeader>
-                  <DialogTitle>
-                    {editingExpense ? "Edit Expense" : "Add New Expense"}
-                  </DialogTitle>
+                  <DialogTitle>{editingExpense ? 'Edit Expense' : 'Add New Expense'}</DialogTitle>
                   <DialogDescription className="text-muted-foreground">
                     {editingExpense
-                      ? "Update the expense details below."
-                      : "Fill in the details to create a new expense record."}
+                      ? 'Update the expense details below.'
+                      : 'Fill in the details to create a new expense record.'}
                   </DialogDescription>
                 </DialogHeader>
 
@@ -653,9 +587,7 @@ export default function ExpensesPage() {
                       id="title"
                       className="border-border/60 bg-card text-foreground placeholder:text-muted-foreground"
                       value={formData.title}
-                      onChange={(e) =>
-                        setFormData({ ...formData, title: e.target.value })
-                      }
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                       required
                       placeholder="e.g., Grocery shopping"
                     />
@@ -672,9 +604,7 @@ export default function ExpensesPage() {
                       min="0"
                       className="border-border/60 bg-card text-foreground placeholder:text-muted-foreground"
                       value={formData.amount}
-                      onChange={(e) =>
-                        setFormData({ ...formData, amount: e.target.value })
-                      }
+                      onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                       required
                       placeholder="0.00"
                     />
@@ -689,9 +619,7 @@ export default function ExpensesPage() {
                       type="date"
                       className="border-border/60 bg-card text-foreground"
                       value={formData.date}
-                      onChange={(e) =>
-                        setFormData({ ...formData, date: e.target.value })
-                      }
+                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                       required
                     />
                   </div>
@@ -702,9 +630,7 @@ export default function ExpensesPage() {
                     </Label>
                     <Select
                       value={formData.categoryId}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, categoryId: value })
-                      }
+                      onValueChange={(value) => setFormData({ ...formData, categoryId: value })}
                       required
                       disabled={categoriesLoading || categories.length === 0}
                     >
@@ -713,39 +639,31 @@ export default function ExpensesPage() {
                       </SelectTrigger>
                       <SelectContent className="border-border/60 bg-card text-foreground">
                         {categories.map((category) => (
-                          <SelectItem
-                            key={category.id}
-                            value={category.id.toString()}
-                          >
+                          <SelectItem key={category.id} value={category.id.toString()}>
                             {category.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                     {categoriesLoading ? (
-                      <p className="text-sm text-muted-foreground">
-                        Loading categories...
-                      </p>
+                      <p className="text-sm text-muted-foreground">Loading categories...</p>
                     ) : null}
                     {categoriesError && !categoriesLoading ? (
                       <p className="text-sm text-destructive">
-                        Unable to load categories. Try again or manage them from
-                        the Categories page.
+                        Unable to load categories. Try again or manage them from the Categories
+                        page.
                       </p>
                     ) : null}
                     {!categoriesLoading && categories.length === 0 ? (
                       <p className="text-sm text-muted-foreground">
-                        No categories found. Create one from the Categories page
-                        to start tagging expenses.
+                        No categories found. Create one from the Categories page to start tagging
+                        expenses.
                       </p>
                     ) : null}
                   </div>
 
                   <div className="space-y-2">
-                    <Label
-                      htmlFor="description"
-                      className="text-muted-foreground"
-                    >
+                    <Label htmlFor="description" className="text-muted-foreground">
                       Description
                     </Label>
                     <Textarea
@@ -780,7 +698,7 @@ export default function ExpensesPage() {
                     type="submit"
                     className="bg-primary text-primary-foreground hover:bg-primary/90"
                   >
-                    {editingExpense ? "Update" : "Create"} Expense
+                    {editingExpense ? 'Update' : 'Create'} Expense
                   </Button>
                 </DialogFooter>
               </form>
@@ -792,21 +710,19 @@ export default function ExpensesPage() {
           <CardHeader>
             <CardTitle>Import expenses</CardTitle>
             <CardDescription className="text-muted-foreground">
-              Download a guided template, validate your file, and apply imports
-              with duplicate handling.
+              Download a guided template, validate your file, and apply imports with duplicate
+              handling.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               <div className="space-y-2">
-                <Label className="text-muted-foreground">
-                  Download template
-                </Label>
+                <Label className="text-muted-foreground">Download template</Label>
                 <div className="flex flex-wrap gap-2">
                   <Button
                     variant="outline"
                     className="border-border/60 bg-card/80 text-foreground hover:bg-card/70"
-                    onClick={() => handleDownloadTemplate("csv")}
+                    onClick={() => handleDownloadTemplate('csv')}
                   >
                     <Download className="mr-2 h-4 w-4" />
                     CSV
@@ -814,7 +730,7 @@ export default function ExpensesPage() {
                   <Button
                     variant="outline"
                     className="border-border/60 bg-card/80 text-foreground hover:bg-card/70"
-                    onClick={() => handleDownloadTemplate("xlsx")}
+                    onClick={() => handleDownloadTemplate('xlsx')}
                   >
                     <Download className="mr-2 h-4 w-4" />
                     Excel
@@ -822,14 +738,10 @@ export default function ExpensesPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label className="text-muted-foreground">
-                  Duplicate handling
-                </Label>
+                <Label className="text-muted-foreground">Duplicate handling</Label>
                 <Select
                   value={duplicateStrategy}
-                  onValueChange={(value) =>
-                    setDuplicateStrategy(value as "skip" | "update")
-                  }
+                  onValueChange={(value) => setDuplicateStrategy(value as 'skip' | 'update')}
                 >
                   <SelectTrigger className="border-border/60 bg-card text-foreground">
                     <SelectValue placeholder="Strategy" />
@@ -844,14 +756,8 @@ export default function ExpensesPage() {
                 <Label htmlFor="timezone" className="text-muted-foreground">
                   Timezone
                 </Label>
-                <Select
-                  value={timezone}
-                  onValueChange={(value) => setTimezone(value)}
-                >
-                  <SelectTrigger
-                    id="timezone"
-                    className="border-border/60 bg-card text-foreground"
-                  >
+                <Select value={timezone} onValueChange={(value) => setTimezone(value)}>
+                  <SelectTrigger id="timezone" className="border-border/60 bg-card text-foreground">
                     <SelectValue placeholder="Select timezone" />
                   </SelectTrigger>
                   <SelectContent className="border-border/60 bg-card text-foreground">
@@ -893,28 +799,22 @@ export default function ExpensesPage() {
                     </Button>
                     <Button
                       className="bg-primary text-primary-foreground hover:bg-primary/90"
-                      disabled={
-                        !importPreview || applyingImport || previewingImport
-                      }
+                      disabled={!importPreview || applyingImport || previewingImport}
                       onClick={handleApplyImport}
                     >
                       <Upload className="mr-2 h-4 w-4" />
-                      {applyingImport ? "Applying..." : "Apply import"}
+                      {applyingImport ? 'Applying...' : 'Apply import'}
                     </Button>
                   </div>
                 </div>
                 {importFile && (
                   <p className="text-sm text-muted-foreground">
-                    Ready to import:{" "}
-                    <span className="font-medium text-foreground">
-                      {importFile.name}
-                    </span>
+                    Ready to import:{' '}
+                    <span className="font-medium text-foreground">{importFile.name}</span>
                   </p>
                 )}
                 {previewingImport && (
-                  <p className="text-sm text-muted-foreground">
-                    Validating file...
-                  </p>
+                  <p className="text-sm text-muted-foreground">Validating file...</p>
                 )}
               </div>
             </div>
@@ -936,9 +836,7 @@ export default function ExpensesPage() {
                     </p>
                   </div>
                   <div className="rounded-lg border border-border/60 bg-card/80 p-3">
-                    <p className="text-xs text-muted-foreground">
-                      Updated / Skipped
-                    </p>
+                    <p className="text-xs text-muted-foreground">Updated / Skipped</p>
                     <p className="text-xl font-semibold text-foreground">
                       {importPreview.updated} / {importPreview.skipped}
                     </p>
@@ -957,14 +855,9 @@ export default function ExpensesPage() {
                     <Checkbox
                       id="errorsOnly"
                       checked={showImportErrorsOnly}
-                      onCheckedChange={(checked) =>
-                        setShowImportErrorsOnly(Boolean(checked))
-                      }
+                      onCheckedChange={(checked) => setShowImportErrorsOnly(Boolean(checked))}
                     />
-                    <Label
-                      htmlFor="errorsOnly"
-                      className="text-muted-foreground"
-                    >
+                    <Label htmlFor="errorsOnly" className="text-muted-foreground">
                       Show errors only
                     </Label>
                   </div>
@@ -977,12 +870,12 @@ export default function ExpensesPage() {
                     Export errors
                   </Button>
                   <div className="text-sm text-muted-foreground">
-                    Strategy:{" "}
+                    Strategy:{' '}
                     <span className="font-medium text-foreground uppercase">
                       {importPreview.duplicateStrategy}
-                    </span>{" "}
-                    · Timezone: {importPreview.timezone || "UTC"} ·{" "}
-                    {importPreview.dryRun ? "Dry run preview" : "Applied"}
+                    </span>{' '}
+                    · Timezone: {importPreview.timezone || 'UTC'} ·{' '}
+                    {importPreview.dryRun ? 'Dry run preview' : 'Applied'}
                   </div>
                 </div>
 
@@ -990,53 +883,39 @@ export default function ExpensesPage() {
                   <Table className="min-w-[480px] text-foreground">
                     <TableHeader className="[&_tr]:border-border/60">
                       <TableRow className="border-border/60">
-                        <TableHead className="w-24 text-muted-foreground">
-                          Row
-                        </TableHead>
-                        <TableHead className="w-32 text-muted-foreground">
-                          Status
-                        </TableHead>
-                        <TableHead className="text-muted-foreground">
-                          Message
-                        </TableHead>
+                        <TableHead className="w-24 text-muted-foreground">Row</TableHead>
+                        <TableHead className="w-32 text-muted-foreground">Status</TableHead>
+                        <TableHead className="text-muted-foreground">Message</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredImportRows.map((row) => (
-                        <TableRow
-                          key={row.rowNumber}
-                          className="border-border/60"
-                        >
-                          <TableCell className="font-medium">
-                            {row.rowNumber}
-                          </TableCell>
+                        <TableRow key={row.rowNumber} className="border-border/60">
+                          <TableCell className="font-medium">{row.rowNumber}</TableCell>
                           <TableCell>
                             <Badge
                               variant="secondary"
                               className={
-                                row.status === "error"
-                                  ? "border-destructive/60 bg-destructive/10 text-destructive"
-                                  : row.status === "updated"
-                                  ? "border-warning/60 bg-warning/10 text-warning-foreground"
-                                  : row.status === "skipped"
-                                  ? "border-muted-foreground/40 bg-muted/30 text-muted-foreground"
-                                  : "border-success/60 bg-success/10 text-success-foreground"
+                                row.status === 'error'
+                                  ? 'border-destructive/60 bg-destructive/10 text-destructive'
+                                  : row.status === 'updated'
+                                    ? 'border-warning/60 bg-warning/10 text-warning-foreground'
+                                    : row.status === 'skipped'
+                                      ? 'border-muted-foreground/40 bg-muted/30 text-muted-foreground'
+                                      : 'border-success/60 bg-success/10 text-success-foreground'
                               }
                             >
                               {row.status}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-muted-foreground">
-                            {row.message || "-"}
+                            {row.message || '-'}
                           </TableCell>
                         </TableRow>
                       ))}
                       {filteredImportRows.length === 0 && (
                         <TableRow>
-                          <TableCell
-                            colSpan={3}
-                            className="text-center text-muted-foreground"
-                          >
+                          <TableCell colSpan={3} className="text-center text-muted-foreground">
                             No rows to display.
                           </TableCell>
                         </TableRow>
@@ -1068,16 +947,11 @@ export default function ExpensesPage() {
                     placeholder="Search title or description"
                     className="border-border/60 bg-card text-foreground placeholder:text-muted-foreground"
                     value={filters.search}
-                    onChange={(e) =>
-                      setFilters({ ...filters, search: e.target.value })
-                    }
+                    onChange={(e) => setFilters({ ...filters, search: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label
-                    htmlFor="startDateFilter"
-                    className="text-muted-foreground"
-                  >
+                  <Label htmlFor="startDateFilter" className="text-muted-foreground">
                     Start date
                   </Label>
                   <Input
@@ -1085,16 +959,11 @@ export default function ExpensesPage() {
                     type="date"
                     className="border-border/60 bg-card text-foreground"
                     value={filters.startDate}
-                    onChange={(e) =>
-                      setFilters({ ...filters, startDate: e.target.value })
-                    }
+                    onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label
-                    htmlFor="endDateFilter"
-                    className="text-muted-foreground"
-                  >
+                  <Label htmlFor="endDateFilter" className="text-muted-foreground">
                     End date
                   </Label>
                   <Input
@@ -1102,23 +971,16 @@ export default function ExpensesPage() {
                     type="date"
                     className="border-border/60 bg-card text-foreground"
                     value={filters.endDate}
-                    onChange={(e) =>
-                      setFilters({ ...filters, endDate: e.target.value })
-                    }
+                    onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label
-                    htmlFor="categoryFilter"
-                    className="text-muted-foreground"
-                  >
+                  <Label htmlFor="categoryFilter" className="text-muted-foreground">
                     Category
                   </Label>
                   <Select
                     value={filters.categoryId}
-                    onValueChange={(value) =>
-                      setFilters({ ...filters, categoryId: value })
-                    }
+                    onValueChange={(value) => setFilters({ ...filters, categoryId: value })}
                     disabled={categoriesLoading || categories.length === 0}
                   >
                     <SelectTrigger
@@ -1130,10 +992,7 @@ export default function ExpensesPage() {
                     <SelectContent className="border-border/60 bg-card text-foreground">
                       <SelectItem value="all">All categories</SelectItem>
                       {categories.map((category) => (
-                        <SelectItem
-                          key={category.id}
-                          value={category.id.toString()}
-                        >
+                        <SelectItem key={category.id} value={category.id.toString()}>
                           {category.name}
                         </SelectItem>
                       ))}
@@ -1163,9 +1022,7 @@ export default function ExpensesPage() {
                 <div className="flex flex-wrap gap-2">
                   <Select
                     value={exportFormat}
-                    onValueChange={(value) =>
-                      setExportFormat(value as "csv" | "xlsx")
-                    }
+                    onValueChange={(value) => setExportFormat(value as 'csv' | 'xlsx')}
                   >
                     <SelectTrigger className="w-[140px] border-border/60 bg-card text-foreground">
                       <SelectValue placeholder="Format" />
@@ -1181,15 +1038,13 @@ export default function ExpensesPage() {
                     disabled={exporting || expenses.length === 0}
                   >
                     <Download className="mr-2 h-4 w-4" />
-                    {exporting ? "Exporting..." : "Export"}
+                    {exporting ? 'Exporting...' : 'Export'}
                   </Button>
                 </div>
               </div>
             </div>
             {loading ? (
-              <div className="py-8 text-center text-muted-foreground">
-                Loading expenses...
-              </div>
+              <div className="py-8 text-center text-muted-foreground">Loading expenses...</div>
             ) : expenses.length === 0 ? (
               <div className="py-8 text-center text-muted-foreground">
                 <p>No expenses found.</p>
@@ -1201,38 +1056,21 @@ export default function ExpensesPage() {
               <Table className="text-foreground">
                 <TableHeader className="[&_tr]:border-border/60">
                   <TableRow className="border-border/60">
-                    <TableHead className="text-muted-foreground">
-                      Date
-                    </TableHead>
-                    <TableHead className="text-muted-foreground">
-                      Title
-                    </TableHead>
-                    <TableHead className="text-muted-foreground">
-                      Category
-                    </TableHead>
-                    <TableHead className="text-muted-foreground">
-                      Description
-                    </TableHead>
-                    <TableHead className="text-right text-muted-foreground">
-                      Amount
-                    </TableHead>
-                    <TableHead className="text-right text-muted-foreground">
-                      Actions
-                    </TableHead>
+                    <TableHead className="text-muted-foreground">Date</TableHead>
+                    <TableHead className="text-muted-foreground">Title</TableHead>
+                    <TableHead className="text-muted-foreground">Category</TableHead>
+                    <TableHead className="text-muted-foreground">Description</TableHead>
+                    <TableHead className="text-right text-muted-foreground">Amount</TableHead>
+                    <TableHead className="text-right text-muted-foreground">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {expenses.map((expense) => (
-                    <TableRow
-                      key={expense.id}
-                      className="border-border/60 hover:bg-card/80"
-                    >
+                    <TableRow key={expense.id} className="border-border/60 hover:bg-card/80">
                       <TableCell className="font-medium text-foreground">
                         {formatDate(expense.date)}
                       </TableCell>
-                      <TableCell className="text-foreground">
-                        {expense.title}
-                      </TableCell>
+                      <TableCell className="text-foreground">{expense.title}</TableCell>
                       <TableCell>
                         <Badge
                           variant="secondary"
@@ -1240,18 +1078,18 @@ export default function ExpensesPage() {
                           style={
                             expense.categoryColor
                               ? {
-                                  backgroundColor: expense.categoryColor + "22",
+                                  backgroundColor: expense.categoryColor + '22',
                                   color: expense.categoryColor,
                                   borderColor: expense.categoryColor,
                                 }
                               : undefined
                           }
                         >
-                          {expense.categoryName || "Uncategorized"}
+                          {expense.categoryName || 'Uncategorized'}
                         </Badge>
                       </TableCell>
                       <TableCell className="max-w-xs truncate text-muted-foreground">
-                        {expense.description || "-"}
+                        {expense.description || '-'}
                       </TableCell>
                       <TableCell className="text-right font-semibold text-foreground">
                         {formatCurrency(expense.amount)}
@@ -1279,12 +1117,10 @@ export default function ExpensesPage() {
                             </AlertDialogTrigger>
                             <AlertDialogContent className="border-border/60 bg-card text-foreground">
                               <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                  Delete Expense
-                                </AlertDialogTitle>
+                                <AlertDialogTitle>Delete Expense</AlertDialogTitle>
                                 <AlertDialogDescription className="text-muted-foreground">
-                                  Are you sure you want to delete this expense?
-                                  This action cannot be undone.
+                                  Are you sure you want to delete this expense? This action cannot
+                                  be undone.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>

@@ -1,11 +1,11 @@
-import "@testing-library/jest-dom/vitest";
+import '@testing-library/jest-dom/vitest';
 
 if (!window.matchMedia) {
   // jsdom does not implement matchMedia by default
   window.matchMedia = () =>
     ({
       matches: false,
-      media: "",
+      media: '',
       onchange: null,
       addEventListener: () => undefined,
       removeEventListener: () => undefined,

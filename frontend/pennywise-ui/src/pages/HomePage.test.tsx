@@ -1,11 +1,11 @@
-import { render, screen, waitFor } from "@testing-library/react";
-import { GoogleOAuthProvider } from "@react-oauth/google";
-import { MemoryRouter } from "react-router-dom";
-import { vi, describe, it, beforeEach, expect, type Mock } from "vitest";
+import { render, screen, waitFor } from '@testing-library/react';
+import { GoogleOAuthProvider } from '@react-oauth/google';
+import { MemoryRouter } from 'react-router-dom';
+import { vi, describe, it, beforeEach, expect, type Mock } from 'vitest';
 
-import { AuthProvider } from "@/hooks/use-auth";
-import HomePage from "./HomePage";
-import type { DashboardSummary } from "@/lib/api";
+import { AuthProvider } from '@/hooks/use-auth';
+import HomePage from './HomePage';
+import type { DashboardSummary } from '@/lib/api';
 
 const mockSummaryApi = vi.hoisted(() => ({
   getDashboard: vi.fn(),
@@ -18,12 +18,10 @@ const mockUserApi = vi.hoisted(() => ({
   create: vi.fn(),
 })) as {
   getByEmail: Mock<(email: string) => Promise<{ id: number } | null>>;
-  create: Mock<
-    (payload: { username: string; email: string }) => Promise<{ id: number }>
-  >;
+  create: Mock<(payload: { username: string; email: string }) => Promise<{ id: number }>>;
 };
 
-vi.mock("@/lib/api", () => ({
+vi.mock('@/lib/api', () => ({
   summaryApi: mockSummaryApi,
   userApi: mockUserApi,
 }));
@@ -42,16 +40,16 @@ const summaryResponse: DashboardSummary = {
   recentTransactions: [
     {
       id: 1,
-      title: "Groceries · Market Square",
+      title: 'Groceries · Market Square',
       amount: 32.5,
       date: new Date().toISOString(),
-      category: "Food & Dining",
-      categoryColor: "#FF6B6B",
+      category: 'Food & Dining',
+      categoryColor: '#FF6B6B',
     },
   ],
 };
 
-describe("HomePage", () => {
+describe('HomePage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUserApi.getByEmail.mockResolvedValue({ id: 1 });
@@ -71,10 +69,10 @@ describe("HomePage", () => {
             <HomePage />
           </MemoryRouter>
         </AuthProvider>
-      </GoogleOAuthProvider>,
+      </GoogleOAuthProvider>
     );
 
-  it("shows loading states before data arrives", () => {
+  it('shows loading states before data arrives', () => {
     mockSummaryApi.getDashboard.mockResolvedValue(summaryResponse);
 
     renderHome();
@@ -82,45 +80,35 @@ describe("HomePage", () => {
     expect(screen.getAllByText(/loading/i).length).toBeGreaterThan(0);
   });
 
-  it("renders error state when summary fails", async () => {
-    mockSummaryApi.getDashboard.mockRejectedValue(new Error("fail"));
+  it('renders error state when summary fails', async () => {
+    mockSummaryApi.getDashboard.mockRejectedValue(new Error('fail'));
 
     renderHome();
 
-    expect(
-      await screen.findByText(/unable to load your highlights/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getAllByText(/we couldn't load your cashflow/i).length,
-    ).toBeGreaterThan(0);
+    expect(await screen.findByText(/unable to load your highlights/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/we couldn't load your cashflow/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/retry/i).length).toBeGreaterThan(0);
   });
 
-  it("renders data from the summary API", async () => {
+  it('renders data from the summary API', async () => {
     mockSummaryApi.getDashboard.mockResolvedValue(summaryResponse);
 
     renderHome();
 
     await waitFor(() => expect(mockSummaryApi.getDashboard).toHaveBeenCalled());
-    await waitFor(() =>
-      expect(screen.queryByText(/loading/i)).not.toBeInTheDocument(),
-    );
-    await waitFor(() =>
-      expect(document.body.textContent).toContain("$500.00"),
-    );
-    await waitFor(() =>
-      expect(document.body.textContent).toContain("Groceries · Market Square"),
-    );
+    await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
+    await waitFor(() => expect(document.body.textContent).toContain('$500.00'));
+    await waitFor(() => expect(document.body.textContent).toContain('Groceries · Market Square'));
   });
 
-  it("shows an empty state when no summary data exists", async () => {
+  it('shows an empty state when no summary data exists', async () => {
     const emptySummary: DashboardSummary = {
       totalTracked: 0,
-    monthTracked: 0,
-    monthChangePercent: 0,
-    averageTicket: 0,
-    activeCategories: 0,
-    remainingThisMonth: 0,
+      monthTracked: 0,
+      monthChangePercent: 0,
+      averageTicket: 0,
+      activeCategories: 0,
+      remainingThisMonth: 0,
       recentTransactions: [],
     };
     mockSummaryApi.getDashboard.mockResolvedValue(emptySummary);
@@ -128,11 +116,7 @@ describe("HomePage", () => {
 
     renderHome();
 
-    expect(
-      await screen.findByText(/no spending to show yet/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/no recent transactions yet/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/no spending to show yet/i)).toBeInTheDocument();
+    expect(screen.getByText(/no recent transactions yet/i)).toBeInTheDocument();
   });
 });

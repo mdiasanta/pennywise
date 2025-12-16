@@ -1,5 +1,5 @@
-import { AppLayout } from "@/components/AppLayout";
-import { GoogleSignInButton } from "@/components/GoogleSignInButton";
+import { AppLayout } from '@/components/AppLayout';
+import { GoogleSignInButton } from '@/components/GoogleSignInButton';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,16 +10,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+} from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -28,9 +22,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Table,
   TableBody,
@@ -38,15 +32,15 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { useAuth } from "@/hooks/use-auth";
-import { useCategories } from "@/hooks/use-categories";
-import { useToast } from "@/hooks/use-toast";
-import type { Category } from "@/lib/api";
-import { Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
-import { useState } from "react";
+} from '@/components/ui/table';
+import { useAuth } from '@/hooks/use-auth';
+import { useCategories } from '@/hooks/use-categories';
+import { useToast } from '@/hooks/use-toast';
+import type { Category } from '@/lib/api';
+import { Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 
-const DEFAULT_COLOR = "#10b981";
+const DEFAULT_COLOR = '#10b981';
 const COLOR_PATTERN = /^#([0-9a-fA-F]{6})$/;
 
 export default function CategoriesPage() {
@@ -67,15 +61,15 @@ export default function CategoriesPage() {
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [formValues, setFormValues] = useState({
-    name: "",
-    description: "",
+    name: '',
+    description: '',
     color: DEFAULT_COLOR,
   });
 
   const resetForm = () => {
     setFormValues({
-      name: "",
-      description: "",
+      name: '',
+      description: '',
       color: DEFAULT_COLOR,
     });
     setActiveCategory(null);
@@ -90,7 +84,7 @@ export default function CategoriesPage() {
   const startEdit = (category: Category) => {
     setFormValues({
       name: category.name,
-      description: category.description || "",
+      description: category.description || '',
       color: category.color || DEFAULT_COLOR,
     });
     setActiveCategory(category);
@@ -104,12 +98,12 @@ export default function CategoriesPage() {
     const trimmedColor = formValues.color.trim();
 
     if (!trimmedName) {
-      setValidationError("Name is required.");
+      setValidationError('Name is required.');
       return;
     }
 
     if (!COLOR_PATTERN.test(trimmedColor)) {
-      setValidationError("Color must be a valid hex code like #16a34a.");
+      setValidationError('Color must be a valid hex code like #16a34a.');
       return;
     }
 
@@ -121,7 +115,7 @@ export default function CategoriesPage() {
           color: trimmedColor,
         });
         toast({
-          title: "Category updated",
+          title: 'Category updated',
           description: `${trimmedName} was updated successfully.`,
         });
       } else {
@@ -131,7 +125,7 @@ export default function CategoriesPage() {
           color: trimmedColor,
         });
         toast({
-          title: "Category created",
+          title: 'Category created',
           description: `${trimmedName} is ready to use.`,
         });
       }
@@ -139,12 +133,9 @@ export default function CategoriesPage() {
       resetForm();
     } catch (err) {
       toast({
-        variant: "destructive",
-        title: "Save failed",
-        description:
-          err instanceof Error
-            ? err.message
-            : "Unable to save category right now.",
+        variant: 'destructive',
+        title: 'Save failed',
+        description: err instanceof Error ? err.message : 'Unable to save category right now.',
       });
     }
   };
@@ -153,17 +144,15 @@ export default function CategoriesPage() {
     try {
       await deleteCategory(category.id);
       toast({
-        title: "Category deleted",
+        title: 'Category deleted',
         description: `${category.name} has been removed.`,
       });
     } catch (err) {
       toast({
-        variant: "destructive",
-        title: "Delete failed",
+        variant: 'destructive',
+        title: 'Delete failed',
         description:
-          err instanceof Error
-            ? err.message
-            : "Unable to delete the category right now.",
+          err instanceof Error ? err.message : 'Unable to delete the category right now.',
       });
     }
   };
@@ -171,19 +160,13 @@ export default function CategoriesPage() {
   // Show sign-in prompt for unauthenticated users
   if (!isAuthenticated) {
     return (
-      <AppLayout
-        title="Categories"
-        description="Create, edit, and manage expense categories"
-      >
+      <AppLayout title="Categories" description="Create, edit, and manage expense categories">
         <div className="mx-auto max-w-2xl py-12">
           <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl">
-                Sign in to manage categories
-              </CardTitle>
+              <CardTitle className="text-2xl">Sign in to manage categories</CardTitle>
               <CardDescription className="text-muted-foreground">
-                Connect your account to create, edit, and organize your expense
-                categories.
+                Connect your account to create, edit, and organize your expense categories.
               </CardDescription>
             </CardHeader>
             <CardContent className="flex justify-center">
@@ -196,24 +179,19 @@ export default function CategoriesPage() {
   }
 
   return (
-    <AppLayout
-      title="Categories"
-      description="Create, edit, and manage expense categories"
-    >
+    <AppLayout title="Categories" description="Create, edit, and manage expense categories">
       <div className="mx-auto max-w-6xl space-y-6">
         {/* Summary Cards and Add Button */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap gap-3">
             <div className="rounded-2xl border border-border/60 bg-card/80 px-4 py-3 shadow-sm shadow-black/10">
               <p className="text-xs text-muted-foreground">Total</p>
-              <p className="text-xl font-semibold text-foreground">
-                {categories.length}
-              </p>
+              <p className="text-xl font-semibold text-foreground">{categories.length}</p>
             </div>
             <div className="rounded-2xl border border-border/60 bg-card/80 px-4 py-3 shadow-sm shadow-black/10">
               <p className="text-xs text-muted-foreground">Status</p>
               <p className="text-xl font-semibold text-foreground">
-                {isLoading ? "Loading..." : isSaving ? "Saving..." : "Ready"}
+                {isLoading ? 'Loading...' : isSaving ? 'Saving...' : 'Ready'}
               </p>
             </div>
             {error && (
@@ -238,13 +216,11 @@ export default function CategoriesPage() {
             <DialogContent className="border-border/60 bg-card text-foreground">
               <form onSubmit={handleSubmit}>
                 <DialogHeader>
-                  <DialogTitle>
-                    {activeCategory ? "Edit category" : "Add category"}
-                  </DialogTitle>
+                  <DialogTitle>{activeCategory ? 'Edit category' : 'Add category'}</DialogTitle>
                   <DialogDescription className="text-muted-foreground">
                     {activeCategory
-                      ? "Update this category to keep your expenses organized."
-                      : "Create a category with a clear name and color for quick recognition."}
+                      ? 'Update this category to keep your expenses organized.'
+                      : 'Create a category with a clear name and color for quick recognition.'}
                   </DialogDescription>
                 </DialogHeader>
 
@@ -300,16 +276,12 @@ export default function CategoriesPage() {
                       />
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Pick a color that will show up alongside expenses in this
-                      category.
+                      Pick a color that will show up alongside expenses in this category.
                     </p>
                   </div>
 
                   <div className="space-y-2">
-                    <Label
-                      htmlFor="description"
-                      className="text-muted-foreground"
-                    >
+                    <Label htmlFor="description" className="text-muted-foreground">
                       Description
                     </Label>
                     <Input
@@ -327,9 +299,7 @@ export default function CategoriesPage() {
                   </div>
 
                   {validationError ? (
-                    <p className="text-sm text-destructive">
-                      {validationError}
-                    </p>
+                    <p className="text-sm text-destructive">{validationError}</p>
                   ) : null}
                 </div>
 
@@ -351,10 +321,10 @@ export default function CategoriesPage() {
                     disabled={isSaving}
                   >
                     {isSaving
-                      ? "Saving..."
+                      ? 'Saving...'
                       : activeCategory
-                      ? "Update category"
-                      : "Create category"}
+                        ? 'Update category'
+                        : 'Create category'}
                   </Button>
                 </DialogFooter>
               </form>
@@ -379,7 +349,7 @@ export default function CategoriesPage() {
                 disabled={isLoading}
               >
                 <RefreshCw className="mr-2 h-4 w-4" />
-                {isLoading ? "Refreshing..." : "Refresh"}
+                {isLoading ? 'Refreshing...' : 'Refresh'}
               </Button>
               <Button
                 size="sm"
@@ -393,48 +363,31 @@ export default function CategoriesPage() {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="py-8 text-center text-muted-foreground">
-                Loading categories...
-              </div>
+              <div className="py-8 text-center text-muted-foreground">Loading categories...</div>
             ) : categories.length === 0 ? (
               <div className="py-8 text-center text-muted-foreground">
                 <p>No categories yet.</p>
-                <p className="mt-2 text-sm">
-                  Create your first category to organize expenses.
-                </p>
+                <p className="mt-2 text-sm">Create your first category to organize expenses.</p>
               </div>
             ) : (
               <Table className="text-foreground">
                 <TableHeader className="[&_tr]:border-border/60">
                   <TableRow className="border-border/60">
-                    <TableHead className="text-muted-foreground">
-                      Name
-                    </TableHead>
-                    <TableHead className="text-muted-foreground">
-                      Description
-                    </TableHead>
-                    <TableHead className="text-muted-foreground">
-                      Color
-                    </TableHead>
-                    <TableHead className="text-muted-foreground">
-                      Updated
-                    </TableHead>
-                    <TableHead className="text-right text-muted-foreground">
-                      Actions
-                    </TableHead>
+                    <TableHead className="text-muted-foreground">Name</TableHead>
+                    <TableHead className="text-muted-foreground">Description</TableHead>
+                    <TableHead className="text-muted-foreground">Color</TableHead>
+                    <TableHead className="text-muted-foreground">Updated</TableHead>
+                    <TableHead className="text-right text-muted-foreground">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {categories.map((category) => (
-                    <TableRow
-                      key={category.id}
-                      className="border-border/60 hover:bg-card/80"
-                    >
+                    <TableRow key={category.id} className="border-border/60 hover:bg-card/80">
                       <TableCell className="font-semibold text-foreground">
                         {category.name}
                       </TableCell>
                       <TableCell className="max-w-md truncate text-muted-foreground">
-                        {category.description || "—"}
+                        {category.description || '—'}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-3">
@@ -451,7 +404,7 @@ export default function CategoriesPage() {
                             style={
                               category.color
                                 ? {
-                                    backgroundColor: category.color + "22",
+                                    backgroundColor: category.color + '22',
                                     color: category.color,
                                     borderColor: category.color,
                                   }
@@ -463,9 +416,7 @@ export default function CategoriesPage() {
                         </div>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {new Date(
-                          category.updatedAt || category.createdAt
-                        ).toLocaleDateString()}
+                        {new Date(category.updatedAt || category.createdAt).toLocaleDateString()}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end space-x-2">
@@ -489,13 +440,10 @@ export default function CategoriesPage() {
                             </AlertDialogTrigger>
                             <AlertDialogContent className="border-border/60 bg-card text-foreground">
                               <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                  Delete category
-                                </AlertDialogTitle>
+                                <AlertDialogTitle>Delete category</AlertDialogTitle>
                                 <AlertDialogDescription className="text-muted-foreground">
-                                  This will remove the category from your
-                                  workspace. Expenses previously using it will
-                                  lose the association.
+                                  This will remove the category from your workspace. Expenses
+                                  previously using it will lose the association.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
@@ -507,9 +455,7 @@ export default function CategoriesPage() {
                                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                   disabled={deletingId === category.id}
                                 >
-                                  {deletingId === category.id
-                                    ? "Deleting..."
-                                    : "Delete"}
+                                  {deletingId === category.id ? 'Deleting...' : 'Delete'}
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
