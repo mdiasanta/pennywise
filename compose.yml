@@ -1,13 +1,10 @@
-
 services:
   # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
     container_name: pennywise-postgres
-    environment:
-      POSTGRES_DB: pennywise
-      POSTGRES_USER: pennywise
-      POSTGRES_PASSWORD: pennywise_password
+    env_file:
+      - .env
     ports:
       - "5432:5432"
     volumes:
@@ -29,10 +26,8 @@ services:
       context: ./backend/Pennywise.Api
       dockerfile: Dockerfile
     container_name: pennywise-backend
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://+:8080
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=pennywise;Username=pennywise;Password=pennywise_password
+    env_file:
+      - .env
     ports:
       - "8080:8080"
     depends_on:
@@ -50,6 +45,8 @@ services:
       context: ./frontend/pennywise-ui
       dockerfile: Dockerfile
     container_name: pennywise-frontend
+    env_file:
+      - .env
     ports:
       - "3000:80"
     depends_on:
@@ -71,9 +68,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=pennywise;Username=pennywise;Password=pennywise_password
+    env_file:
+      - .env
     profiles:
       - devcontainer
 
