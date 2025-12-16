@@ -1,5 +1,5 @@
-@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap");
-@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import 'tailwindcss';
 
 @layer base {
   :root {
@@ -82,16 +82,11 @@
     --radius: 0.5rem;
     --shadow-2xs: 0px 4px 8px -1px hsl(0 0% 0% / 0.05);
     --shadow-xs: 0px 4px 8px -1px hsl(0 0% 0% / 0.05);
-    --shadow-sm: 0px 4px 8px -1px hsl(0 0% 0% / 0.1),
-      0px 1px 2px -2px hsl(0 0% 0% / 0.1);
-    --shadow: 0px 4px 8px -1px hsl(0 0% 0% / 0.1),
-      0px 1px 2px -2px hsl(0 0% 0% / 0.1);
-    --shadow-md: 0px 4px 8px -1px hsl(0 0% 0% / 0.1),
-      0px 2px 4px -2px hsl(0 0% 0% / 0.1);
-    --shadow-lg: 0px 4px 8px -1px hsl(0 0% 0% / 0.1),
-      0px 4px 6px -2px hsl(0 0% 0% / 0.1);
-    --shadow-xl: 0px 4px 8px -1px hsl(0 0% 0% / 0.1),
-      0px 8px 10px -2px hsl(0 0% 0% / 0.1);
+    --shadow-sm: 0px 4px 8px -1px hsl(0 0% 0% / 0.1), 0px 1px 2px -2px hsl(0 0% 0% / 0.1);
+    --shadow: 0px 4px 8px -1px hsl(0 0% 0% / 0.1), 0px 1px 2px -2px hsl(0 0% 0% / 0.1);
+    --shadow-md: 0px 4px 8px -1px hsl(0 0% 0% / 0.1), 0px 2px 4px -2px hsl(0 0% 0% / 0.1);
+    --shadow-lg: 0px 4px 8px -1px hsl(0 0% 0% / 0.1), 0px 4px 6px -2px hsl(0 0% 0% / 0.1);
+    --shadow-xl: 0px 4px 8px -1px hsl(0 0% 0% / 0.1), 0px 8px 10px -2px hsl(0 0% 0% / 0.1);
     --shadow-2xl: 0px 4px 8px -1px hsl(0 0% 0% / 0.25);
     --spacing: 0.25rem;
   }
@@ -244,7 +239,11 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: "Space Grotesk", "Manrope", system-ui, -apple-system,
+    font-family:
+      'Space Grotesk',
+      'Manrope',
+      system-ui,
+      -apple-system,
       sans-serif;
     letter-spacing: -0.01em;
   }

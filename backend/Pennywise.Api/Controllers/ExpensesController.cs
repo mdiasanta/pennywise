@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using ClosedXML.Excel;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pennywise.Api.DTOs;
 using Pennywise.Api.Helpers;
@@ -11,6 +12,7 @@ namespace Pennywise.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class ExpensesController : ControllerBase
 {
     private readonly IExpenseService _expenseService;
@@ -45,6 +47,7 @@ public class ExpensesController : ControllerBase
     }
 
     [HttpGet("template")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetTemplate([FromQuery] string format = "csv")
     {
         try
@@ -178,20 +181,20 @@ public class ExpensesController : ControllerBase
 
     [HttpGet("user/{userId}/daterange")]
     public async Task<ActionResult<IEnumerable<ExpenseDto>>> GetExpensesByDateRange(
-        int userId, 
-        [FromQuery] DateTime startDate, 
+        int userId,
+        [FromQuery] DateTime startDate,
         [FromQuery] DateTime endDate)
     {
         var expenses = await _expenseService.GetExpensesByDateRangeAsync(
-            userId, 
-            startDate.ToUtc(), 
+            userId,
+            startDate.ToUtc(),
             endDate.ToUtc());
         return Ok(expenses);
     }
 
     [HttpGet("user/{userId}/category/{categoryId}")]
     public async Task<ActionResult<IEnumerable<ExpenseDto>>> GetExpensesByCategory(
-        int userId, 
+        int userId,
         int categoryId)
     {
         var expenses = await _expenseService.GetExpensesByCategoryAsync(userId, categoryId);
@@ -203,15 +206,15 @@ public class ExpensesController : ControllerBase
     {
         var expense = await _expenseService.CreateExpenseAsync(createDto);
         return CreatedAtAction(
-            nameof(GetExpense), 
-            new { id = expense.Id, userId = expense.UserId }, 
+            nameof(GetExpense),
+            new { id = expense.Id, userId = expense.UserId },
             expense);
     }
 
     [HttpPut("{id}/user/{userId}")]
     public async Task<ActionResult<ExpenseDto>> UpdateExpense(
-        int id, 
-        int userId, 
+        int id,
+        int userId,
         UpdateExpenseDto updateDto)
     {
         var expense = await _expenseService.UpdateExpenseAsync(id, userId, updateDto);

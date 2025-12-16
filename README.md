@@ -5,6 +5,7 @@ Pennywise personal finance application for expense tracking
 ## Architecture
 
 This is a monorepo containing:
+
 - **Frontend**: React application with TypeScript, Vite, and shadcn/ui components
 - **Backend**: .NET 10 Web API
 - **Database**: PostgreSQL 16
@@ -27,6 +28,7 @@ The easiest way to get started is using VS Code Dev Containers:
 4. Wait for the container to build (first time only)
 
 The dev container includes:
+
 - All required development tools (Node.js, .NET 10, Git, GitHub CLI)
 - Pre-configured VS Code extensions (ESLint, Prettier, Tailwind CSS, C#, GitHub Copilot, etc.)
 - Automatic port forwarding for frontend (3000), backend (8080), and database (5432)
@@ -37,11 +39,20 @@ See [.devcontainer/README.md](.devcontainer/README.md) for detailed documentatio
 
 Run the entire application stack with Docker Compose:
 
-```bash
-docker-compose up --build
-```
+1. Copy the example environment file and configure it:
+
+   ```bash
+   cp .env.example .env
+   # Edit .env with your Google Client ID (see README-auth.md for setup)
+   ```
+
+2. Start the application:
+   ```bash
+   docker compose --profile app up --build
+   ```
 
 This will start:
+
 - PostgreSQL database on port 5432
 - Backend API on http://localhost:8080
 - Frontend application on http://localhost:3000
@@ -108,6 +119,7 @@ pennywise/
 ## Technologies
 
 ### Frontend
+
 - React 19
 - TypeScript
 - Vite
@@ -117,20 +129,24 @@ pennywise/
 - Nginx (for production)
 
 ### Backend
+
 - .NET 10
 - ASP.NET Core Web API
 - OpenAPI/Swagger
 
 ### Database
+
 - PostgreSQL 16
 
 ## Environment Variables
 
 ### Backend
+
 - `ASPNETCORE_ENVIRONMENT`: Development/Production
 - `ConnectionStrings__DefaultConnection`: PostgreSQL connection string
 
 ### Database
+
 - `POSTGRES_DB`: pennywise
 - `POSTGRES_USER`: pennywise
 - `POSTGRES_PASSWORD`: pennywise_password
@@ -155,4 +171,3 @@ To remove volumes as well:
 ```bash
 docker-compose down -v
 ```
-

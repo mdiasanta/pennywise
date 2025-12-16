@@ -1,6 +1,6 @@
 // API client for Pennywise backend
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8080') + '/api';
 
 // Types matching backend DTOs
 export interface User {
@@ -124,7 +124,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
     const error = await response.text();
     throw new Error(error || `HTTP error! status: ${response.status}`);
   }
-  
+
   if (response.status === 204) {
     return undefined as T;
   }
@@ -135,12 +135,16 @@ async function handleResponse<T>(response: Response): Promise<T> {
 // User API
 export const userApi = {
   async getById(id: number): Promise<User> {
-    const response = await fetch(`${API_BASE_URL}/users/${id}`);
+    const response = await fetch(`${API_BASE_URL}/users/${id}`, {
+      credentials: 'include',
+    });
     return handleResponse<User>(response);
   },
 
   async getByEmail(email: string): Promise<User | null> {
-    const response = await fetch(`${API_BASE_URL}/users/email/${encodeURIComponent(email)}`);
+    const response = await fetch(`${API_BASE_URL}/users/email/${encodeURIComponent(email)}`, {
+      credentials: 'include',
+    });
     if (response.status === 404) return null;
     return handleResponse<User>(response);
   },
@@ -150,6 +154,7 @@ export const userApi = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(user),
+      credentials: 'include',
     });
     return handleResponse<User>(response);
   },
@@ -159,6 +164,7 @@ export const userApi = {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(user),
+      credentials: 'include',
     });
     return handleResponse<User>(response);
   },
@@ -196,30 +202,32 @@ export const expenseApi = {
     const url = filterQuery
       ? `${API_BASE_URL}/expenses/user/${userId}?${filterQuery}`
       : `${API_BASE_URL}/expenses/user/${userId}`;
-    const response = await fetch(url);
+    const response = await fetch(url, { credentials: 'include' });
     return handleResponse<Expense[]>(response);
   },
 
   async getById(id: number, userId: number): Promise<Expense> {
-    const response = await fetch(`${API_BASE_URL}/expenses/${id}/user/${userId}`);
+    const response = await fetch(`${API_BASE_URL}/expenses/${id}/user/${userId}`, {
+      credentials: 'include',
+    });
     return handleResponse<Expense>(response);
   },
 
   async getByDateRange(userId: number, startDate: string, endDate: string): Promise<Expense[]> {
     const params = new URLSearchParams({
       startDate,
-      endDate
+      endDate,
     });
-    const response = await fetch(
-      `${API_BASE_URL}/expenses/user/${userId}/daterange?${params}`
-    );
+    const response = await fetch(`${API_BASE_URL}/expenses/user/${userId}/daterange?${params}`, {
+      credentials: 'include',
+    });
     return handleResponse<Expense[]>(response);
   },
 
   async getByCategory(userId: number, categoryId: number): Promise<Expense[]> {
-    const response = await fetch(
-      `${API_BASE_URL}/expenses/user/${userId}/category/${categoryId}`
-    );
+    const response = await fetch(`${API_BASE_URL}/expenses/user/${userId}/category/${categoryId}`, {
+      credentials: 'include',
+    });
     return handleResponse<Expense[]>(response);
   },
 
@@ -228,6 +236,7 @@ export const expenseApi = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(expense),
+      credentials: 'include',
     });
     return handleResponse<Expense>(response);
   },
@@ -237,6 +246,7 @@ export const expenseApi = {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(expense),
+      credentials: 'include',
     });
     return handleResponse<Expense>(response);
   },
@@ -244,6 +254,7 @@ export const expenseApi = {
   async delete(id: number, userId: number): Promise<void> {
     const response = await fetch(`${API_BASE_URL}/expenses/${id}/user/${userId}`, {
       method: 'DELETE',
+      credentials: 'include',
     });
     return handleResponse<void>(response);
   },
@@ -269,6 +280,7 @@ export const expenseApi = {
       headers: {
         Accept: accept,
       },
+      credentials: 'include',
     });
 
     if (!response.ok) {
@@ -279,10 +291,12 @@ export const expenseApi = {
     const blob = await response.blob();
     const disposition = response.headers.get('Content-Disposition') ?? '';
     // Robust filename extraction: RFC 5987, quoted, and unquoted
-    const match = disposition.match(/filename\*=([^']+)''([^;]+)|filename="([^"]+)"|filename=([^;]+)/i);
+    const match = disposition.match(
+      /filename\*=([^']+)''([^;]+)|filename="([^"]+)"|filename=([^;]+)/i
+    );
     const filename = match?.[2]
       ? decodeURIComponent(match[2])
-      : (match?.[3] || match?.[4] || `expenses.${format}`);
+      : match?.[3] || match?.[4] || `expenses.${format}`;
 
     return {
       blob,
@@ -291,7 +305,9 @@ export const expenseApi = {
   },
 
   async downloadTemplate(format: 'csv' | 'xlsx'): Promise<{ blob: Blob; filename: string }> {
-    const response = await fetch(`${API_BASE_URL}/expenses/template?format=${format}`);
+    const response = await fetch(`${API_BASE_URL}/expenses/template?format=${format}`, {
+      credentials: 'include',
+    });
 
     if (!response.ok) {
       const error = await response.text();
@@ -300,10 +316,12 @@ export const expenseApi = {
 
     const blob = await response.blob();
     const disposition = response.headers.get('Content-Disposition') ?? '';
-    const match = disposition.match(/filename\*=([^']+)''([^;]+)|filename="([^"]+)"|filename=([^;]+)/i);
+    const match = disposition.match(
+      /filename\*=([^']+)''([^;]+)|filename="([^"]+)"|filename=([^;]+)/i
+    );
     const filename = match?.[2]
       ? decodeURIComponent(match[2])
-      : (match?.[3] || match?.[4] || `expenses-template.${format}`);
+      : match?.[3] || match?.[4] || `expenses-template.${format}`;
 
     return { blob, filename };
   },
@@ -311,7 +329,12 @@ export const expenseApi = {
   async importExpenses(
     userId: number,
     file: File,
-    options?: { duplicateStrategy?: 'skip' | 'update'; timezone?: string; dryRun?: boolean; externalBatchId?: string }
+    options?: {
+      duplicateStrategy?: 'skip' | 'update';
+      timezone?: string;
+      dryRun?: boolean;
+      externalBatchId?: string;
+    }
   ): Promise<ExpenseImportResponse> {
     const formData = new FormData();
     formData.append('file', file);
@@ -334,6 +357,7 @@ export const expenseApi = {
     const response = await fetch(`${API_BASE_URL}/expenses/import`, {
       method: 'POST',
       body: formData,
+      credentials: 'include',
     });
 
     if (!response.ok) {
@@ -348,12 +372,16 @@ export const expenseApi = {
 // Category API
 export const categoryApi = {
   async getAll(): Promise<Category[]> {
-    const response = await fetch(`${API_BASE_URL}/categories`);
+    const response = await fetch(`${API_BASE_URL}/categories`, {
+      credentials: 'include',
+    });
     return handleResponse<Category[]>(response);
   },
 
   async getById(id: number): Promise<Category> {
-    const response = await fetch(`${API_BASE_URL}/categories/${id}`);
+    const response = await fetch(`${API_BASE_URL}/categories/${id}`, {
+      credentials: 'include',
+    });
     return handleResponse<Category>(response);
   },
 
@@ -362,6 +390,7 @@ export const categoryApi = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(category),
+      credentials: 'include',
     });
     return handleResponse<Category>(response);
   },
@@ -371,6 +400,7 @@ export const categoryApi = {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(category),
+      credentials: 'include',
     });
     return handleResponse<Category>(response);
   },
@@ -378,6 +408,7 @@ export const categoryApi = {
   async delete(id: number): Promise<void> {
     const response = await fetch(`${API_BASE_URL}/categories/${id}`, {
       method: 'DELETE',
+      credentials: 'include',
     });
     return handleResponse<void>(response);
   },
@@ -386,7 +417,9 @@ export const categoryApi = {
 // Summary API
 export const summaryApi = {
   async getDashboard(userId: number): Promise<DashboardSummary> {
-    const response = await fetch(`${API_BASE_URL}/summary/user/${userId}`);
+    const response = await fetch(`${API_BASE_URL}/summary/user/${userId}`, {
+      credentials: 'include',
+    });
     return handleResponse<DashboardSummary>(response);
   },
 };
