@@ -33,6 +33,11 @@ export default function HomePage() {
     }
   }, [isAuthenticated, authLoading, navigate]);
 
+  // Don't render marketing content while checking auth or if authenticated
+  if (authLoading || isAuthenticated) {
+    return null;
+  }
+
   const features = [
     {
       icon: TrendingDown,

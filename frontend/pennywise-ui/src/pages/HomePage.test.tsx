@@ -93,7 +93,7 @@ describe("HomePage", () => {
     
     renderHome();
 
-    // Wait for page content to render
+    // Wait for page content to render (proves we're not redirecting)
     await waitFor(() =>
       expect(screen.getAllByText(/pennywise/i).length).toBeGreaterThan(0)
     );

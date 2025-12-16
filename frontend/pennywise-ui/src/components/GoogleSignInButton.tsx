@@ -20,11 +20,11 @@ export function GoogleSignInButton() {
 
     try {
       await loginWithGoogle(credentialResponse.credential);
+      navigate('/dashboard');
       toast({
         title: 'Welcome!',
         description: 'You have successfully signed in.',
       });
-      navigate('/dashboard');
     } catch (error) {
       toast({
         title: 'Sign in failed',
