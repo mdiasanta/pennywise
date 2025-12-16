@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
-import { summaryApi, userApi, type DashboardSummary } from "@/lib/api";
+import { summaryApi, type DashboardSummary } from "@/lib/api";
 import {
   ArrowRight,
   BarChart3,
@@ -29,46 +29,26 @@ import {
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
-const DEMO_USER = {
-  username: "Demo User",
-  email: "demo@pennywise.app",
-};
-
 export default function HomePage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [userId, setUserId] = useState<number | null>(null);
-
-  const getActiveUserId = useCallback(async () => {
-    // If user is authenticated, use their ID
-    if (isAuthenticated && user) {
-      return user.id;
-    }
-    
-    if (userId) return userId;
-
-    const existingUser = await userApi.getByEmail(DEMO_USER.email);
-    if (existingUser) {
-      setUserId(existingUser.id);
-      return existingUser.id;
-    }
-
-    const createdUser = await userApi.create(DEMO_USER);
-    setUserId(createdUser.id);
-    return createdUser.id;
-  }, [userId, isAuthenticated, user]);
 
   const loadSummary = useCallback(async () => {
     // Wait for auth to finish loading
     if (authLoading) return;
-    
+
+    // Only load summary for authenticated users
+    if (!isAuthenticated || !user) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
-      const activeUserId = await getActiveUserId();
-      const data = await summaryApi.getDashboard(activeUserId);
+      const data = await summaryApi.getDashboard(user.id);
       setSummary(data);
     } catch (err) {
       console.error("Error loading summary:", err);
@@ -76,7 +56,7 @@ export default function HomePage() {
     } finally {
       setLoading(false);
     }
-  }, [getActiveUserId, authLoading]);
+  }, [authLoading, isAuthenticated, user]);
 
   useEffect(() => {
     loadSummary();
@@ -131,7 +111,13 @@ export default function HomePage() {
       : [];
 
   const hasTransactions = (summary?.recentTransactions.length ?? 0) > 0;
-  const cashflowBadge = loading ? "Loading" : error ? "Offline" : "Synced";
+  const cashflowBadge = !isAuthenticated
+    ? "Sign in"
+    : loading
+    ? "Loading"
+    : error
+    ? "Offline"
+    : "Synced";
 
   const features = [
     {
@@ -303,7 +289,20 @@ export default function HomePage() {
               </div>
 
               <div className="grid gap-4 sm:grid-cols-3">
-                {loading ? (
+                {!isAuthenticated ? (
+                  <div className="sm:col-span-3 rounded-2xl border border-dashed border-border/60 bg-card/80 px-4 py-3 shadow-sm shadow-border/40">
+                    <p className="text-sm font-semibold text-foreground">
+                      Sign in to see your highlights
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Track your spending, view insights, and stay in control of
+                      your finances.
+                    </p>
+                    <div className="mt-3">
+                      <GoogleSignInButton />
+                    </div>
+                  </div>
+                ) : loading ? (
                   Array.from({ length: 3 }).map((_, index) => (
                     <div
                       key={index}
@@ -380,7 +379,9 @@ export default function HomePage() {
                     </CardTitle>
                     <span
                       className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                        error
+                        !isAuthenticated
+                          ? "bg-muted text-muted-foreground"
+                          : error
                           ? "bg-destructive/15 text-destructive-foreground"
                           : "bg-success text-success-foreground"
                       }`}
@@ -389,7 +390,9 @@ export default function HomePage() {
                     </span>
                   </div>
                   <CardDescription className="text-muted-foreground">
-                    {loading
+                    {!isAuthenticated
+                      ? "Sign in to track your finances"
+                      : loading
                       ? "Fetching your latest totals..."
                       : error
                       ? "We couldn't sync right now."
@@ -399,7 +402,19 @@ export default function HomePage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {loading ? (
+                  {!isAuthenticated ? (
+                    <div className="rounded-2xl border border-dashed border-border/60 bg-card/80 p-4 text-sm text-muted-foreground">
+                      <p className="font-semibold text-foreground">
+                        Sign in to view your cashflow
+                      </p>
+                      <p className="text-xs">
+                        Connect your account to see real-time spending data.
+                      </p>
+                      <div className="mt-3">
+                        <GoogleSignInButton />
+                      </div>
+                    </div>
+                  ) : loading ? (
                     <div className="space-y-4 text-muted-foreground">
                       <div className="h-6 w-24 animate-pulse rounded bg-muted/30" />
                       <div className="h-16 w-full animate-pulse rounded bg-muted/20" />

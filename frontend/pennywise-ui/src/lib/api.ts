@@ -1,6 +1,7 @@
 // API client for Pennywise backend
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+const API_BASE_URL =
+  (import.meta.env.VITE_API_URL || "http://localhost:8080") + "/api";
 
 // Types matching backend DTOs
 export interface User {
@@ -124,7 +125,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
     const error = await response.text();
     throw new Error(error || `HTTP error! status: ${response.status}`);
   }
-  
+
   if (response.status === 204) {
     return undefined as T;
   }
@@ -135,55 +136,62 @@ async function handleResponse<T>(response: Response): Promise<T> {
 // User API
 export const userApi = {
   async getById(id: number): Promise<User> {
-    const response = await fetch(`${API_BASE_URL}/users/${id}`);
+    const response = await fetch(`${API_BASE_URL}/users/${id}`, {
+      credentials: "include",
+    });
     return handleResponse<User>(response);
   },
 
   async getByEmail(email: string): Promise<User | null> {
-    const response = await fetch(`${API_BASE_URL}/users/email/${encodeURIComponent(email)}`);
+    const response = await fetch(
+      `${API_BASE_URL}/users/email/${encodeURIComponent(email)}`,
+      { credentials: "include" }
+    );
     if (response.status === 404) return null;
     return handleResponse<User>(response);
   },
 
   async create(user: CreateUser): Promise<User> {
     const response = await fetch(`${API_BASE_URL}/users`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(user),
+      credentials: "include",
     });
     return handleResponse<User>(response);
   },
 
   async update(id: number, user: UpdateUser): Promise<User> {
     const response = await fetch(`${API_BASE_URL}/users/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(user),
+      credentials: "include",
     });
     return handleResponse<User>(response);
   },
 };
 
 export function buildExpenseQuery(filters?: ExpenseFilters): string {
-  if (!filters) return '';
+  if (!filters) return "";
 
   const params = new URLSearchParams();
 
   if (filters.startDate) {
-    params.set('startDate', filters.startDate);
+    params.set("startDate", filters.startDate);
   }
 
   if (filters.endDate) {
-    params.set('endDate', filters.endDate);
+    params.set("endDate", filters.endDate);
   }
 
   if (filters.categoryId !== undefined) {
-    params.set('categoryId', filters.categoryId.toString());
+    params.set("categoryId", filters.categoryId.toString());
   }
 
   const searchValue = filters.search?.trim();
   if (searchValue) {
-    params.set('search', searchValue);
+    params.set("search", searchValue);
   }
 
   return params.toString();
@@ -196,61 +204,83 @@ export const expenseApi = {
     const url = filterQuery
       ? `${API_BASE_URL}/expenses/user/${userId}?${filterQuery}`
       : `${API_BASE_URL}/expenses/user/${userId}`;
-    const response = await fetch(url);
+    const response = await fetch(url, { credentials: "include" });
     return handleResponse<Expense[]>(response);
   },
 
   async getById(id: number, userId: number): Promise<Expense> {
-    const response = await fetch(`${API_BASE_URL}/expenses/${id}/user/${userId}`);
+    const response = await fetch(
+      `${API_BASE_URL}/expenses/${id}/user/${userId}`,
+      { credentials: "include" }
+    );
     return handleResponse<Expense>(response);
   },
 
-  async getByDateRange(userId: number, startDate: string, endDate: string): Promise<Expense[]> {
+  async getByDateRange(
+    userId: number,
+    startDate: string,
+    endDate: string
+  ): Promise<Expense[]> {
     const params = new URLSearchParams({
       startDate,
-      endDate
+      endDate,
     });
     const response = await fetch(
-      `${API_BASE_URL}/expenses/user/${userId}/daterange?${params}`
+      `${API_BASE_URL}/expenses/user/${userId}/daterange?${params}`,
+      { credentials: "include" }
     );
     return handleResponse<Expense[]>(response);
   },
 
   async getByCategory(userId: number, categoryId: number): Promise<Expense[]> {
     const response = await fetch(
-      `${API_BASE_URL}/expenses/user/${userId}/category/${categoryId}`
+      `${API_BASE_URL}/expenses/user/${userId}/category/${categoryId}`,
+      { credentials: "include" }
     );
     return handleResponse<Expense[]>(response);
   },
 
   async create(expense: CreateExpense): Promise<Expense> {
     const response = await fetch(`${API_BASE_URL}/expenses`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(expense),
+      credentials: "include",
     });
     return handleResponse<Expense>(response);
   },
 
-  async update(id: number, userId: number, expense: UpdateExpense): Promise<Expense> {
-    const response = await fetch(`${API_BASE_URL}/expenses/${id}/user/${userId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(expense),
-    });
+  async update(
+    id: number,
+    userId: number,
+    expense: UpdateExpense
+  ): Promise<Expense> {
+    const response = await fetch(
+      `${API_BASE_URL}/expenses/${id}/user/${userId}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(expense),
+        credentials: "include",
+      }
+    );
     return handleResponse<Expense>(response);
   },
 
   async delete(id: number, userId: number): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/expenses/${id}/user/${userId}`, {
-      method: 'DELETE',
-    });
+    const response = await fetch(
+      `${API_BASE_URL}/expenses/${id}/user/${userId}`,
+      {
+        method: "DELETE",
+        credentials: "include",
+      }
+    );
     return handleResponse<void>(response);
   },
 
   async export(
     userId: number,
-    format: 'csv' | 'xlsx',
+    format: "csv" | "xlsx",
     filters?: ExpenseFilters
   ): Promise<{ blob: Blob; filename: string }> {
     const filterQuery = buildExpenseQuery(filters);
@@ -259,30 +289,33 @@ export const expenseApi = {
       queryParts.push(filterQuery);
     }
 
-    const url = `${API_BASE_URL}/expenses/export?${queryParts.join('&')}`;
+    const url = `${API_BASE_URL}/expenses/export?${queryParts.join("&")}`;
     const accept =
-      format === 'xlsx'
-        ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        : 'text/csv';
+      format === "xlsx"
+        ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        : "text/csv";
 
     const response = await fetch(url, {
       headers: {
         Accept: accept,
       },
+      credentials: "include",
     });
 
     if (!response.ok) {
       const error = await response.text();
-      throw new Error(error || 'Failed to export expenses');
+      throw new Error(error || "Failed to export expenses");
     }
 
     const blob = await response.blob();
-    const disposition = response.headers.get('Content-Disposition') ?? '';
+    const disposition = response.headers.get("Content-Disposition") ?? "";
     // Robust filename extraction: RFC 5987, quoted, and unquoted
-    const match = disposition.match(/filename\*=([^']+)''([^;]+)|filename="([^"]+)"|filename=([^;]+)/i);
+    const match = disposition.match(
+      /filename\*=([^']+)''([^;]+)|filename="([^"]+)"|filename=([^;]+)/i
+    );
     const filename = match?.[2]
       ? decodeURIComponent(match[2])
-      : (match?.[3] || match?.[4] || `expenses.${format}`);
+      : match?.[3] || match?.[4] || `expenses.${format}`;
 
     return {
       blob,
@@ -290,20 +323,27 @@ export const expenseApi = {
     };
   },
 
-  async downloadTemplate(format: 'csv' | 'xlsx'): Promise<{ blob: Blob; filename: string }> {
-    const response = await fetch(`${API_BASE_URL}/expenses/template?format=${format}`);
+  async downloadTemplate(
+    format: "csv" | "xlsx"
+  ): Promise<{ blob: Blob; filename: string }> {
+    const response = await fetch(
+      `${API_BASE_URL}/expenses/template?format=${format}`,
+      { credentials: "include" }
+    );
 
     if (!response.ok) {
       const error = await response.text();
-      throw new Error(error || 'Failed to download template');
+      throw new Error(error || "Failed to download template");
     }
 
     const blob = await response.blob();
-    const disposition = response.headers.get('Content-Disposition') ?? '';
-    const match = disposition.match(/filename\*=([^']+)''([^;]+)|filename="([^"]+)"|filename=([^;]+)/i);
+    const disposition = response.headers.get("Content-Disposition") ?? "";
+    const match = disposition.match(
+      /filename\*=([^']+)''([^;]+)|filename="([^"]+)"|filename=([^;]+)/i
+    );
     const filename = match?.[2]
       ? decodeURIComponent(match[2])
-      : (match?.[3] || match?.[4] || `expenses-template.${format}`);
+      : match?.[3] || match?.[4] || `expenses-template.${format}`;
 
     return { blob, filename };
   },
@@ -311,34 +351,40 @@ export const expenseApi = {
   async importExpenses(
     userId: number,
     file: File,
-    options?: { duplicateStrategy?: 'skip' | 'update'; timezone?: string; dryRun?: boolean; externalBatchId?: string }
+    options?: {
+      duplicateStrategy?: "skip" | "update";
+      timezone?: string;
+      dryRun?: boolean;
+      externalBatchId?: string;
+    }
   ): Promise<ExpenseImportResponse> {
     const formData = new FormData();
-    formData.append('file', file);
-    formData.append('userId', userId.toString());
+    formData.append("file", file);
+    formData.append("userId", userId.toString());
 
     if (options?.duplicateStrategy) {
-      formData.append('duplicateStrategy', options.duplicateStrategy);
+      formData.append("duplicateStrategy", options.duplicateStrategy);
     }
 
     if (options?.timezone) {
-      formData.append('timezone', options.timezone);
+      formData.append("timezone", options.timezone);
     }
 
-    formData.append('dryRun', options?.dryRun === false ? 'false' : 'true');
+    formData.append("dryRun", options?.dryRun === false ? "false" : "true");
 
     if (options?.externalBatchId) {
-      formData.append('externalBatchId', options.externalBatchId);
+      formData.append("externalBatchId", options.externalBatchId);
     }
 
     const response = await fetch(`${API_BASE_URL}/expenses/import`, {
-      method: 'POST',
+      method: "POST",
       body: formData,
+      credentials: "include",
     });
 
     if (!response.ok) {
       const message = await response.text();
-      throw new Error(message || 'Failed to import expenses');
+      throw new Error(message || "Failed to import expenses");
     }
 
     return response.json() as Promise<ExpenseImportResponse>;
@@ -348,36 +394,43 @@ export const expenseApi = {
 // Category API
 export const categoryApi = {
   async getAll(): Promise<Category[]> {
-    const response = await fetch(`${API_BASE_URL}/categories`);
+    const response = await fetch(`${API_BASE_URL}/categories`, {
+      credentials: "include",
+    });
     return handleResponse<Category[]>(response);
   },
 
   async getById(id: number): Promise<Category> {
-    const response = await fetch(`${API_BASE_URL}/categories/${id}`);
+    const response = await fetch(`${API_BASE_URL}/categories/${id}`, {
+      credentials: "include",
+    });
     return handleResponse<Category>(response);
   },
 
   async create(category: CreateCategory): Promise<Category> {
     const response = await fetch(`${API_BASE_URL}/categories`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(category),
+      credentials: "include",
     });
     return handleResponse<Category>(response);
   },
 
   async update(id: number, category: UpdateCategory): Promise<Category> {
     const response = await fetch(`${API_BASE_URL}/categories/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(category),
+      credentials: "include",
     });
     return handleResponse<Category>(response);
   },
 
   async delete(id: number): Promise<void> {
     const response = await fetch(`${API_BASE_URL}/categories/${id}`, {
-      method: 'DELETE',
+      method: "DELETE",
+      credentials: "include",
     });
     return handleResponse<void>(response);
   },
@@ -386,7 +439,9 @@ export const categoryApi = {
 // Summary API
 export const summaryApi = {
   async getDashboard(userId: number): Promise<DashboardSummary> {
-    const response = await fetch(`${API_BASE_URL}/summary/user/${userId}`);
+    const response = await fetch(`${API_BASE_URL}/summary/user/${userId}`, {
+      credentials: "include",
+    });
     return handleResponse<DashboardSummary>(response);
   },
 };

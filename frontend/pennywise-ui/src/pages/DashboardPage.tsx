@@ -1,4 +1,5 @@
 import { AppLayout } from "@/components/AppLayout";
+import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useAuth } from "@/hooks/use-auth";
 import type { Expense } from "@/lib/api";
 import { expenseApi } from "@/lib/api";
 import { Calendar, CreditCard, DollarSign, TrendingDown } from "lucide-react";
@@ -42,9 +44,6 @@ import {
   YAxis,
 } from "recharts";
 
-// For demo purposes, using userId = 1
-const DEMO_USER_ID = 1;
-
 type TimeRange = "day" | "week" | "month" | "year";
 
 const COLORS = [
@@ -59,11 +58,21 @@ const COLORS = [
 ];
 
 export default function DashboardPage() {
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [timeRange, setTimeRange] = useState<TimeRange>("month");
   const [loading, setLoading] = useState(true);
 
   const loadData = useCallback(async () => {
+    // Wait for auth to finish loading
+    if (authLoading) return;
+
+    // Only load data for authenticated users
+    if (!isAuthenticated || !user) {
+      setLoading(false);
+      return;
+    }
+
     const getDateRange = (range: TimeRange) => {
       const endDate = new Date();
       const startDate = new Date();
@@ -95,7 +104,7 @@ export default function DashboardPage() {
       const { startDate, endDate } = getDateRange(timeRange);
 
       const expensesData = await expenseApi.getByDateRange(
-        DEMO_USER_ID,
+        user.id,
         startDate,
         endDate
       );
@@ -106,7 +115,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [timeRange]);
+  }, [timeRange, authLoading, isAuthenticated, user]);
 
   useEffect(() => {
     loadData();
@@ -180,6 +189,33 @@ export default function DashboardPage() {
   const categoryData = getExpensesByCategory();
   const recentExpenses = getRecentExpenses();
   const totalExpenses = getTotalExpenses();
+
+  // Show sign-in prompt for unauthenticated users
+  if (!isAuthenticated) {
+    return (
+      <AppLayout
+        title="Dashboard"
+        description="Track velocity, catch outliers, and keep your envelopes healthy"
+      >
+        <div className="mx-auto max-w-2xl py-12">
+          <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl">
+                Sign in to view your dashboard
+              </CardTitle>
+              <CardDescription className="text-muted-foreground">
+                Connect your account to track expenses, view insights, and
+                manage your finances.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex justify-center">
+              <GoogleSignInButton />
+            </CardContent>
+          </Card>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout

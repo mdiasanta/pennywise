@@ -1,4 +1,5 @@
 import { AppLayout } from "@/components/AppLayout";
+import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,6 +48,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/hooks/use-auth";
 import { useCategories } from "@/hooks/use-categories";
 import { useToast } from "@/hooks/use-toast";
 import type {
@@ -55,7 +57,7 @@ import type {
   ExpenseImportResponse,
   UpdateExpense,
 } from "@/lib/api";
-import { expenseApi, userApi } from "@/lib/api";
+import { expenseApi } from "@/lib/api";
 import {
   CheckCircle2,
   Download,
@@ -80,14 +82,9 @@ const US_TIMEZONES = [
   "America/Puerto_Rico",
 ];
 
-const DEMO_USER = {
-  username: "Demo User",
-  email: "demo@pennywise.app",
-};
-
 export default function ExpensesPage() {
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [userId, setUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
@@ -143,20 +140,6 @@ export default function ExpensesPage() {
     [filters]
   );
 
-  const getActiveUserId = useCallback(async () => {
-    if (userId) return userId;
-
-    const existingUser = await userApi.getByEmail(DEMO_USER.email);
-    if (existingUser) {
-      setUserId(existingUser.id);
-      return existingUser.id;
-    }
-
-    const newUser = await userApi.create(DEMO_USER);
-    setUserId(newUser.id);
-    return newUser.id;
-  }, [userId]);
-
   const clearImportState = () => {
     setImportPreview(null);
     setImportFile(null);
@@ -168,11 +151,19 @@ export default function ExpensesPage() {
 
   const loadData = useCallback(
     async (overrideFilters = filters) => {
+      // Wait for auth to finish loading
+      if (authLoading) return;
+
+      // Only load data for authenticated users
+      if (!isAuthenticated || !user) {
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
-        const activeUserId = await getActiveUserId();
         const expensesData = await expenseApi.getAll(
-          activeUserId,
+          user.id,
           buildFilterPayload(overrideFilters)
         );
         setExpenses(expensesData);
@@ -187,7 +178,7 @@ export default function ExpensesPage() {
         setLoading(false);
       }
     },
-    [getActiveUserId, buildFilterPayload, filters]
+    [authLoading, isAuthenticated, user, buildFilterPayload, filters]
   );
 
   useEffect(() => {
@@ -243,11 +234,12 @@ export default function ExpensesPage() {
   };
 
   const handleExport = async () => {
+    if (!user) return;
+
     try {
       setExporting(true);
-      const activeUserId = await getActiveUserId();
       const { blob, filename } = await expenseApi.export(
-        activeUserId,
+        user.id,
         exportFormat,
         buildFilterPayload(filters)
       );
@@ -326,6 +318,8 @@ export default function ExpensesPage() {
   };
 
   const handleImportPreview = async (file: File) => {
+    if (!user) return;
+
     const extension = file.name.split(".").pop()?.toLowerCase();
     if (!extension || (extension !== "csv" && extension !== "xlsx")) {
       toast({
@@ -339,8 +333,7 @@ export default function ExpensesPage() {
     try {
       setPreviewingImport(true);
       setImportFile(file);
-      const activeUserId = await getActiveUserId();
-      const preview = await expenseApi.importExpenses(activeUserId, file, {
+      const preview = await expenseApi.importExpenses(user.id, file, {
         duplicateStrategy,
         timezone,
         dryRun: true,
@@ -365,7 +358,7 @@ export default function ExpensesPage() {
   };
 
   const handleApplyImport = async () => {
-    if (!importFile) {
+    if (!importFile || !user) {
       toast({
         variant: "destructive",
         title: "No file selected",
@@ -376,8 +369,7 @@ export default function ExpensesPage() {
 
     try {
       setApplyingImport(true);
-      const activeUserId = await getActiveUserId();
-      const result = await expenseApi.importExpenses(activeUserId, importFile, {
+      const result = await expenseApi.importExpenses(user.id, importFile, {
         duplicateStrategy,
         timezone,
         dryRun: false,
@@ -468,9 +460,9 @@ export default function ExpensesPage() {
       return;
     }
 
-    try {
-      const activeUserId = await getActiveUserId();
+    if (!user) return;
 
+    try {
       if (editingExpense) {
         // Update existing expense
         const updateData: UpdateExpense = {
@@ -481,7 +473,7 @@ export default function ExpensesPage() {
           categoryId: parsedCategoryId,
         };
 
-        await expenseApi.update(editingExpense.id, activeUserId, updateData);
+        await expenseApi.update(editingExpense.id, user.id, updateData);
         toast({
           title: "Success",
           description: "Expense updated successfully.",
@@ -493,7 +485,7 @@ export default function ExpensesPage() {
           description: formData.description || undefined,
           amount: parsedAmount,
           date: new Date(formData.date).toISOString(),
-          userId: activeUserId,
+          userId: user.id,
           categoryId: parsedCategoryId,
         };
 
@@ -530,9 +522,10 @@ export default function ExpensesPage() {
   };
 
   const handleDelete = async (id: number) => {
+    if (!user) return;
+
     try {
-      const activeUserId = await getActiveUserId();
-      await expenseApi.delete(id, activeUserId);
+      await expenseApi.delete(id, user.id);
       toast({
         title: "Success",
         description: "Expense deleted successfully.",
@@ -572,6 +565,33 @@ export default function ExpensesPage() {
       showImportErrorsOnly ? row.status === "error" : true
     ) ?? [];
   const importErrorCount = importPreview?.errors ?? 0;
+
+  // Show sign-in prompt for unauthenticated users
+  if (!isAuthenticated) {
+    return (
+      <AppLayout
+        title="Expenses"
+        description="Capture, edit, and audit expenses"
+      >
+        <div className="mx-auto max-w-2xl py-12">
+          <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl">
+                Sign in to manage expenses
+              </CardTitle>
+              <CardDescription className="text-muted-foreground">
+                Connect your account to add, edit, import, and export your
+                expense records.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex justify-center">
+              <GoogleSignInButton />
+            </CardContent>
+          </Card>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout title="Expenses" description="Capture, edit, and audit expenses">

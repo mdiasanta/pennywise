@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pennywise.Api.DTOs;
 using Pennywise.Api.Services;
@@ -6,6 +7,7 @@ namespace Pennywise.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class SummaryController : ControllerBase
 {
     private readonly ISummaryService _summaryService;
