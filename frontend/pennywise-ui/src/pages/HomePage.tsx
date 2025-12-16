@@ -1,17 +1,10 @@
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { UserMenu } from "@/components/UserMenu";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
-import { summaryApi, userApi, type DashboardSummary } from "@/lib/api";
 import {
   ArrowRight,
   BarChart3,
@@ -26,112 +19,19 @@ import {
   Wallet,
   Zap,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-
-const DEMO_USER = {
-  username: "Demo User",
-  email: "demo@pennywise.app",
-};
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function HomePage() {
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
-  const [summary, setSummary] = useState<DashboardSummary | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [userId, setUserId] = useState<number | null>(null);
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const navigate = useNavigate();
 
-  const getActiveUserId = useCallback(async () => {
-    // If user is authenticated, use their ID
-    if (isAuthenticated && user) {
-      return user.id;
-    }
-    
-    if (userId) return userId;
-
-    const existingUser = await userApi.getByEmail(DEMO_USER.email);
-    if (existingUser) {
-      setUserId(existingUser.id);
-      return existingUser.id;
-    }
-
-    const createdUser = await userApi.create(DEMO_USER);
-    setUserId(createdUser.id);
-    return createdUser.id;
-  }, [userId, isAuthenticated, user]);
-
-  const loadSummary = useCallback(async () => {
-    // Wait for auth to finish loading
-    if (authLoading) return;
-    
-    try {
-      setLoading(true);
-      setError(null);
-      const activeUserId = await getActiveUserId();
-      const data = await summaryApi.getDashboard(activeUserId);
-      setSummary(data);
-    } catch (err) {
-      console.error("Error loading summary:", err);
-      setError("We couldn't load your summary right now.");
-    } finally {
-      setLoading(false);
-    }
-  }, [getActiveUserId, authLoading]);
-
+  // Redirect authenticated users to dashboard
   useEffect(() => {
-    loadSummary();
-  }, [loadSummary]);
-
-  const formatCurrency = (value: number) =>
-    new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(value);
-
-  const formatPercent = (value: number) =>
-    `${value >= 0 ? "+" : ""}${value.toFixed(1)}%`;
-
-  const hasSummaryData =
-    summary != null &&
-    (summary.monthTracked > 0 ||
-      summary.averageTicket > 0 ||
-      summary.activeCategories > 0 ||
-      summary.recentTransactions.length > 0);
-
-  const highlightCards =
-    summary && hasSummaryData
-      ? [
-          {
-            label: "Tracked this month",
-            value: formatCurrency(summary.monthTracked),
-            hint:
-              summary.monthChangePercent !== 0
-                ? `${formatPercent(summary.monthChangePercent)} vs last month`
-                : "No previous month data yet",
-          },
-          {
-            label: "Average ticket",
-            value: formatCurrency(summary.averageTicket),
-            hint:
-              summary.averageTicket > 0
-                ? "Across your logged spend"
-                : "Add a transaction to see insights",
-          },
-          {
-            label: "Categories tuned",
-            value: `${summary.activeCategories} active`,
-            hint:
-              summary.activeCategories > 0
-                ? "Based on your categorized spend"
-                : "Capture expenses to activate categories",
-          },
-        ]
-      : [];
-
-  const hasTransactions = (summary?.recentTransactions.length ?? 0) > 0;
-  const cashflowBadge = loading ? "Loading" : error ? "Offline" : "Synced";
+    if (!authLoading && isAuthenticated) {
+      navigate("/dashboard");
+    }
+  }, [isAuthenticated, authLoading, navigate]);
 
   const features = [
     {
@@ -221,348 +121,73 @@ export default function HomePage() {
             <a className="hover:text-foreground" href="#workflow">
               How it works
             </a>
-            <Link to="/expenses" className="hover:text-foreground">
-              Expenses
-            </Link>
-            <Link to="/categories" className="hover:text-foreground">
-              Categories
-            </Link>
             <ThemeToggle />
-            {isAuthenticated ? (
-              <>
-                <Link to="/dashboard">
-                  <Button className="bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition hover:-translate-y-0.5 hover:bg-primary/90">
-                    Launch app
-                  </Button>
-                </Link>
-                <UserMenu />
-              </>
-            ) : (
-              <GoogleSignInButton />
-            )}
+            <GoogleSignInButton />
           </nav>
 
           <div className="flex items-center gap-3 md:hidden">
-            {isAuthenticated ? (
-              <>
-                <Link to="/dashboard">
-                  <Button
-                    size="sm"
-                    className="bg-primary text-primary-foreground hover:bg-primary/90"
-                  >
-                    Launch
-                  </Button>
-                </Link>
-                <UserMenu />
-              </>
-            ) : (
-              <GoogleSignInButton />
-            )}
+            <GoogleSignInButton />
           </div>
         </div>
       </header>
 
       <main className="relative z-10">
         <section className="container mx-auto px-4 pb-20 pt-14 md:pb-24 md:pt-20">
-          <div className="grid items-center gap-12 lg:grid-cols-2">
-            <div className="space-y-8">
-              <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/80 px-4 py-2 text-sm text-muted-foreground shadow-sm shadow-primary/20 backdrop-blur">
-                <Sparkles className="h-4 w-4 text-warning" />
-                Intentional money management
-              </div>
-              <div className="space-y-4">
-                <h1 className="text-4xl font-semibold leading-tight md:text-6xl">
-                  A calmer home for your spending
-                </h1>
-                <p className="text-lg text-muted-foreground">
-                  Pennywise keeps every transaction organized, contextual, and
-                  ready to answer the questions that matter: where did it go,
-                  and what happens next.
-                </p>
-              </div>
-
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <Link to="/dashboard">
-                  <Button
-                    size="lg"
-                    className="w-full sm:w-auto bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition hover:-translate-y-0.5 hover:bg-primary/90"
-                  >
-                    Open dashboard
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Button>
-                </Link>
-                <Link to="/expenses">
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="w-full sm:w-auto border-border/60 bg-card/80 text-foreground hover:bg-card/70"
-                  >
-                    Add an expense
-                  </Button>
-                </Link>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-3">
-                {loading ? (
-                  Array.from({ length: 3 }).map((_, index) => (
-                    <div
-                      key={index}
-                      className="rounded-2xl border border-border/60 bg-card/80 px-4 py-3 shadow-sm shadow-border/40"
-                    >
-                      <p className="text-sm text-muted-foreground">
-                        Loading...
-                      </p>
-                      <div className="mt-2 h-6 w-24 animate-pulse rounded bg-muted/40" />
-                      <div className="mt-2 h-4 w-32 animate-pulse rounded bg-muted/30" />
-                    </div>
-                  ))
-                ) : error ? (
-                  <div className="sm:col-span-3 rounded-2xl border border-border/60 bg-card/80 px-4 py-3 shadow-sm shadow-border/40">
-                    <p className="text-sm font-semibold text-foreground">
-                      Unable to load your highlights.
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Check your connection or try again in a moment.
-                    </p>
-                    <Button
-                      variant="outline"
-                      className="mt-3 border-border/60 bg-card/70 text-foreground"
-                      onClick={loadSummary}
-                    >
-                      Retry
-                    </Button>
-                  </div>
-                ) : hasSummaryData ? (
-                  highlightCards.map((item) => (
-                    <div
-                      key={item.label}
-                      className="rounded-2xl border border-border/60 bg-card/80 px-4 py-3 shadow-sm shadow-border/40"
-                    >
-                      <p className="text-sm text-muted-foreground">
-                        {item.label}
-                      </p>
-                      <p className="mt-1 text-2xl font-semibold text-foreground">
-                        {item.value}
-                      </p>
-                      <p className="text-xs text-success-foreground">
-                        {item.hint}
-                      </p>
-                    </div>
-                  ))
-                ) : (
-                  <div className="sm:col-span-3 rounded-2xl border border-dashed border-border/60 bg-card/80 px-4 py-3 shadow-sm shadow-border/40">
-                    <p className="text-sm font-semibold text-foreground">
-                      No spending to show yet.
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Add an expense to see your live highlights appear here.
-                    </p>
-                    <Link to="/expenses" className="inline-block">
-                      <Button
-                        size="sm"
-                        className="mt-3 bg-primary text-primary-foreground shadow-primary/30 hover:bg-primary/90"
-                      >
-                        Capture an expense
-                      </Button>
-                    </Link>
-                  </div>
-                )}
-              </div>
+          <div className="mx-auto max-w-4xl text-center space-y-8">
+            <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/80 px-4 py-2 text-sm text-muted-foreground shadow-sm shadow-primary/20 backdrop-blur">
+              <Sparkles className="h-4 w-4 text-warning" />
+              Intentional money management
+            </div>
+            <div className="space-y-4">
+              <h1 className="text-4xl font-semibold leading-tight md:text-6xl">
+                A calmer home for your spending
+              </h1>
+              <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
+                Pennywise keeps every transaction organized, contextual, and
+                ready to answer the questions that matter: where did it go,
+                and what happens next.
+              </p>
             </div>
 
-            <div className="relative">
-              <div className="absolute -inset-6 rounded-3xl bg-gradient-to-br from-primary/20 via-transparent to-info/20 blur-3xl" />
-              <Card className="relative overflow-hidden border-border/60 bg-card/80 text-foreground shadow-2xl backdrop-blur">
-                <CardHeader className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-xl text-foreground">
-                      Live cashflow
-                    </CardTitle>
-                    <span
-                      className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                        error
-                          ? "bg-destructive/15 text-destructive-foreground"
-                          : "bg-success text-success-foreground"
-                      }`}
-                    >
-                      {cashflowBadge}
-                    </span>
-                  </div>
-                  <CardDescription className="text-muted-foreground">
-                    {loading
-                      ? "Fetching your latest totals..."
-                      : error
-                      ? "We couldn't sync right now."
-                      : hasSummaryData
-                      ? "Updated from your recent activity"
-                      : "Add an expense to see live cashflow"}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {loading ? (
-                    <div className="space-y-4 text-muted-foreground">
-                      <div className="h-6 w-24 animate-pulse rounded bg-muted/30" />
-                      <div className="h-16 w-full animate-pulse rounded bg-muted/20" />
-                      <div className="h-24 w-full animate-pulse rounded bg-muted/20" />
-                    </div>
-                  ) : error ? (
-                    <div className="rounded-2xl border border-border/60 bg-card/80 p-4 text-sm text-muted-foreground">
-                      <p className="font-semibold text-foreground">
-                        We couldn't load your cashflow.
-                      </p>
-                      <p>Check your connection and try again.</p>
-                      <Button
-                        variant="outline"
-                        className="mt-3 border-border/60 bg-card/70 text-foreground"
-                        onClick={loadSummary}
-                      >
-                        Retry
-                      </Button>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="rounded-2xl border border-border/60 bg-card/80 p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm text-muted-foreground">
-                              Total tracked
-                            </p>
-                            <p className="text-3xl font-semibold text-foreground">
-                              {formatCurrency(summary?.totalTracked ?? 0)}
-                            </p>
-                          </div>
-                          <Badge
-                            variant="outline"
-                            className="border-primary/40 bg-brand text-brand-foreground hover:bg-brand-hover"
-                          >
-                            {summary
-                              ? `${formatPercent(
-                                  summary.monthChangePercent
-                                )} this month`
-                              : "No data yet"}
-                          </Badge>
-                        </div>
-                        <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-muted-foreground">
-                          <div className="rounded-xl border border-border/50 bg-card/80 p-3">
-                            <p className="flex items-center justify-between text-xs text-muted-foreground">
-                              Spent{" "}
-                              <span className="text-success-foreground font-medium">
-                                {formatPercent(
-                                  summary?.monthChangePercent ?? 0
-                                )}
-                              </span>
-                            </p>
-                            <p className="text-xl font-semibold text-foreground">
-                              {formatCurrency(summary?.monthTracked ?? 0)}
-                            </p>
-                          </div>
-                          <div className="rounded-xl border border-border/50 bg-card/80 p-3">
-                            <p className="flex items-center justify-between text-xs text-muted-foreground">
-                              Remaining{" "}
-                              <span className="text-success-foreground font-medium">
-                                {summary &&
-                                summary.monthTracked +
-                                  summary.remainingThisMonth >
-                                  0
-                                  ? `${Math.round(
-                                      (summary.remainingThisMonth /
-                                        Math.max(
-                                          summary.monthTracked +
-                                            summary.remainingThisMonth,
-                                          1
-                                        )) *
-                                        100
-                                    )}%`
-                                  : "0%"}
-                              </span>
-                            </p>
-                            <p className="text-xl font-semibold text-foreground">
-                              {formatCurrency(summary?.remainingThisMonth ?? 0)}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-center">
+              <GoogleSignInButton />
+            </div>
 
-                      <div className="space-y-3">
-                        {hasTransactions ? (
-                          (summary?.recentTransactions ?? []).map((line) => {
-                            const isOutflow = line.amount >= 0;
-                            const displayAmount = `${
-                              isOutflow ? "-" : "+"
-                            }${formatCurrency(Math.abs(line.amount))}`;
-
-                            return (
-                              <div
-                                key={line.id}
-                                className="flex items-center justify-between rounded-2xl border border-border/50 bg-card/80 px-4 py-3 text-sm text-muted-foreground"
-                              >
-                                <div>
-                                  <p className="font-semibold text-foreground">
-                                    {line.title}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {new Date(line.date).toLocaleString(
-                                      "en-US",
-                                      {
-                                        month: "short",
-                                        day: "numeric",
-                                      }
-                                    )}
-                                  </p>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                  <span
-                                    className="rounded-full bg-card/70 px-3 py-1 text-xs text-muted-foreground"
-                                    style={
-                                      line.categoryColor
-                                        ? {
-                                            backgroundColor: `${line.categoryColor}22`,
-                                            color: line.categoryColor,
-                                            borderColor: line.categoryColor,
-                                            borderWidth: 1,
-                                          }
-                                        : undefined
-                                    }
-                                  >
-                                    {line.category ?? "Uncategorized"}
-                                  </span>
-                                  <p
-                                    className={`text-base font-semibold ${
-                                      isOutflow
-                                        ? "text-destructive"
-                                        : "text-success-foreground"
-                                    }`}
-                                  >
-                                    {displayAmount}
-                                  </p>
-                                </div>
-                              </div>
-                            );
-                          })
-                        ) : (
-                          <div className="rounded-2xl border border-dashed border-border/60 bg-card/80 px-4 py-6 text-sm text-muted-foreground">
-                            <p className="font-semibold text-foreground">
-                              No recent transactions yet.
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              Capture an expense to see it flow into your live
-                              view.
-                            </p>
-                            <Link to="/expenses" className="inline-block">
-                              <Button
-                                size="sm"
-                                className="mt-3 bg-primary text-primary-foreground hover:bg-primary/90"
-                              >
-                                Add expense
-                              </Button>
-                            </Link>
-                          </div>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
+            {/* Feature highlights */}
+            <div className="grid gap-4 pt-8 sm:grid-cols-3">
+              <div className="rounded-2xl border border-border/60 bg-card/80 px-4 py-4 shadow-sm shadow-border/40">
+                <div className="flex h-10 w-10 mx-auto items-center justify-center rounded-xl bg-brand text-brand-foreground mb-3">
+                  <TrendingDown className="h-5 w-5" />
+                </div>
+                <p className="text-sm font-semibold text-foreground">
+                  Track spending in real-time
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  See where every dollar goes with live dashboards and alerts
+                </p>
+              </div>
+              <div className="rounded-2xl border border-border/60 bg-card/80 px-4 py-4 shadow-sm shadow-border/40">
+                <div className="flex h-10 w-10 mx-auto items-center justify-center rounded-xl bg-info text-info-foreground mb-3">
+                  <PieChart className="h-5 w-5" />
+                </div>
+                <p className="text-sm font-semibold text-foreground">
+                  Smart categorization
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Auto-organize expenses into meaningful categories
+                </p>
+              </div>
+              <div className="rounded-2xl border border-border/60 bg-card/80 px-4 py-4 shadow-sm shadow-border/40">
+                <div className="flex h-10 w-10 mx-auto items-center justify-center rounded-xl bg-success text-success-foreground mb-3">
+                  <BarChart3 className="h-5 w-5" />
+                </div>
+                <p className="text-sm font-semibold text-foreground">
+                  Insightful reports
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Make better financial decisions with clear visualizations
+                </p>
+              </div>
             </div>
           </div>
         </section>
@@ -677,27 +302,11 @@ export default function HomePage() {
                     Bring Pennywise into your week and stay two steps ahead.
                   </h3>
                   <p className="text-lg text-muted-foreground">
-                    Spin up your dashboard, set envelopes for the month, and
+                    Sign in to access your dashboard, set up envelopes for the month, and
                     watch every transaction land exactly where it belongs.
                   </p>
                   <div className="flex flex-col gap-3 sm:flex-row">
-                    <Link to="/dashboard">
-                      <Button
-                        size="lg"
-                        className="w-full sm:w-auto bg-background text-foreground shadow-lg shadow-black/30 transition hover:-translate-y-0.5"
-                      >
-                        Go to dashboard
-                      </Button>
-                    </Link>
-                    <Link to="/expenses">
-                      <Button
-                        size="lg"
-                        variant="secondary"
-                        className="w-full sm:w-auto border-border/60 bg-card/70 text-foreground hover:bg-card/80"
-                      >
-                        Capture an expense
-                      </Button>
-                    </Link>
+                    <GoogleSignInButton />
                   </div>
                 </div>
                 <div className="rounded-3xl border border-border/60 bg-card/70 p-5 text-sm text-muted-foreground shadow-lg backdrop-blur">

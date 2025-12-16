@@ -1,10 +1,12 @@
 import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 export function GoogleSignInButton() {
   const { loginWithGoogle } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleSuccess = async (credentialResponse: CredentialResponse) => {
     if (!credentialResponse.credential) {
@@ -22,6 +24,7 @@ export function GoogleSignInButton() {
         title: 'Welcome!',
         description: 'You have successfully signed in.',
       });
+      navigate('/dashboard');
     } catch (error) {
       toast({
         title: 'Sign in failed',
