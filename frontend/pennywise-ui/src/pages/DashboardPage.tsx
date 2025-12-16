@@ -28,33 +28,33 @@ export default function DashboardPage() {
   const [timeRange, setTimeRange] = useState<TimeRange>('month');
   const [loading, setLoading] = useState(true);
 
-  const getDateRange = (range: TimeRange) => {
-    const endDate = new Date();
-    const startDate = new Date();
-
-    switch (range) {
-      case 'day':
-        startDate.setHours(0, 0, 0, 0);
-        endDate.setHours(23, 59, 59, 999);
-        break;
-      case 'week':
-        startDate.setDate(startDate.getDate() - 7);
-        break;
-      case 'month':
-        startDate.setMonth(startDate.getMonth() - 1);
-        break;
-      case 'year':
-        startDate.setFullYear(startDate.getFullYear() - 1);
-        break;
-    }
-
-    return {
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-    };
-  };
-
   const loadData = useCallback(async () => {
+    const getDateRange = (range: TimeRange) => {
+      const endDate = new Date();
+      const startDate = new Date();
+
+      switch (range) {
+        case 'day':
+          startDate.setHours(0, 0, 0, 0);
+          endDate.setHours(23, 59, 59, 999);
+          break;
+        case 'week':
+          startDate.setDate(startDate.getDate() - 7);
+          break;
+        case 'month':
+          startDate.setMonth(startDate.getMonth() - 1);
+          break;
+        case 'year':
+          startDate.setFullYear(startDate.getFullYear() - 1);
+          break;
+      }
+
+      return {
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+      };
+    };
+
     try {
       setLoading(true);
       const { startDate, endDate } = getDateRange(timeRange);

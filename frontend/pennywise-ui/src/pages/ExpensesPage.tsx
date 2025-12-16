@@ -118,7 +118,7 @@ export default function ExpensesPage() {
     } finally {
       setLoading(false);
     }
-  }, [getActiveUserId, buildFilterPayload, toast, filters]);
+  }, [getActiveUserId, buildFilterPayload, filters]);
 
   useEffect(() => {
     loadData();
