@@ -1,4 +1,5 @@
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { UserMenu } from "@/components/UserMenu";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -224,6 +225,7 @@ export function AppLayout({ children, title, description }: AppLayoutProps) {
             </div>
             <div className="hidden lg:flex items-center gap-2">
               <ThemeToggle />
+              <UserMenu />
             </div>
           </div>
         </header>

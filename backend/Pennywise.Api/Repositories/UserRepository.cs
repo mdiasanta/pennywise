@@ -31,6 +31,12 @@ public class UserRepository : IUserRepository
             .FirstOrDefaultAsync(u => u.Email == email);
     }
 
+    public async Task<User?> GetByGoogleSubjectIdAsync(string googleSubjectId)
+    {
+        return await _context.Users
+            .FirstOrDefaultAsync(u => u.GoogleSubjectId == googleSubjectId);
+    }
+
     public async Task<User> CreateAsync(User user)
     {
         user.CreatedAt = DateTime.UtcNow;
@@ -48,6 +54,8 @@ public class UserRepository : IUserRepository
 
         existing.Username = user.Username;
         existing.Email = user.Email;
+        existing.GoogleSubjectId = user.GoogleSubjectId;
+        existing.PictureUrl = user.PictureUrl;
         existing.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();

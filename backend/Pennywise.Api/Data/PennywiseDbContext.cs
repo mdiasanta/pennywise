@@ -27,6 +27,9 @@ public class PennywiseDbContext : DbContext
             entity.Property(e => e.Username).IsRequired().HasMaxLength(100);
             entity.Property(e => e.Email).IsRequired().HasMaxLength(255);
             entity.HasIndex(e => e.Email).IsUnique();
+            entity.Property(e => e.GoogleSubjectId).HasMaxLength(255);
+            entity.HasIndex(e => e.GoogleSubjectId).IsUnique();
+            entity.Property(e => e.PictureUrl).HasMaxLength(2048);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
             entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
         });

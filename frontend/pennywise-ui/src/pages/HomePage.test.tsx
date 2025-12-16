@@ -1,7 +1,9 @@
 import { render, screen, waitFor } from "@testing-library/react";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 import { MemoryRouter } from "react-router-dom";
 import { vi, describe, it, beforeEach, expect, type Mock } from "vitest";
 
+import { AuthProvider } from "@/hooks/use-auth";
 import HomePage from "./HomePage";
 import type { DashboardSummary } from "@/lib/api";
 
@@ -25,6 +27,10 @@ vi.mock("@/lib/api", () => ({
   summaryApi: mockSummaryApi,
   userApi: mockUserApi,
 }));
+
+// Mock fetch for auth API calls
+const mockFetch = vi.fn();
+global.fetch = mockFetch;
 
 const summaryResponse: DashboardSummary = {
   totalTracked: 1200,
@@ -50,13 +56,22 @@ describe("HomePage", () => {
     vi.clearAllMocks();
     mockUserApi.getByEmail.mockResolvedValue({ id: 1 });
     mockUserApi.create.mockResolvedValue({ id: 1 });
+    // Mock fetch for /api/me - return 401 to simulate not logged in
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 401,
+    });
   });
 
   const renderHome = () =>
     render(
-      <MemoryRouter>
-        <HomePage />
-      </MemoryRouter>,
+      <GoogleOAuthProvider clientId="test-client-id">
+        <AuthProvider>
+          <MemoryRouter>
+            <HomePage />
+          </MemoryRouter>
+        </AuthProvider>
+      </GoogleOAuthProvider>,
     );
 
   it("shows loading states before data arrives", () => {

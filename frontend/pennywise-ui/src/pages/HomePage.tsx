@@ -1,4 +1,6 @@
+import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { UserMenu } from "@/components/UserMenu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useAuth } from "@/hooks/use-auth";
 import { summaryApi, userApi, type DashboardSummary } from "@/lib/api";
 import {
   ArrowRight,
@@ -32,12 +35,18 @@ const DEMO_USER = {
 };
 
 export default function HomePage() {
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userId, setUserId] = useState<number | null>(null);
 
   const getActiveUserId = useCallback(async () => {
+    // If user is authenticated, use their ID
+    if (isAuthenticated && user) {
+      return user.id;
+    }
+    
     if (userId) return userId;
 
     const existingUser = await userApi.getByEmail(DEMO_USER.email);
@@ -49,9 +58,12 @@ export default function HomePage() {
     const createdUser = await userApi.create(DEMO_USER);
     setUserId(createdUser.id);
     return createdUser.id;
-  }, [userId]);
+  }, [userId, isAuthenticated, user]);
 
   const loadSummary = useCallback(async () => {
+    // Wait for auth to finish loading
+    if (authLoading) return;
+    
     try {
       setLoading(true);
       setError(null);
@@ -64,7 +76,7 @@ export default function HomePage() {
     } finally {
       setLoading(false);
     }
-  }, [getActiveUserId]);
+  }, [getActiveUserId, authLoading]);
 
   useEffect(() => {
     loadSummary();
@@ -216,22 +228,36 @@ export default function HomePage() {
               Categories
             </Link>
             <ThemeToggle />
-            <Link to="/dashboard">
-              <Button className="bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition hover:-translate-y-0.5 hover:bg-primary/90">
-                Launch app
-              </Button>
-            </Link>
+            {isAuthenticated ? (
+              <>
+                <Link to="/dashboard">
+                  <Button className="bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition hover:-translate-y-0.5 hover:bg-primary/90">
+                    Launch app
+                  </Button>
+                </Link>
+                <UserMenu />
+              </>
+            ) : (
+              <GoogleSignInButton />
+            )}
           </nav>
 
           <div className="flex items-center gap-3 md:hidden">
-            <Link to="/dashboard">
-              <Button
-                size="sm"
-                className="bg-primary text-primary-foreground hover:bg-primary/90"
-              >
-                Launch
-              </Button>
-            </Link>
+            {isAuthenticated ? (
+              <>
+                <Link to="/dashboard">
+                  <Button
+                    size="sm"
+                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  >
+                    Launch
+                  </Button>
+                </Link>
+                <UserMenu />
+              </>
+            ) : (
+              <GoogleSignInButton />
+            )}
           </div>
         </div>
       </header>
