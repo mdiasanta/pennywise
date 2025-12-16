@@ -70,6 +70,7 @@ public class UserService : IUserService
             Id = user.Id,
             Username = user.Username,
             Email = user.Email,
+            PictureUrl = user.PictureUrl,
             CreatedAt = user.CreatedAt,
             UpdatedAt = user.UpdatedAt
         };
