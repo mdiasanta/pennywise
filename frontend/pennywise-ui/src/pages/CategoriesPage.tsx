@@ -1,4 +1,5 @@
 import { AppLayout } from "@/components/AppLayout";
+import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,6 +39,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useAuth } from "@/hooks/use-auth";
 import { useCategories } from "@/hooks/use-categories";
 import { useToast } from "@/hooks/use-toast";
 import type { Category } from "@/lib/api";
@@ -48,6 +50,7 @@ const DEFAULT_COLOR = "#10b981";
 const COLOR_PATTERN = /^#([0-9a-fA-F]{6})$/;
 
 export default function CategoriesPage() {
+  const { isAuthenticated } = useAuth();
   const {
     categories,
     isLoading,
@@ -164,6 +167,33 @@ export default function CategoriesPage() {
       });
     }
   };
+
+  // Show sign-in prompt for unauthenticated users
+  if (!isAuthenticated) {
+    return (
+      <AppLayout
+        title="Categories"
+        description="Create, edit, and manage expense categories"
+      >
+        <div className="mx-auto max-w-2xl py-12">
+          <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl">
+                Sign in to manage categories
+              </CardTitle>
+              <CardDescription className="text-muted-foreground">
+                Connect your account to create, edit, and organize your expense
+                categories.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex justify-center">
+              <GoogleSignInButton />
+            </CardContent>
+          </Card>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout
