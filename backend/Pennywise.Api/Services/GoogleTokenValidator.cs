@@ -21,7 +21,7 @@ public class GoogleTokenValidator : IGoogleTokenValidator
         IHttpClientFactory httpClientFactory)
     {
         _clientId = configuration["Authentication:Google:ClientId"]
-            ?? throw new ArgumentException("GOOGLE_CLIENT_ID is not configured");
+            ?? throw new ArgumentException("Google Client ID is not configured in Authentication:Google:ClientId");
         _logger = logger;
         _httpClient = httpClientFactory.CreateClient("GoogleTokenValidator");
     }

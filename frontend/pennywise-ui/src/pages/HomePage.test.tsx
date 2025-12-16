@@ -30,7 +30,7 @@ vi.mock("@/lib/api", () => ({
 
 // Mock fetch for auth API calls
 const mockFetch = vi.fn();
-global.fetch = mockFetch;
+vi.stubGlobal('fetch', mockFetch);
 
 const summaryResponse: DashboardSummary = {
   totalTracked: 1200,
