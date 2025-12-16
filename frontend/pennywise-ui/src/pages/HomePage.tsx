@@ -1,4 +1,3 @@
-import { useCallback, useEffect, useState } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { summaryApi, userApi, type DashboardSummary } from "@/lib/api";
 import {
   ArrowRight,
   BarChart3,
@@ -23,8 +23,8 @@ import {
   Wallet,
   Zap,
 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { summaryApi, userApi, type DashboardSummary } from "@/lib/api";
 
 const DEMO_USER = {
   username: "Demo User",
@@ -181,16 +181,16 @@ export default function HomePage() {
   return (
     <div className="relative min-h-screen overflow-hidden bg-background text-foreground">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-24 top-10 h-72 w-72 rounded-full bg-emerald-500/20 blur-3xl" />
-        <div className="absolute right-0 top-24 h-96 w-96 rounded-full bg-cyan-400/20 blur-3xl" />
-        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-amber-400/10 blur-3xl" />
+        <div className="absolute -left-24 top-10 h-72 w-72 rounded-full bg-gradient-1 blur-3xl" />
+        <div className="absolute right-0 top-24 h-96 w-96 rounded-full bg-gradient-2 blur-3xl" />
+        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-gradient-3 blur-3xl" />
       </div>
 
       <header className="relative z-20 border-b border-border/80 bg-background/80 backdrop-blur">
         <div className="container mx-auto flex items-center justify-between px-4 py-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-500/15 ring-1 ring-emerald-500/30">
-              <Wallet className="h-6 w-6 text-emerald-300" />
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand ring-1 ring-primary/30">
+              <Wallet className="h-6 w-6 text-brand-muted" />
             </div>
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
@@ -217,7 +217,7 @@ export default function HomePage() {
             </Link>
             <ThemeToggle />
             <Link to="/dashboard">
-              <Button className="bg-emerald-500 text-primary-foreground shadow-lg shadow-emerald-500/30 transition hover:-translate-y-0.5 hover:bg-emerald-400">
+              <Button className="bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition hover:-translate-y-0.5 hover:bg-primary/90">
                 Launch app
               </Button>
             </Link>
@@ -227,7 +227,7 @@ export default function HomePage() {
             <Link to="/dashboard">
               <Button
                 size="sm"
-                className="bg-emerald-500 text-primary-foreground hover:bg-emerald-400"
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
               >
                 Launch
               </Button>
@@ -240,8 +240,8 @@ export default function HomePage() {
         <section className="container mx-auto px-4 pb-20 pt-14 md:pb-24 md:pt-20">
           <div className="grid items-center gap-12 lg:grid-cols-2">
             <div className="space-y-8">
-              <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/80 px-4 py-2 text-sm text-muted-foreground shadow-sm shadow-emerald-500/20 backdrop-blur">
-                <Sparkles className="h-4 w-4 text-amber-300" />
+              <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/80 px-4 py-2 text-sm text-muted-foreground shadow-sm shadow-primary/20 backdrop-blur">
+                <Sparkles className="h-4 w-4 text-warning" />
                 Intentional money management
               </div>
               <div className="space-y-4">
@@ -259,7 +259,7 @@ export default function HomePage() {
                 <Link to="/dashboard">
                   <Button
                     size="lg"
-                    className="w-full sm:w-auto bg-emerald-500 text-primary-foreground shadow-lg shadow-emerald-500/30 transition hover:-translate-y-0.5 hover:bg-emerald-400"
+                    className="w-full sm:w-auto bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition hover:-translate-y-0.5 hover:bg-primary/90"
                   >
                     Open dashboard
                     <ArrowRight className="ml-2 h-5 w-5" />
@@ -283,7 +283,9 @@ export default function HomePage() {
                       key={index}
                       className="rounded-2xl border border-border/60 bg-card/80 px-4 py-3 shadow-sm shadow-border/40"
                     >
-                      <p className="text-sm text-muted-foreground">Loading...</p>
+                      <p className="text-sm text-muted-foreground">
+                        Loading...
+                      </p>
                       <div className="mt-2 h-6 w-24 animate-pulse rounded bg-muted/40" />
                       <div className="mt-2 h-4 w-32 animate-pulse rounded bg-muted/30" />
                     </div>
@@ -316,7 +318,9 @@ export default function HomePage() {
                       <p className="mt-1 text-2xl font-semibold text-foreground">
                         {item.value}
                       </p>
-                      <p className="text-xs text-emerald-200/90">{item.hint}</p>
+                      <p className="text-xs text-success-foreground">
+                        {item.hint}
+                      </p>
                     </div>
                   ))
                 ) : (
@@ -330,7 +334,7 @@ export default function HomePage() {
                     <Link to="/expenses" className="inline-block">
                       <Button
                         size="sm"
-                        className="mt-3 bg-emerald-500 text-primary-foreground shadow-emerald-500/30 hover:bg-emerald-400"
+                        className="mt-3 bg-primary text-primary-foreground shadow-primary/30 hover:bg-primary/90"
                       >
                         Capture an expense
                       </Button>
@@ -341,7 +345,7 @@ export default function HomePage() {
             </div>
 
             <div className="relative">
-              <div className="absolute -inset-6 rounded-3xl bg-gradient-to-br from-emerald-500/20 via-transparent to-cyan-400/20 blur-3xl" />
+              <div className="absolute -inset-6 rounded-3xl bg-gradient-to-br from-primary/20 via-transparent to-info/20 blur-3xl" />
               <Card className="relative overflow-hidden border-border/60 bg-card/80 text-foreground shadow-2xl backdrop-blur">
                 <CardHeader className="space-y-1">
                   <div className="flex items-center justify-between">
@@ -352,7 +356,7 @@ export default function HomePage() {
                       className={`rounded-full px-3 py-1 text-xs font-semibold ${
                         error
                           ? "bg-destructive/15 text-destructive-foreground"
-                          : "bg-emerald-500/20 text-emerald-100"
+                          : "bg-success text-success-foreground"
                       }`}
                     >
                       {cashflowBadge}
@@ -362,10 +366,10 @@ export default function HomePage() {
                     {loading
                       ? "Fetching your latest totals..."
                       : error
-                        ? "We couldn't sync right now."
-                        : hasSummaryData
-                          ? "Updated from your recent activity"
-                          : "Add an expense to see live cashflow"}
+                      ? "We couldn't sync right now."
+                      : hasSummaryData
+                      ? "Updated from your recent activity"
+                      : "Add an expense to see live cashflow"}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -403,11 +407,11 @@ export default function HomePage() {
                           </div>
                           <Badge
                             variant="outline"
-                            className="border-emerald-500/30 bg-emerald-500/15 text-emerald-100 hover:bg-emerald-500/25"
+                            className="border-primary/40 bg-brand text-brand-foreground hover:bg-brand-hover"
                           >
                             {summary
                               ? `${formatPercent(
-                                  summary.monthChangePercent,
+                                  summary.monthChangePercent
                                 )} this month`
                               : "No data yet"}
                           </Badge>
@@ -416,8 +420,10 @@ export default function HomePage() {
                           <div className="rounded-xl border border-border/50 bg-card/80 p-3">
                             <p className="flex items-center justify-between text-xs text-muted-foreground">
                               Spent{" "}
-                              <span className="text-emerald-200">
-                                {formatPercent(summary?.monthChangePercent ?? 0)}
+                              <span className="text-success-foreground font-medium">
+                                {formatPercent(
+                                  summary?.monthChangePercent ?? 0
+                                )}
                               </span>
                             </p>
                             <p className="text-xl font-semibold text-foreground">
@@ -427,16 +433,19 @@ export default function HomePage() {
                           <div className="rounded-xl border border-border/50 bg-card/80 p-3">
                             <p className="flex items-center justify-between text-xs text-muted-foreground">
                               Remaining{" "}
-                              <span className="text-emerald-200">
+                              <span className="text-success-foreground font-medium">
                                 {summary &&
-                                summary.monthTracked + summary.remainingThisMonth > 0
+                                summary.monthTracked +
+                                  summary.remainingThisMonth >
+                                  0
                                   ? `${Math.round(
                                       (summary.remainingThisMonth /
                                         Math.max(
-                                          summary.monthTracked + summary.remainingThisMonth,
-                                          1,
+                                          summary.monthTracked +
+                                            summary.remainingThisMonth,
+                                          1
                                         )) *
-                                        100,
+                                        100
                                     )}%`
                                   : "0%"}
                               </span>
@@ -452,9 +461,9 @@ export default function HomePage() {
                         {hasTransactions ? (
                           (summary?.recentTransactions ?? []).map((line) => {
                             const isOutflow = line.amount >= 0;
-                            const displayAmount = `${isOutflow ? "-" : "+"}${formatCurrency(
-                              Math.abs(line.amount),
-                            )}`;
+                            const displayAmount = `${
+                              isOutflow ? "-" : "+"
+                            }${formatCurrency(Math.abs(line.amount))}`;
 
                             return (
                               <div
@@ -466,10 +475,13 @@ export default function HomePage() {
                                     {line.title}
                                   </p>
                                   <p className="text-xs text-muted-foreground">
-                                    {new Date(line.date).toLocaleString("en-US", {
-                                      month: "short",
-                                      day: "numeric",
-                                    })}
+                                    {new Date(line.date).toLocaleString(
+                                      "en-US",
+                                      {
+                                        month: "short",
+                                        day: "numeric",
+                                      }
+                                    )}
                                   </p>
                                 </div>
                                 <div className="flex items-center gap-3">
@@ -490,7 +502,9 @@ export default function HomePage() {
                                   </span>
                                   <p
                                     className={`text-base font-semibold ${
-                                      isOutflow ? "text-rose-200" : "text-emerald-200"
+                                      isOutflow
+                                        ? "text-destructive"
+                                        : "text-success-foreground"
                                     }`}
                                   >
                                     {displayAmount}
@@ -505,12 +519,13 @@ export default function HomePage() {
                               No recent transactions yet.
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              Capture an expense to see it flow into your live view.
+                              Capture an expense to see it flow into your live
+                              view.
                             </p>
                             <Link to="/expenses" className="inline-block">
                               <Button
                                 size="sm"
-                                className="mt-3 bg-emerald-500 text-primary-foreground hover:bg-emerald-400"
+                                className="mt-3 bg-primary text-primary-foreground hover:bg-primary/90"
                               >
                                 Add expense
                               </Button>
@@ -541,14 +556,6 @@ export default function HomePage() {
                 decisions faster.
               </p>
             </div>
-            <Link to="/dashboard">
-              <Button
-                variant="secondary"
-                className="border-border/60 bg-card/80 text-foreground hover:bg-card/70"
-              >
-                View a sample dashboard
-              </Button>
-            </Link>
           </div>
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -562,7 +569,7 @@ export default function HomePage() {
                     <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-card/80 text-foreground">
                       <feature.icon className="h-6 w-6" />
                     </div>
-                    <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-100">
+                    <span className="rounded-full bg-brand px-3 py-1 text-xs font-semibold text-brand-foreground">
                       {feature.badge}
                     </span>
                   </div>
@@ -572,7 +579,7 @@ export default function HomePage() {
                   <p className="mt-2 text-sm text-muted-foreground">
                     {feature.copy}
                   </p>
-                  <div className="mt-6 flex items-center gap-2 text-sm font-semibold text-emerald-200">
+                  <div className="mt-6 flex items-center gap-2 text-sm font-semibold text-success-foreground">
                     Learn more
                     <ArrowRight className="h-4 w-4 transition duration-150 group-hover:translate-x-1" />
                   </div>
@@ -598,7 +605,7 @@ export default function HomePage() {
                 </p>
               </div>
               <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/15 text-emerald-200">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand text-brand-foreground">
                   <CircleDollarSign className="h-6 w-6" />
                 </div>
                 <p className="text-sm text-muted-foreground">
@@ -613,7 +620,7 @@ export default function HomePage() {
                   key={step.title}
                   className="rounded-2xl border border-border/60 bg-card/80 p-5 shadow-sm shadow-black/20 backdrop-blur"
                 >
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-200">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand text-brand-foreground">
                     <step.icon className="h-5 w-5" />
                   </div>
                   <h3 className="mt-4 text-lg font-semibold text-foreground">
@@ -629,15 +636,15 @@ export default function HomePage() {
         </section>
 
         <section className="container mx-auto px-4 pb-24">
-          <Card className="relative overflow-hidden border-border/60 bg-gradient-to-r from-emerald-500/20 via-emerald-500/10 to-cyan-400/10 text-foreground shadow-2xl">
+          <Card className="relative overflow-hidden border-border/60 bg-gradient-to-r from-primary/20 via-primary/10 to-info/10 text-foreground shadow-2xl">
             <div className="absolute inset-0 opacity-40 blur-3xl">
-              <div className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-emerald-500/50 to-transparent" />
-              <div className="absolute inset-y-0 right-0 w-1/3 bg-gradient-to-l from-cyan-400/40 to-transparent" />
+              <div className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-primary/50 to-transparent" />
+              <div className="absolute inset-y-0 right-0 w-1/3 bg-gradient-to-l from-info/40 to-transparent" />
             </div>
             <CardContent className="relative z-10 px-6 py-12 md:px-12">
               <div className="grid items-center gap-10 md:grid-cols-[2fr,1fr]">
                 <div className="space-y-4">
-                  <p className="text-sm uppercase tracking-[0.2em] text-emerald-100">
+                  <p className="text-sm uppercase tracking-[0.2em] text-success-foreground">
                     Get started
                   </p>
                   <h3 className="text-3xl font-semibold md:text-4xl">
@@ -686,7 +693,7 @@ export default function HomePage() {
                           Bills cleared
                         </p>
                       </div>
-                      <p className="text-lg font-semibold text-emerald-100">
+                      <p className="text-lg font-semibold text-success-foreground">
                         92%
                       </p>
                     </div>
@@ -699,7 +706,7 @@ export default function HomePage() {
                           Envelope health
                         </p>
                       </div>
-                      <p className="text-lg font-semibold text-amber-100">
+                      <p className="text-lg font-semibold text-warning-foreground">
                         88%
                       </p>
                     </div>
@@ -712,7 +719,7 @@ export default function HomePage() {
                           Manual cleanup
                         </p>
                       </div>
-                      <p className="text-lg font-semibold text-cyan-100">
+                      <p className="text-lg font-semibold text-info-foreground">
                         -12 hr/mo
                       </p>
                     </div>
@@ -728,7 +735,7 @@ export default function HomePage() {
         <div className="container mx-auto px-4 py-8">
           <div className="flex flex-col items-center justify-between gap-3 text-sm text-muted-foreground md:flex-row">
             <div className="flex items-center gap-2">
-              <Wallet className="h-5 w-5 text-emerald-300" />
+              <Wallet className="h-5 w-5 text-brand-muted" />
               <p className="font-semibold text-foreground">Pennywise</p>
             </div>
             <p>
