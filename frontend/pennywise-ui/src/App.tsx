@@ -1,23 +1,26 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import HomePage from './pages/HomePage'
-import DashboardPage from './pages/DashboardPage'
-import ExpensesPage from './pages/ExpensesPage'
-import CategoriesPage from './pages/CategoriesPage'
-import { Toaster } from './components/ui/toaster'
-import './App.css'
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import "./App.css";
+import { Toaster } from "./components/ui/toaster";
+import { TooltipProvider } from "./components/ui/tooltip";
+import CategoriesPage from "./pages/CategoriesPage";
+import DashboardPage from "./pages/DashboardPage";
+import ExpensesPage from "./pages/ExpensesPage";
+import HomePage from "./pages/HomePage";
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/expenses" element={<ExpensesPage />} />
-        <Route path="/categories" element={<CategoriesPage />} />
-      </Routes>
-      <Toaster />
-    </BrowserRouter>
-  )
+    <TooltipProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/expenses" element={<ExpensesPage />} />
+          <Route path="/categories" element={<CategoriesPage />} />
+        </Routes>
+        <Toaster />
+      </BrowserRouter>
+    </TooltipProvider>
+  );
 }
 
-export default App
+export default App;

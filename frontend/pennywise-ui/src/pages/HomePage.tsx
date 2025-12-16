@@ -1,4 +1,3 @@
-import { useCallback, useEffect, useState } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { summaryApi, userApi, type DashboardSummary } from "@/lib/api";
 import {
   ArrowRight,
   BarChart3,
@@ -23,8 +23,8 @@ import {
   Wallet,
   Zap,
 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { summaryApi, userApi, type DashboardSummary } from "@/lib/api";
 
 const DEMO_USER = {
   username: "Demo User",
@@ -283,7 +283,9 @@ export default function HomePage() {
                       key={index}
                       className="rounded-2xl border border-border/60 bg-card/80 px-4 py-3 shadow-sm shadow-border/40"
                     >
-                      <p className="text-sm text-muted-foreground">Loading...</p>
+                      <p className="text-sm text-muted-foreground">
+                        Loading...
+                      </p>
                       <div className="mt-2 h-6 w-24 animate-pulse rounded bg-muted/40" />
                       <div className="mt-2 h-4 w-32 animate-pulse rounded bg-muted/30" />
                     </div>
@@ -362,10 +364,10 @@ export default function HomePage() {
                     {loading
                       ? "Fetching your latest totals..."
                       : error
-                        ? "We couldn't sync right now."
-                        : hasSummaryData
-                          ? "Updated from your recent activity"
-                          : "Add an expense to see live cashflow"}
+                      ? "We couldn't sync right now."
+                      : hasSummaryData
+                      ? "Updated from your recent activity"
+                      : "Add an expense to see live cashflow"}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -407,7 +409,7 @@ export default function HomePage() {
                           >
                             {summary
                               ? `${formatPercent(
-                                  summary.monthChangePercent,
+                                  summary.monthChangePercent
                                 )} this month`
                               : "No data yet"}
                           </Badge>
@@ -417,7 +419,9 @@ export default function HomePage() {
                             <p className="flex items-center justify-between text-xs text-muted-foreground">
                               Spent{" "}
                               <span className="text-emerald-200">
-                                {formatPercent(summary?.monthChangePercent ?? 0)}
+                                {formatPercent(
+                                  summary?.monthChangePercent ?? 0
+                                )}
                               </span>
                             </p>
                             <p className="text-xl font-semibold text-foreground">
@@ -429,14 +433,17 @@ export default function HomePage() {
                               Remaining{" "}
                               <span className="text-emerald-200">
                                 {summary &&
-                                summary.monthTracked + summary.remainingThisMonth > 0
+                                summary.monthTracked +
+                                  summary.remainingThisMonth >
+                                  0
                                   ? `${Math.round(
                                       (summary.remainingThisMonth /
                                         Math.max(
-                                          summary.monthTracked + summary.remainingThisMonth,
-                                          1,
+                                          summary.monthTracked +
+                                            summary.remainingThisMonth,
+                                          1
                                         )) *
-                                        100,
+                                        100
                                     )}%`
                                   : "0%"}
                               </span>
@@ -452,9 +459,9 @@ export default function HomePage() {
                         {hasTransactions ? (
                           (summary?.recentTransactions ?? []).map((line) => {
                             const isOutflow = line.amount >= 0;
-                            const displayAmount = `${isOutflow ? "-" : "+"}${formatCurrency(
-                              Math.abs(line.amount),
-                            )}`;
+                            const displayAmount = `${
+                              isOutflow ? "-" : "+"
+                            }${formatCurrency(Math.abs(line.amount))}`;
 
                             return (
                               <div
@@ -466,10 +473,13 @@ export default function HomePage() {
                                     {line.title}
                                   </p>
                                   <p className="text-xs text-muted-foreground">
-                                    {new Date(line.date).toLocaleString("en-US", {
-                                      month: "short",
-                                      day: "numeric",
-                                    })}
+                                    {new Date(line.date).toLocaleString(
+                                      "en-US",
+                                      {
+                                        month: "short",
+                                        day: "numeric",
+                                      }
+                                    )}
                                   </p>
                                 </div>
                                 <div className="flex items-center gap-3">
@@ -490,7 +500,9 @@ export default function HomePage() {
                                   </span>
                                   <p
                                     className={`text-base font-semibold ${
-                                      isOutflow ? "text-rose-200" : "text-emerald-200"
+                                      isOutflow
+                                        ? "text-rose-200"
+                                        : "text-emerald-200"
                                     }`}
                                   >
                                     {displayAmount}
@@ -505,7 +517,8 @@ export default function HomePage() {
                               No recent transactions yet.
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              Capture an expense to see it flow into your live view.
+                              Capture an expense to see it flow into your live
+                              view.
                             </p>
                             <Link to="/expenses" className="inline-block">
                               <Button
@@ -541,14 +554,6 @@ export default function HomePage() {
                 decisions faster.
               </p>
             </div>
-            <Link to="/dashboard">
-              <Button
-                variant="secondary"
-                className="border-border/60 bg-card/80 text-foreground hover:bg-card/70"
-              >
-                View a sample dashboard
-              </Button>
-            </Link>
           </div>
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
