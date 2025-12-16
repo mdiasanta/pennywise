@@ -423,3 +423,341 @@ export const summaryApi = {
     return handleResponse<DashboardSummary>(response);
   },
 };
+
+// Asset Category Types
+export interface AssetCategory {
+  id: number;
+  name: string;
+  description?: string;
+  color?: string;
+  isLiability: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateAssetCategory {
+  name: string;
+  description?: string;
+  color?: string;
+  isLiability: boolean;
+  sortOrder: number;
+}
+
+export interface UpdateAssetCategory {
+  name?: string;
+  description?: string;
+  color?: string;
+  isLiability?: boolean;
+  sortOrder?: number;
+}
+
+// Asset Types
+export interface Asset {
+  id: number;
+  name: string;
+  description?: string;
+  color?: string;
+  createdAt: string;
+  updatedAt: string;
+  userId: number;
+  assetCategoryId: number;
+  assetCategoryName?: string;
+  isLiability: boolean;
+  currentBalance?: number;
+  lastUpdated?: string;
+}
+
+export interface CreateAsset {
+  name: string;
+  description?: string;
+  color?: string;
+  userId: number;
+  assetCategoryId: number;
+  initialBalance?: number;
+}
+
+export interface UpdateAsset {
+  name?: string;
+  description?: string;
+  color?: string;
+  assetCategoryId?: number;
+}
+
+// Asset Snapshot Types
+export interface AssetSnapshot {
+  id: number;
+  balance: number;
+  date: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+  assetId: number;
+  assetName?: string;
+}
+
+export interface CreateAssetSnapshot {
+  balance: number;
+  date: string;
+  notes?: string;
+  assetId: number;
+}
+
+export interface UpdateAssetSnapshot {
+  balance?: number;
+  date?: string;
+  notes?: string;
+}
+
+// Net Worth Types
+export interface NetWorthSummary {
+  totalAssets: number;
+  totalLiabilities: number;
+  netWorth: number;
+  changeFromLastPeriod: number;
+  changePercent: number;
+  assetsByCategory: AssetCategorySummary[];
+  history: NetWorthHistoryPoint[];
+}
+
+export interface AssetCategorySummary {
+  categoryId: number;
+  categoryName: string;
+  color?: string;
+  isLiability: boolean;
+  totalBalance: number;
+  assets: AssetSummary[];
+}
+
+export interface AssetSummary {
+  assetId: number;
+  assetName: string;
+  color?: string;
+  balance: number;
+  lastUpdated?: string;
+}
+
+export interface NetWorthHistoryPoint {
+  date: string;
+  totalAssets: number;
+  totalLiabilities: number;
+  netWorth: number;
+  totalExpenses?: number;
+}
+
+export interface ExpenseHistoryPoint {
+  date: string;
+  totalExpenses: number;
+}
+
+export interface NetWorthComparison {
+  netWorthHistory: NetWorthHistoryPoint[];
+  expenseHistory: ExpenseHistoryPoint[];
+}
+
+// Asset Category API
+export const assetCategoryApi = {
+  async getAll(): Promise<AssetCategory[]> {
+    const response = await fetch(`${API_BASE_URL}/assetcategories`, {
+      credentials: 'include',
+    });
+    return handleResponse<AssetCategory[]>(response);
+  },
+
+  async getById(id: number): Promise<AssetCategory> {
+    const response = await fetch(`${API_BASE_URL}/assetcategories/${id}`, {
+      credentials: 'include',
+    });
+    return handleResponse<AssetCategory>(response);
+  },
+
+  async create(category: CreateAssetCategory): Promise<AssetCategory> {
+    const response = await fetch(`${API_BASE_URL}/assetcategories`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(category),
+      credentials: 'include',
+    });
+    return handleResponse<AssetCategory>(response);
+  },
+
+  async update(id: number, category: UpdateAssetCategory): Promise<AssetCategory> {
+    const response = await fetch(`${API_BASE_URL}/assetcategories/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(category),
+      credentials: 'include',
+    });
+    return handleResponse<AssetCategory>(response);
+  },
+
+  async delete(id: number): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/assetcategories/${id}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+    return handleResponse<void>(response);
+  },
+};
+
+// Asset API
+export const assetApi = {
+  async getAll(userId: number): Promise<Asset[]> {
+    const response = await fetch(`${API_BASE_URL}/assets/user/${userId}`, {
+      credentials: 'include',
+    });
+    return handleResponse<Asset[]>(response);
+  },
+
+  async getById(id: number, userId: number): Promise<Asset> {
+    const response = await fetch(`${API_BASE_URL}/assets/${id}/user/${userId}`, {
+      credentials: 'include',
+    });
+    return handleResponse<Asset>(response);
+  },
+
+  async getByCategory(userId: number, categoryId: number): Promise<Asset[]> {
+    const response = await fetch(`${API_BASE_URL}/assets/user/${userId}/category/${categoryId}`, {
+      credentials: 'include',
+    });
+    return handleResponse<Asset[]>(response);
+  },
+
+  async create(asset: CreateAsset): Promise<Asset> {
+    const response = await fetch(`${API_BASE_URL}/assets`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(asset),
+      credentials: 'include',
+    });
+    return handleResponse<Asset>(response);
+  },
+
+  async update(id: number, userId: number, asset: UpdateAsset): Promise<Asset> {
+    const response = await fetch(`${API_BASE_URL}/assets/${id}/user/${userId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(asset),
+      credentials: 'include',
+    });
+    return handleResponse<Asset>(response);
+  },
+
+  async delete(id: number, userId: number): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/assets/${id}/user/${userId}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+    return handleResponse<void>(response);
+  },
+};
+
+// Asset Snapshot API
+export const assetSnapshotApi = {
+  async getByAsset(
+    assetId: number,
+    startDate?: string,
+    endDate?: string
+  ): Promise<AssetSnapshot[]> {
+    const params = new URLSearchParams();
+    if (startDate) params.set('startDate', startDate);
+    if (endDate) params.set('endDate', endDate);
+    const query = params.toString();
+    const url = query
+      ? `${API_BASE_URL}/assetsnapshots/asset/${assetId}?${query}`
+      : `${API_BASE_URL}/assetsnapshots/asset/${assetId}`;
+    const response = await fetch(url, { credentials: 'include' });
+    return handleResponse<AssetSnapshot[]>(response);
+  },
+
+  async getById(id: number): Promise<AssetSnapshot> {
+    const response = await fetch(`${API_BASE_URL}/assetsnapshots/${id}`, {
+      credentials: 'include',
+    });
+    return handleResponse<AssetSnapshot>(response);
+  },
+
+  async getLatest(assetId: number): Promise<AssetSnapshot | null> {
+    const response = await fetch(`${API_BASE_URL}/assetsnapshots/asset/${assetId}/latest`, {
+      credentials: 'include',
+    });
+    if (response.status === 404) return null;
+    return handleResponse<AssetSnapshot>(response);
+  },
+
+  async create(snapshot: CreateAssetSnapshot): Promise<AssetSnapshot> {
+    const response = await fetch(`${API_BASE_URL}/assetsnapshots`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(snapshot),
+      credentials: 'include',
+    });
+    return handleResponse<AssetSnapshot>(response);
+  },
+
+  async update(id: number, snapshot: UpdateAssetSnapshot): Promise<AssetSnapshot> {
+    const response = await fetch(`${API_BASE_URL}/assetsnapshots/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(snapshot),
+      credentials: 'include',
+    });
+    return handleResponse<AssetSnapshot>(response);
+  },
+
+  async delete(id: number): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/assetsnapshots/${id}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+    return handleResponse<void>(response);
+  },
+};
+
+// Net Worth API
+export const netWorthApi = {
+  async getSummary(userId: number, asOfDate?: string): Promise<NetWorthSummary> {
+    const params = new URLSearchParams();
+    if (asOfDate) params.set('asOfDate', asOfDate);
+    const query = params.toString();
+    const url = query
+      ? `${API_BASE_URL}/networth/user/${userId}/summary?${query}`
+      : `${API_BASE_URL}/networth/user/${userId}/summary`;
+    const response = await fetch(url, { credentials: 'include' });
+    return handleResponse<NetWorthSummary>(response);
+  },
+
+  async getHistory(
+    userId: number,
+    startDate: string,
+    endDate: string,
+    groupBy: 'day' | 'week' | 'month' | 'quarter' | 'year' = 'month'
+  ): Promise<NetWorthHistoryPoint[]> {
+    const params = new URLSearchParams({
+      startDate,
+      endDate,
+      groupBy,
+    });
+    const response = await fetch(`${API_BASE_URL}/networth/user/${userId}/history?${params}`, {
+      credentials: 'include',
+    });
+    return handleResponse<NetWorthHistoryPoint[]>(response);
+  },
+
+  async getComparison(
+    userId: number,
+    startDate: string,
+    endDate: string,
+    groupBy: 'day' | 'week' | 'month' | 'quarter' | 'year' = 'month'
+  ): Promise<NetWorthComparison> {
+    const params = new URLSearchParams({
+      startDate,
+      endDate,
+      groupBy,
+    });
+    const response = await fetch(`${API_BASE_URL}/networth/user/${userId}/comparison?${params}`, {
+      credentials: 'include',
+    });
+    return handleResponse<NetWorthComparison>(response);
+  },
+};

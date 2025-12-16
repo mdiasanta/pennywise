@@ -8,6 +8,7 @@ import CategoriesPage from './pages/CategoriesPage';
 import DashboardPage from './pages/DashboardPage';
 import ExpensesPage from './pages/ExpensesPage';
 import HomePage from './pages/HomePage';
+import NetWorthPage from './pages/NetWorthPage';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 
@@ -22,6 +23,7 @@ function App() {
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/expenses" element={<ExpensesPage />} />
               <Route path="/categories" element={<CategoriesPage />} />
+              <Route path="/networth" element={<NetWorthPage />} />
             </Routes>
             <Toaster />
           </BrowserRouter>
