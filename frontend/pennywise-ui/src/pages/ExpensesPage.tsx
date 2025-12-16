@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { AppLayout } from '@/components/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,12 +11,11 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Wallet, Plus, Pencil, Trash2, Home, BarChart3, ArrowLeft, Palette, Download, Upload, FileWarning, CheckCircle2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Download, Upload, FileWarning, CheckCircle2 } from 'lucide-react';
 import { expenseApi, userApi } from '@/lib/api';
 import type { Expense, CreateExpense, UpdateExpense, ExpenseImportResponse } from '@/lib/api';
 import { useCategories } from '@/hooks/use-categories';
 import { useToast } from '@/hooks/use-toast';
-import { ThemeToggle } from '@/components/ThemeToggle';
 
 const US_TIMEZONES = [
   'America/New_York',
@@ -72,19 +71,15 @@ export default function ExpensesPage() {
     categoryId: '',
   });
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const buildFilterPayload = (state = filters) => ({
+  const buildFilterPayload = useCallback((state = filters) => ({
     startDate: state.startDate || undefined,
     endDate: state.endDate || undefined,
     categoryId:
       state.categoryId && state.categoryId !== 'all' ? parseInt(state.categoryId, 10) : undefined,
     search: state.search.trim() ? state.search.trim() : undefined,
-  });
+  }), [filters]);
 
-  const getActiveUserId = async () => {
+  const getActiveUserId = useCallback(async () => {
     if (userId) return userId;
 
     const existingUser = await userApi.getByEmail(DEMO_USER.email);
@@ -96,7 +91,7 @@ export default function ExpensesPage() {
     const newUser = await userApi.create(DEMO_USER);
     setUserId(newUser.id);
     return newUser.id;
-  };
+  }, [userId]);
 
   const clearImportState = () => {
     setImportPreview(null);
@@ -107,7 +102,7 @@ export default function ExpensesPage() {
     }
   };
 
-  const loadData = async (overrideFilters = filters) => {
+  const loadData = useCallback(async (overrideFilters = filters) => {
     try {
       setLoading(true);
       const activeUserId = await getActiveUserId();
@@ -123,7 +118,11 @@ export default function ExpensesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [getActiveUserId, buildFilterPayload, toast, filters]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const resetForm = () => {
     setFormData({
@@ -479,76 +478,48 @@ export default function ExpensesPage() {
   const importErrorCount = importPreview?.errors ?? 0;
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background text-foreground">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-24 top-10 h-72 w-72 rounded-full bg-emerald-500/20 blur-3xl" />
-        <div className="absolute right-0 top-24 h-96 w-96 rounded-full bg-cyan-400/15 blur-3xl" />
-        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-amber-400/10 blur-3xl" />
-      </div>
-
-      <header className="relative z-20 border-b border-border/60 bg-background/80 backdrop-blur">
-        <div className="container mx-auto flex items-center justify-between px-4 py-4">
-          <div className="flex items-center gap-3">
-            <Link to="/">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="border border-border/60 text-foreground hover:bg-card/70"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-            </Link>
-            <div className="flex items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/15 ring-1 ring-emerald-500/30">
-                <Wallet className="h-5 w-5 text-emerald-200" />
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Pennywise</p>
-                <p className="text-lg font-semibold text-foreground">Expense workspace</p>
-              </div>
+    <AppLayout 
+      title="Expenses" 
+      description="Capture, edit, and audit expenses"
+    >
+      <div className="mx-auto max-w-6xl space-y-6">
+        {/* Summary Cards */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-2xl border border-border/60 bg-card/80 p-4 shadow-sm shadow-black/10">
+              <p className="text-xs text-muted-foreground">Total spend</p>
+              <p className="mt-1 text-xl font-semibold text-foreground">{formatCurrency(totalAmount)}</p>
+            </div>
+            <div className="rounded-2xl border border-border/60 bg-card/80 p-4 shadow-sm shadow-black/10">
+              <p className="text-xs text-muted-foreground">Entries</p>
+              <p className="mt-1 text-xl font-semibold text-foreground">{expenses.length}</p>
+            </div>
+            <div className="rounded-2xl border border-border/60 bg-card/80 p-4 shadow-sm shadow-black/10">
+              <p className="text-xs text-muted-foreground">Categories</p>
+              <p className="mt-1 text-xl font-semibold text-foreground">{categories.length}</p>
             </div>
           </div>
-          <nav className="flex items-center gap-2 text-sm">
-            <Link to="/">
-              <Button variant="ghost" size="sm" className="text-foreground hover:bg-card/70">
-                <Home className="mr-2 h-4 w-4" />
-                Home
+          <Dialog
+            open={isAddDialogOpen}
+            onOpenChange={(open) => {
+              setIsAddDialogOpen(open);
+              if (!open) resetForm();
+            }}
+          >
+            <DialogTrigger asChild>
+              <Button className="bg-emerald-500 text-primary-foreground shadow-lg shadow-emerald-500/30 hover:-translate-y-0.5 hover:bg-emerald-400">
+                <Plus className="mr-2 h-4 w-4" />
+                Add expense
               </Button>
-            </Link>
-            <Link to="/dashboard">
-              <Button variant="ghost" size="sm" className="text-foreground hover:bg-card/70">
-                <BarChart3 className="mr-2 h-4 w-4" />
-                Dashboard
-              </Button>
-            </Link>
-            <Link to="/categories">
-              <Button variant="ghost" size="sm" className="text-foreground hover:bg-card/70">
-                <Palette className="mr-2 h-4 w-4" />
-                Categories
-              </Button>
-            </Link>
-            <ThemeToggle />
-            <Dialog
-              open={isAddDialogOpen}
-              onOpenChange={(open) => {
-                setIsAddDialogOpen(open);
-                if (!open) resetForm();
-              }}
-            >
-              <DialogTrigger asChild>
-                <Button className="bg-emerald-500 text-primary-foreground shadow-lg shadow-emerald-500/30 hover:-translate-y-0.5 hover:bg-emerald-400">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add expense
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="border-border/60 bg-card text-foreground">
-                <form onSubmit={handleSubmit}>
-                  <DialogHeader>
-                    <DialogTitle>
-                      {editingExpense ? 'Edit Expense' : 'Add New Expense'}
-                    </DialogTitle>
-                    <DialogDescription className="text-muted-foreground">
-                      {editingExpense
+            </DialogTrigger>
+            <DialogContent className="border-border/60 bg-card text-foreground">
+              <form onSubmit={handleSubmit}>
+                <DialogHeader>
+                  <DialogTitle>
+                    {editingExpense ? 'Edit Expense' : 'Add New Expense'}
+                  </DialogTitle>
+                  <DialogDescription className="text-muted-foreground">
+                    {editingExpense
                         ? 'Update the expense details below.'
                         : 'Fill in the details to create a new expense record.'}
                     </DialogDescription>
@@ -663,37 +634,7 @@ export default function ExpensesPage() {
                 </form>
               </DialogContent>
             </Dialog>
-          </nav>
-        </div>
-      </header>
-
-      <main className="relative z-10 container mx-auto px-4 py-10">
-        <div className="mx-auto max-w-6xl space-y-8">
-          <section className="rounded-3xl border border-border/60 bg-card/80 p-6 shadow-xl shadow-black/20 backdrop-blur md:p-8">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div className="space-y-3">
-                <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Expenses</p>
-                <h1 className="text-3xl font-semibold md:text-4xl">Control every line item</h1>
-                <p className="max-w-2xl text-muted-foreground">
-                  Capture, edit, and audit expenses with the same glassy workspace as your dashboard.
-                </p>
-              </div>
-              <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded-2xl border border-border/60 bg-card/80 p-4 shadow-sm shadow-black/10">
-                  <p className="text-xs text-muted-foreground">Total spend</p>
-                  <p className="mt-1 text-xl font-semibold text-foreground">{formatCurrency(totalAmount)}</p>
-                </div>
-                <div className="rounded-2xl border border-border/60 bg-card/80 p-4 shadow-sm shadow-black/10">
-                  <p className="text-xs text-muted-foreground">Entries</p>
-                  <p className="mt-1 text-xl font-semibold text-foreground">{expenses.length}</p>
-                </div>
-                <div className="rounded-2xl border border-border/60 bg-card/80 p-4 shadow-sm shadow-black/10">
-                  <p className="text-xs text-muted-foreground">Categories</p>
-                  <p className="mt-1 text-xl font-semibold text-foreground">{categories.length}</p>
-                </div>
-              </div>
-            </div>
-          </section>
+          </div>
 
           <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
             <CardHeader>
@@ -1104,7 +1045,6 @@ export default function ExpensesPage() {
             </CardContent>
           </Card>
         </div>
-      </main>
-    </div>
+      </AppLayout>
   );
 }

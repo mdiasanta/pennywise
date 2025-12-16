@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useCategories } from '@/hooks/use-categories';
 import { useToast } from '@/hooks/use-toast';
+import { AppLayout } from '@/components/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,8 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
-import { ThemeToggle } from '@/components/ThemeToggle';
-import { Palette, Plus, Pencil, Trash2, Home, TrendingDown, ArrowLeft, RefreshCw, BarChart3 } from 'lucide-react';
+import { Plus, Pencil, Trash2, RefreshCw } from 'lucide-react';
 import type { Category } from '@/lib/api';
 
 const DEFAULT_COLOR = '#10b981';
@@ -132,73 +131,46 @@ export default function CategoriesPage() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background text-foreground">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-24 top-10 h-72 w-72 rounded-full bg-emerald-500/20 blur-3xl" />
-        <div className="absolute right-0 top-24 h-96 w-96 rounded-full bg-cyan-400/15 blur-3xl" />
-        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-amber-400/10 blur-3xl" />
-      </div>
-
-      <header className="relative z-20 border-b border-border/60 bg-background/80 backdrop-blur">
-        <div className="container mx-auto flex items-center justify-between px-4 py-4">
-          <div className="flex items-center gap-3">
-            <Link to="/">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="border border-border/60 text-foreground hover:bg-card/70"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-            </Link>
-            <div className="flex items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/15 ring-1 ring-emerald-500/30">
-                <Palette className="h-5 w-5 text-emerald-200" />
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                  Pennywise
-                </p>
-                <p className="text-lg font-semibold text-foreground">Category manager</p>
-              </div>
+    <AppLayout 
+      title="Categories" 
+      description="Create, edit, and manage expense categories"
+    >
+      <div className="mx-auto max-w-6xl space-y-6">
+        {/* Summary Cards and Add Button */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap gap-3">
+            <div className="rounded-2xl border border-border/60 bg-card/80 px-4 py-3 shadow-sm shadow-black/10">
+              <p className="text-xs text-muted-foreground">Total</p>
+              <p className="text-xl font-semibold text-foreground">{categories.length}</p>
             </div>
+            <div className="rounded-2xl border border-border/60 bg-card/80 px-4 py-3 shadow-sm shadow-black/10">
+              <p className="text-xs text-muted-foreground">Status</p>
+              <p className="text-xl font-semibold text-foreground">
+                {isLoading ? 'Loading...' : isSaving ? 'Saving...' : 'Ready'}
+              </p>
+            </div>
+            {error && (
+              <div className="inline-flex items-center gap-2 rounded-full border border-destructive/40 bg-destructive/10 px-3 py-1 text-sm text-destructive">
+                {error}
+              </div>
+            )}
           </div>
-          <nav className="flex items-center gap-2 text-sm">
-            <Link to="/">
-              <Button variant="ghost" size="sm" className="text-foreground hover:bg-card/70">
-                <Home className="mr-2 h-4 w-4" />
-                Home
+          <Dialog
+            open={isDialogOpen}
+            onOpenChange={(open) => {
+              setIsDialogOpen(open);
+              if (!open) resetForm();
+            }}
+          >
+            <DialogTrigger asChild>
+              <Button className="bg-emerald-500 text-primary-foreground shadow-lg shadow-emerald-500/30 hover:-translate-y-0.5 hover:bg-emerald-400">
+                <Plus className="mr-2 h-4 w-4" />
+                Add category
               </Button>
-            </Link>
-            <Link to="/dashboard">
-              <Button variant="ghost" size="sm" className="text-foreground hover:bg-card/70">
-                <BarChart3 className="mr-2 h-4 w-4" />
-                Dashboard
-              </Button>
-            </Link>
-            <Link to="/expenses">
-              <Button variant="ghost" size="sm" className="text-foreground hover:bg-card/70">
-                <TrendingDown className="mr-2 h-4 w-4" />
-                Expenses
-              </Button>
-            </Link>
-            <ThemeToggle />
-            <Dialog
-              open={isDialogOpen}
-              onOpenChange={(open) => {
-                setIsDialogOpen(open);
-                if (!open) resetForm();
-              }}
-            >
-              <DialogTrigger asChild>
-                <Button className="bg-emerald-500 text-primary-foreground shadow-lg shadow-emerald-500/30 hover:-translate-y-0.5 hover:bg-emerald-400">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add category
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="border-border/60 bg-card text-foreground">
-                <form onSubmit={handleSubmit}>
-                  <DialogHeader>
+            </DialogTrigger>
+            <DialogContent className="border-border/60 bg-card text-foreground">
+              <form onSubmit={handleSubmit}>
+                <DialogHeader>
                     <DialogTitle>{activeCategory ? 'Edit category' : 'Add category'}</DialogTitle>
                     <DialogDescription className="text-muted-foreground">
                       {activeCategory
@@ -297,46 +269,7 @@ export default function CategoriesPage() {
                 </form>
               </DialogContent>
             </Dialog>
-          </nav>
-        </div>
-      </header>
-
-      <main className="relative z-10 container mx-auto px-4 py-10">
-        <div className="mx-auto max-w-6xl space-y-8">
-          <section className="rounded-3xl border border-border/60 bg-card/80 p-6 shadow-xl shadow-black/20 backdrop-blur md:p-8">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div className="space-y-3">
-                <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Categories</p>
-                <h1 className="text-3xl font-semibold md:text-4xl">Keep your spend organized</h1>
-                <p className="max-w-2xl text-muted-foreground">
-                  Create, edit, or delete categories. Updates appear instantly anywhere you pick a category for an expense.
-                </p>
-                {error ? (
-                  <div className="inline-flex items-center gap-2 rounded-full border border-destructive/40 bg-destructive/10 px-3 py-1 text-sm text-destructive">
-                    {error}
-                  </div>
-                ) : null}
-              </div>
-              <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded-2xl border border-border/60 bg-card/80 p-4 shadow-sm shadow-black/10">
-                  <p className="text-xs text-muted-foreground">Categories</p>
-                  <p className="mt-1 text-xl font-semibold text-foreground">{categories.length}</p>
-                </div>
-                <div className="rounded-2xl border border-border/60 bg-card/80 p-4 shadow-sm shadow-black/10">
-                  <p className="text-xs text-muted-foreground">Saving</p>
-                  <p className="mt-1 text-xl font-semibold text-foreground">
-                    {isSaving ? 'In progress' : 'Idle'}
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-border/60 bg-card/80 p-4 shadow-sm shadow-black/10">
-                  <p className="text-xs text-muted-foreground">Status</p>
-                  <p className="mt-1 text-xl font-semibold text-foreground">
-                    {isLoading ? 'Loading...' : 'Up to date'}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </section>
+          </div>
 
           <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
             <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -476,7 +409,6 @@ export default function CategoriesPage() {
             </CardContent>
           </Card>
         </div>
-      </main>
-    </div>
+      </AppLayout>
   );
 }

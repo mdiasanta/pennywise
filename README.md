@@ -87,8 +87,17 @@ pennywise/
 ├── frontend/
 │   └── pennywise-ui/            # React + TypeScript + Vite
 │       ├── src/
-│       │   └── components/
-│       │       └── ui/          # shadcn/ui components (30+ components)
+│       │   ├── components/
+│       │   │   ├── AppLayout.tsx    # Shared app layout with sidebar navigation
+│       │   │   ├── ThemeToggle.tsx  # Dark/light theme switcher
+│       │   │   └── ui/              # shadcn/ui components (30+ components)
+│       │   ├── pages/
+│       │   │   ├── HomePage.tsx     # Landing page
+│       │   │   ├── DashboardPage.tsx # Dashboard with analytics
+│       │   │   ├── ExpensesPage.tsx  # Expense management
+│       │   │   └── CategoriesPage.tsx # Category management
+│       │   ├── hooks/               # Custom React hooks
+│       │   └── lib/                 # API client and utilities
 │       ├── package.json
 │       ├── vite.config.ts
 │       └── Dockerfile

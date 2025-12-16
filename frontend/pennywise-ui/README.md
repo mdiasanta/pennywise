@@ -1,15 +1,72 @@
-# React + TypeScript + Vite
+# Pennywise Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + TypeScript + Vite frontend for the Pennywise personal finance application.
 
-Currently, two official plugins are available:
+## Application Structure
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### Pages
 
-## React Compiler
+- **HomePage** (`/`) - Landing page with marketing content and quick access to the app
+- **DashboardPage** (`/dashboard`) - Main dashboard with expense analytics and charts
+- **ExpensesPage** (`/expenses`) - Expense management with CRUD operations and import/export
+- **CategoriesPage** (`/categories`) - Category management for organizing expenses
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Navigation
+
+The application uses a consistent sidebar navigation pattern for all app pages (Dashboard, Expenses, Categories):
+
+- **AppLayout** (`src/components/AppLayout.tsx`) - Shared layout component with:
+  - Fixed sidebar navigation on desktop (collapsible on mobile)
+  - Consistent header with page title and description
+  - Theme toggle in both sidebar footer and header
+  - Responsive design with hamburger menu for mobile
+
+The HomePage has its own standalone layout as a marketing/landing page.
+
+### Key Components
+
+- `src/components/AppLayout.tsx` - Main application shell with sidebar navigation
+- `src/components/ThemeToggle.tsx` - Dark/light theme switcher
+- `src/components/ui/` - shadcn/ui component library (30+ components)
+
+### Hooks
+
+- `src/hooks/use-categories.tsx` - Category state management with context
+- `src/hooks/use-toast.ts` - Toast notification system
+
+### API Integration
+
+- `src/lib/api.ts` - API client for backend communication
+
+## Development
+
+```bash
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Run linting
+npm run lint
+
+# Run tests
+npm test
+```
+
+## Technologies
+
+- React 19
+- TypeScript
+- Vite
+- Tailwind CSS
+- shadcn/ui components
+- Radix UI primitives
+- Recharts (for dashboard charts)
+- React Router DOM
 
 ## Expanding the ESLint configuration
 
