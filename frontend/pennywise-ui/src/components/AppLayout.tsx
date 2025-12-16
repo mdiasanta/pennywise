@@ -54,9 +54,9 @@ export function AppLayout({ children, title, description }: AppLayoutProps) {
     <div className="relative min-h-screen bg-background text-foreground">
       {/* Background gradients */}
       <div className="pointer-events-none fixed inset-0 z-0">
-        <div className="absolute -left-24 top-10 h-72 w-72 rounded-full bg-emerald-500/20 blur-3xl" />
-        <div className="absolute right-0 top-24 h-96 w-96 rounded-full bg-cyan-400/15 blur-3xl" />
-        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-amber-400/10 blur-3xl" />
+        <div className="absolute -left-24 top-10 h-72 w-72 rounded-full bg-gradient-1 blur-3xl" />
+        <div className="absolute right-0 top-24 h-96 w-96 rounded-full bg-gradient-2 blur-3xl" />
+        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-gradient-3 blur-3xl" />
       </div>
 
       {/* Mobile sidebar overlay */}
@@ -77,8 +77,8 @@ export function AppLayout({ children, title, description }: AppLayoutProps) {
           {/* Logo */}
           <div className="flex h-[73px] items-center justify-between border-b border-border/60 px-4">
             <Link to="/" className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/15 ring-1 ring-emerald-500/30 shrink-0">
-                <Wallet className="h-5 w-5 text-emerald-300" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand ring-1 ring-primary/30 shrink-0">
+                <Wallet className="h-5 w-5 text-brand-muted" />
               </div>
               {!sidebarCollapsed && (
                 <div className="hidden lg:block">
@@ -124,7 +124,7 @@ export function AppLayout({ children, title, description }: AppLayoutProps) {
                       : "justify-start"
                   } justify-start ${
                     active
-                      ? "bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/20"
+                      ? "bg-brand text-brand-foreground hover:bg-brand-hover"
                       : "text-muted-foreground hover:bg-card/70 hover:text-foreground"
                   }`}
                 >

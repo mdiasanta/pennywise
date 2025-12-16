@@ -1,31 +1,66 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
-import { AppLayout } from '@/components/AppLayout';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { AppLayout } from "@/components/AppLayout";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
-  TrendingDown,
-  Calendar,
-  DollarSign,
-  CreditCard,
-} from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { expenseApi } from '@/lib/api';
-import type { Expense } from '@/lib/api';
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import type { Expense } from "@/lib/api";
+import { expenseApi } from "@/lib/api";
+import { Calendar, CreditCard, DollarSign, TrendingDown } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 // For demo purposes, using userId = 1
 const DEMO_USER_ID = 1;
 
-type TimeRange = 'day' | 'week' | 'month' | 'year';
+type TimeRange = "day" | "week" | "month" | "year";
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FFC658', '#FF6B9D'];
+const COLORS = [
+  "#0088FE",
+  "#00C49F",
+  "#FFBB28",
+  "#FF8042",
+  "#8884D8",
+  "#82CA9D",
+  "#FFC658",
+  "#FF6B9D",
+];
 
 export default function DashboardPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [timeRange, setTimeRange] = useState<TimeRange>('month');
+  const [timeRange, setTimeRange] = useState<TimeRange>("month");
   const [loading, setLoading] = useState(true);
 
   const loadData = useCallback(async () => {
@@ -34,17 +69,17 @@ export default function DashboardPage() {
       const startDate = new Date();
 
       switch (range) {
-        case 'day':
+        case "day":
           startDate.setHours(0, 0, 0, 0);
           endDate.setHours(23, 59, 59, 999);
           break;
-        case 'week':
+        case "week":
           startDate.setDate(startDate.getDate() - 7);
           break;
-        case 'month':
+        case "month":
           startDate.setMonth(startDate.getMonth() - 1);
           break;
-        case 'year':
+        case "year":
           startDate.setFullYear(startDate.getFullYear() - 1);
           break;
       }
@@ -58,12 +93,16 @@ export default function DashboardPage() {
     try {
       setLoading(true);
       const { startDate, endDate } = getDateRange(timeRange);
-      
-      const expensesData = await expenseApi.getByDateRange(DEMO_USER_ID, startDate, endDate);
-      
+
+      const expensesData = await expenseApi.getByDateRange(
+        DEMO_USER_ID,
+        startDate,
+        endDate
+      );
+
       setExpenses(expensesData);
     } catch (error) {
-      console.error('Error loading data:', error);
+      console.error("Error loading data:", error);
     } finally {
       setLoading(false);
     }
@@ -78,7 +117,10 @@ export default function DashboardPage() {
   };
 
   const getExpensesByCategory = () => {
-    const categoryMap = new Map<number, { name: string; total: number; color?: string }>();
+    const categoryMap = new Map<
+      number,
+      { name: string; total: number; color?: string }
+    >();
 
     expenses.forEach((expense) => {
       const existing = categoryMap.get(expense.categoryId);
@@ -86,7 +128,7 @@ export default function DashboardPage() {
         existing.total += expense.amount;
       } else {
         categoryMap.set(expense.categoryId, {
-          name: expense.categoryName || 'Uncategorized',
+          name: expense.categoryName || "Uncategorized",
           total: expense.amount,
           color: expense.categoryColor,
         });
@@ -108,30 +150,30 @@ export default function DashboardPage() {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
     }).format(amount);
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
   const getTimeRangeLabel = () => {
     switch (timeRange) {
-      case 'day':
-        return 'Today';
-      case 'week':
-        return 'Last 7 Days';
-      case 'month':
-        return 'Last 30 Days';
-      case 'year':
-        return 'Last 12 Months';
+      case "day":
+        return "Today";
+      case "week":
+        return "Last 7 Days";
+      case "month":
+        return "Last 30 Days";
+      case "year":
+        return "Last 12 Months";
     }
   };
 
@@ -140,20 +182,27 @@ export default function DashboardPage() {
   const totalExpenses = getTotalExpenses();
 
   return (
-    <AppLayout 
-      title="Dashboard" 
+    <AppLayout
+      title="Dashboard"
       description="Track velocity, catch outliers, and keep your envelopes healthy"
     >
       <div className="mx-auto max-w-7xl space-y-6">
         {/* Time Range Selector */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
-            <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-emerald-100">Live sync</span>
-            <span className="rounded-full bg-card/70 px-3 py-1">Audit-friendly exports</span>
+            <span className="rounded-full bg-success px-3 py-1 font-medium text-success-foreground">
+              Live sync
+            </span>
+            <span className="rounded-full bg-card/70 px-3 py-1">
+              Audit-friendly exports
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <Calendar className="h-5 w-5 text-muted-foreground" />
-            <Select value={timeRange} onValueChange={(value) => setTimeRange(value as TimeRange)}>
+            <Select
+              value={timeRange}
+              onValueChange={(value) => setTimeRange(value as TimeRange)}
+            >
               <SelectTrigger className="w-[200px] border-border/60 bg-card/70 text-foreground">
                 <SelectValue />
               </SelectTrigger>
@@ -171,40 +220,56 @@ export default function DashboardPage() {
         <div className="grid gap-4 md:grid-cols-3">
           <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Expenses</CardTitle>
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-200">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Total Expenses
+              </CardTitle>
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand text-brand-foreground">
                 <DollarSign className="h-4 w-4" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-semibold">{formatCurrency(totalExpenses)}</div>
-              <p className="mt-1 text-xs text-muted-foreground">{getTimeRangeLabel()}</p>
+              <div className="text-3xl font-semibold">
+                {formatCurrency(totalExpenses)}
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {getTimeRangeLabel()}
+              </p>
             </CardContent>
           </Card>
 
           <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Transactions</CardTitle>
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-cyan-400/15 text-cyan-200">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Transactions
+              </CardTitle>
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-info text-info-foreground">
                 <CreditCard className="h-4 w-4" />
               </div>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-semibold">{expenses.length}</div>
-              <p className="mt-1 text-xs text-muted-foreground">{getTimeRangeLabel()}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {getTimeRangeLabel()}
+              </p>
             </CardContent>
           </Card>
 
           <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Categories</CardTitle>
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-400/15 text-amber-100">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Categories
+              </CardTitle>
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-warning text-warning-foreground">
                 <TrendingDown className="h-4 w-4" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-semibold">{categoryData.length}</div>
-              <p className="mt-1 text-xs text-muted-foreground">Active categories</p>
+              <div className="text-3xl font-semibold">
+                {categoryData.length}
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Active categories
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -213,7 +278,9 @@ export default function DashboardPage() {
         {loading ? (
           <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
             <CardContent className="py-12">
-              <div className="text-center text-muted-foreground">Loading dashboard data...</div>
+              <div className="text-center text-muted-foreground">
+                Loading dashboard data...
+              </div>
             </CardContent>
           </Card>
         ) : expenses.length === 0 ? (
@@ -222,7 +289,7 @@ export default function DashboardPage() {
               <div className="text-center text-muted-foreground">
                 <p>No expenses found for the selected time period.</p>
                 <Link to="/expenses">
-                  <Button className="mt-4 bg-emerald-500 text-foreground shadow-emerald-500/30 hover:bg-emerald-400">
+                  <Button className="mt-4 bg-primary text-primary-foreground shadow-primary/30 hover:bg-primary/90">
                     Add your first expense
                   </Button>
                 </Link>
@@ -280,7 +347,10 @@ export default function DashboardPage() {
               <CardContent>
                 <ResponsiveContainer width="100%" height={320}>
                   <BarChart data={categoryData}>
-                    <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
+                    <CartesianGrid
+                      stroke="rgba(255,255,255,0.08)"
+                      vertical={false}
+                    />
                     <XAxis
                       dataKey="name"
                       angle={-25}
@@ -346,10 +416,18 @@ export default function DashboardPage() {
               <Table className="text-foreground">
                 <TableHeader className="[&_tr]:border-border/60">
                   <TableRow className="border-border/60">
-                    <TableHead className="text-muted-foreground">Date</TableHead>
-                    <TableHead className="text-muted-foreground">Title</TableHead>
-                    <TableHead className="text-muted-foreground">Category</TableHead>
-                    <TableHead className="text-right text-muted-foreground">Amount</TableHead>
+                    <TableHead className="text-muted-foreground">
+                      Date
+                    </TableHead>
+                    <TableHead className="text-muted-foreground">
+                      Title
+                    </TableHead>
+                    <TableHead className="text-muted-foreground">
+                      Category
+                    </TableHead>
+                    <TableHead className="text-right text-muted-foreground">
+                      Amount
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -361,7 +439,9 @@ export default function DashboardPage() {
                       <TableCell className="font-medium text-foreground">
                         {formatDate(expense.date)}
                       </TableCell>
-                      <TableCell className="text-foreground">{expense.title}</TableCell>
+                      <TableCell className="text-foreground">
+                        {expense.title}
+                      </TableCell>
                       <TableCell>
                         <Badge
                           variant="secondary"
@@ -376,7 +456,7 @@ export default function DashboardPage() {
                               : undefined
                           }
                         >
-                          {expense.categoryName || 'Uncategorized'}
+                          {expense.categoryName || "Uncategorized"}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right font-semibold text-foreground">
