@@ -351,8 +351,8 @@ public class NetWorthService : INetWorthService
             {
                 foreach (var item in customItems.Where(c => !c.IsRecurring && c.Date.HasValue))
                 {
-                    var itemDate = item.Date!.Value;
-                    if (itemDate.Year == currentMonth.Year && itemDate.Month == currentMonth.Month)
+                    if (item.Date is { } itemDate && 
+                        itemDate.Year == currentMonth.Year && itemDate.Month == currentMonth.Month)
                     {
                         monthlyChange += item.Amount;
                     }
@@ -373,7 +373,7 @@ public class NetWorthService : INetWorthService
         if (goalAmount.HasValue)
         {
             var goal = goalAmount.Value;
-            bool isAchievable;
+            var isAchievable = false;
             DateTime? estimatedGoalDate = null;
             int? monthsToGoal = null;
             
@@ -391,11 +391,6 @@ public class NetWorthService : INetWorthService
                 monthsToGoal = monthsNeeded;
                 estimatedGoalDate = DateTime.UtcNow.AddMonths(monthsNeeded);
                 isAchievable = true;
-            }
-            else
-            {
-                // Net worth is declining or static, goal may not be achievable
-                isAchievable = false;
             }
             
             goalInfo = new NetWorthGoalDto
