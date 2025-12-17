@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
+using Pennywise.Api.BackgroundServices;
 using Pennywise.Api.Data;
 using Pennywise.Api.Repositories;
 using Pennywise.Api.Services;
@@ -23,6 +24,10 @@ builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IExportAuditRepository, ExportAuditRepository>();
 builder.Services.AddScoped<IImportAuditRepository, ImportAuditRepository>();
+builder.Services.AddScoped<IAssetCategoryRepository, AssetCategoryRepository>();
+builder.Services.AddScoped<IAssetRepository, AssetRepository>();
+builder.Services.AddScoped<IAssetSnapshotRepository, AssetSnapshotRepository>();
+builder.Services.AddScoped<IRecurringTransactionRepository, RecurringTransactionRepository>();
 
 // Register services
 builder.Services.AddScoped<IExpenseService, ExpenseService>();
@@ -32,6 +37,14 @@ builder.Services.AddScoped<ISummaryService, SummaryService>();
 builder.Services.AddScoped<IExportAuditService, ExportAuditService>();
 builder.Services.AddScoped<IImportAuditService, ImportAuditService>();
 builder.Services.AddScoped<IExpenseImportService, ExpenseImportService>();
+builder.Services.AddScoped<IAssetCategoryService, AssetCategoryService>();
+builder.Services.AddScoped<IAssetService, AssetService>();
+builder.Services.AddScoped<IAssetSnapshotService, AssetSnapshotService>();
+builder.Services.AddScoped<INetWorthService, NetWorthService>();
+builder.Services.AddScoped<IRecurringTransactionService, RecurringTransactionService>();
+
+// Register background services
+builder.Services.AddHostedService<RecurringTransactionProcessor>();
 
 // Register Google token validator
 builder.Services.AddHttpClient("GoogleTokenValidator");

@@ -15,6 +15,10 @@ public class PennywiseDbContext : DbContext
     public DbSet<Expense> Expenses { get; set; }
     public DbSet<ExportAudit> ExportAudits { get; set; }
     public DbSet<ImportAudit> ImportAudits { get; set; }
+    public DbSet<AssetCategory> AssetCategories { get; set; }
+    public DbSet<Asset> Assets { get; set; }
+    public DbSet<AssetSnapshot> AssetSnapshots { get; set; }
+    public DbSet<RecurringTransaction> RecurringTransactions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -92,6 +96,89 @@ public class PennywiseDbContext : DbContext
             entity.HasIndex(e => e.CreatedAt);
             entity.HasIndex(e => e.UserId);
         });
+
+        // AssetCategory configuration
+        modelBuilder.Entity<AssetCategory>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.Color).HasMaxLength(7);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+        });
+
+        // Asset configuration
+        modelBuilder.Entity<Asset>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(1000);
+            entity.Property(e => e.Color).HasMaxLength(7);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            // Relationships
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.Assets)
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.AssetCategory)
+                .WithMany(c => c.Assets)
+                .HasForeignKey(e => e.AssetCategoryId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // AssetSnapshot configuration
+        modelBuilder.Entity<AssetSnapshot>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Balance).HasPrecision(18, 2);
+            entity.Property(e => e.Date).IsRequired();
+            entity.Property(e => e.Notes).HasMaxLength(500);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.HasOne(e => e.Asset)
+                .WithMany(a => a.Snapshots)
+                .HasForeignKey(e => e.AssetId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => new { e.AssetId, e.Date });
+        });
+
+        // RecurringTransaction configuration
+        modelBuilder.Entity<RecurringTransaction>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Amount).HasPrecision(18, 2);
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.HasOne(e => e.Asset)
+                .WithMany()
+                .HasForeignKey(e => e.AssetId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.NextRunDate);
+            entity.HasIndex(e => e.IsActive);
+        });
+
+        // Seed data for asset categories
+        modelBuilder.Entity<AssetCategory>().HasData(
+            new AssetCategory { Id = 1, Name = "Checking", Description = "Checking accounts", Color = "#4ECDC4", IsLiability = false, SortOrder = 1, CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+            new AssetCategory { Id = 2, Name = "Savings", Description = "Savings accounts", Color = "#45B7D1", IsLiability = false, SortOrder = 2, CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+            new AssetCategory { Id = 3, Name = "401k", Description = "401k retirement accounts", Color = "#F7DC6F", IsLiability = false, SortOrder = 3, CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+            new AssetCategory { Id = 4, Name = "Roth IRA", Description = "Roth IRA retirement accounts", Color = "#98D8C8", IsLiability = false, SortOrder = 4, CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+            new AssetCategory { Id = 5, Name = "Brokerage", Description = "Brokerage investment accounts", Color = "#FFA07A", IsLiability = false, SortOrder = 5, CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+            new AssetCategory { Id = 6, Name = "Other Assets", Description = "Other assets like property, vehicles", Color = "#B19CD9", IsLiability = false, SortOrder = 6, CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+            new AssetCategory { Id = 7, Name = "Credit Cards", Description = "Credit card debt", Color = "#FF6B6B", IsLiability = true, SortOrder = 7, CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+            new AssetCategory { Id = 8, Name = "Loans", Description = "Personal loans, auto loans", Color = "#E74C3C", IsLiability = true, SortOrder = 8, CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+            new AssetCategory { Id = 9, Name = "Mortgage", Description = "Home mortgage", Color = "#C0392B", IsLiability = true, SortOrder = 9, CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+            new AssetCategory { Id = 10, Name = "Student Loans", Description = "Student loan debt", Color = "#D35400", IsLiability = true, SortOrder = 10, CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) }
+        );
 
         // Seed data for categories
         modelBuilder.Entity<Category>().HasData(

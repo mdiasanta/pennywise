@@ -1,0 +1,59 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Pennywise.Api.DTOs;
+using Pennywise.Api.Helpers;
+using Pennywise.Api.Services;
+
+namespace Pennywise.Api.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+[Authorize]
+public class NetWorthController : ControllerBase
+{
+    private readonly INetWorthService _netWorthService;
+
+    public NetWorthController(INetWorthService netWorthService)
+    {
+        _netWorthService = netWorthService;
+    }
+
+    [HttpGet("user/{userId}/summary")]
+    public async Task<ActionResult<NetWorthSummaryDto>> GetSummary(
+        int userId,
+        [FromQuery] DateTime? asOfDate)
+    {
+        var summary = await _netWorthService.GetSummaryAsync(userId, asOfDate?.ToUtc());
+        return Ok(summary);
+    }
+
+    [HttpGet("user/{userId}/history")]
+    public async Task<ActionResult<IEnumerable<NetWorthHistoryPointDto>>> GetHistory(
+        int userId,
+        [FromQuery] DateTime startDate,
+        [FromQuery] DateTime endDate,
+        [FromQuery] string groupBy = "month")
+    {
+        var history = await _netWorthService.GetHistoryAsync(
+            userId,
+            startDate.ToUtc(),
+            endDate.ToUtc(),
+            groupBy);
+        return Ok(history);
+    }
+
+    [HttpGet("user/{userId}/comparison")]
+    public async Task<ActionResult<NetWorthComparisonDto>> GetComparison(
+        int userId,
+        [FromQuery] DateTime startDate,
+        [FromQuery] DateTime endDate,
+        [FromQuery] string groupBy = "month")
+    {
+        var comparison = await _netWorthService.GetComparisonAsync(
+            userId,
+            startDate.ToUtc(),
+            endDate.ToUtc(),
+            groupBy);
+        return Ok(comparison);
+    }
+}

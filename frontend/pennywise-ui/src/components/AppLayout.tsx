@@ -10,6 +10,7 @@ import {
   Home,
   Menu,
   Palette,
+  TrendingUp,
   Wallet,
   X,
 } from 'lucide-react';
@@ -27,6 +28,7 @@ const navItems: NavItem[] = [
   { to: '/dashboard', label: 'Dashboard', icon: BarChart3 },
   { to: '/expenses', label: 'Expenses', icon: CreditCard },
   { to: '/categories', label: 'Categories', icon: Palette },
+  { to: '/networth', label: 'Net Worth', icon: TrendingUp },
 ];
 
 interface AppLayoutProps {
