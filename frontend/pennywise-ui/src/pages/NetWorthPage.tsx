@@ -505,7 +505,7 @@ export default function NetWorthPage() {
     const sortedDates = Array.from(allDates).sort();
 
     return sortedDates.map((date) => {
-      const dataPoint: Record<string, number | string> = {
+      const dataPoint: { date: string; [assetName: string]: number | string } = {
         date: formatChartDate(date, groupBy),
       };
 
