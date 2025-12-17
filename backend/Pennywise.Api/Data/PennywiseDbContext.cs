@@ -18,6 +18,7 @@ public class PennywiseDbContext : DbContext
     public DbSet<AssetCategory> AssetCategories { get; set; }
     public DbSet<Asset> Assets { get; set; }
     public DbSet<AssetSnapshot> AssetSnapshots { get; set; }
+    public DbSet<RecurringTransaction> RecurringTransactions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -145,6 +146,24 @@ public class PennywiseDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasIndex(e => new { e.AssetId, e.Date });
+        });
+
+        // RecurringTransaction configuration
+        modelBuilder.Entity<RecurringTransaction>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Amount).HasPrecision(18, 2);
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.HasOne(e => e.Asset)
+                .WithMany()
+                .HasForeignKey(e => e.AssetId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.NextRunDate);
+            entity.HasIndex(e => e.IsActive);
         });
 
         // Seed data for asset categories

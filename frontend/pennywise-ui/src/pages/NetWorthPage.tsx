@@ -49,11 +49,13 @@ import type {
   Asset,
   CreateAsset,
   CreateAssetSnapshot,
+  CreateRecurringTransaction,
   NetWorthComparison,
   NetWorthSummary,
+  RecurringTransaction,
   UpdateAsset,
 } from '@/lib/api';
-import { assetApi, assetSnapshotApi, netWorthApi } from '@/lib/api';
+import { assetApi, assetSnapshotApi, netWorthApi, recurringTransactionApi } from '@/lib/api';
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -62,6 +64,7 @@ import {
   Minus,
   Pencil,
   Plus,
+  RefreshCw,
   Trash2,
   TrendingDown,
   TrendingUp,
@@ -142,6 +145,20 @@ export default function NetWorthPage() {
     notes: '',
   });
 
+  // Recurring transaction states
+  const [recurringTransactions, setRecurringTransactions] = useState<RecurringTransaction[]>([]);
+  const [isAddRecurringDialogOpen, setIsAddRecurringDialogOpen] = useState(false);
+  const [recurringFormData, setRecurringFormData] = useState({
+    assetId: '',
+    amount: '',
+    description: '',
+    frequency: 'Biweekly' as 'Weekly' | 'Biweekly' | 'Monthly' | 'Quarterly' | 'Yearly',
+    dayOfWeek: 'Friday',
+    dayOfMonth: '1',
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: '',
+  });
+
   const getDateRange = useCallback((range: TimeRange) => {
     const endDate = new Date();
     const startDate = new Date();
@@ -178,15 +195,17 @@ export default function NetWorthPage() {
       setLoading(true);
       const { startDate, endDate } = getDateRange(timeRange);
 
-      const [assetsData, summaryData, comparisonData] = await Promise.all([
+      const [assetsData, summaryData, comparisonData, recurringData] = await Promise.all([
         assetApi.getAll(user.id),
         netWorthApi.getSummary(user.id),
         netWorthApi.getComparison(user.id, startDate, endDate, groupBy),
+        recurringTransactionApi.getByUser(user.id),
       ]);
 
       setAssets(assetsData);
       setSummary(summaryData);
       setComparison(comparisonData);
+      setRecurringTransactions(recurringData);
     } catch (error) {
       console.error('Error loading net worth data:', error);
       toast({
@@ -234,6 +253,130 @@ export default function NetWorthPage() {
       notes: '',
     });
     setSelectedAssetForUpdate(null);
+  };
+
+  const resetRecurringForm = () => {
+    setRecurringFormData({
+      assetId: '',
+      amount: '',
+      description: '',
+      frequency: 'Biweekly',
+      dayOfWeek: 'Friday',
+      dayOfMonth: '1',
+      startDate: new Date().toISOString().split('T')[0],
+      endDate: '',
+    });
+  };
+
+  const handleSubmitRecurring = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    const parsedAssetId = parseInt(recurringFormData.assetId, 10);
+    if (Number.isNaN(parsedAssetId)) {
+      toast({
+        variant: 'destructive',
+        title: 'Missing account',
+        description: 'Please select an account for this recurring transaction.',
+      });
+      return;
+    }
+
+    const parsedAmount = parseFloat(recurringFormData.amount);
+    if (Number.isNaN(parsedAmount)) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid amount',
+        description: 'Please enter a valid amount.',
+      });
+      return;
+    }
+
+    try {
+      const createData: CreateRecurringTransaction = {
+        assetId: parsedAssetId,
+        amount: parsedAmount,
+        description: recurringFormData.description,
+        frequency: recurringFormData.frequency,
+        startDate: new Date(recurringFormData.startDate).toISOString(),
+      };
+
+      // Add day of week for weekly/biweekly
+      if (recurringFormData.frequency === 'Weekly' || recurringFormData.frequency === 'Biweekly') {
+        createData.dayOfWeek = recurringFormData.dayOfWeek;
+      }
+
+      // Add day of month for monthly/quarterly
+      if (
+        recurringFormData.frequency === 'Monthly' ||
+        recurringFormData.frequency === 'Quarterly'
+      ) {
+        createData.dayOfMonth = parseInt(recurringFormData.dayOfMonth, 10);
+      }
+
+      // Add end date if specified
+      if (recurringFormData.endDate) {
+        createData.endDate = new Date(recurringFormData.endDate).toISOString();
+      }
+
+      await recurringTransactionApi.create(user.id, createData);
+      toast({
+        title: 'Success',
+        description: 'Recurring transaction created successfully.',
+      });
+      setIsAddRecurringDialogOpen(false);
+      resetRecurringForm();
+      loadData();
+    } catch (error) {
+      console.error('Error creating recurring transaction:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to create recurring transaction. Please try again.',
+      });
+    }
+  };
+
+  const handleDeleteRecurring = async (id: number) => {
+    if (!user) return;
+
+    try {
+      await recurringTransactionApi.delete(id, user.id);
+      toast({
+        title: 'Success',
+        description: 'Recurring transaction deleted.',
+      });
+      loadData();
+    } catch (error) {
+      console.error('Error deleting recurring transaction:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to delete recurring transaction.',
+      });
+    }
+  };
+
+  const handleToggleRecurringActive = async (transaction: RecurringTransaction) => {
+    if (!user) return;
+
+    try {
+      await recurringTransactionApi.update(transaction.id, user.id, {
+        isActive: !transaction.isActive,
+      });
+      toast({
+        title: 'Success',
+        description: `Recurring transaction ${transaction.isActive ? 'paused' : 'resumed'}.`,
+      });
+      loadData();
+    } catch (error) {
+      console.error('Error updating recurring transaction:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to update recurring transaction.',
+      });
+    }
   };
 
   const handleSubmitAsset = async (e: React.FormEvent) => {
@@ -1071,6 +1214,354 @@ export default function NetWorthPage() {
                                 </AlertDialogCancel>
                                 <AlertDialogAction
                                   onClick={() => handleDeleteAsset(asset)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Recurring Transactions Section */}
+        <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <RefreshCw className="h-5 w-5" />
+                  Recurring Transactions
+                </CardTitle>
+                <CardDescription className="text-muted-foreground">
+                  Set up automatic recurring additions like paychecks
+                </CardDescription>
+              </div>
+              <Dialog
+                open={isAddRecurringDialogOpen}
+                onOpenChange={(open) => {
+                  setIsAddRecurringDialogOpen(open);
+                  if (!open) resetRecurringForm();
+                }}
+              >
+                <DialogTrigger asChild>
+                  <Button className="bg-primary text-primary-foreground shadow-lg shadow-primary/30 hover:-translate-y-0.5 hover:bg-primary/90">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Recurring
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="border-border/60 bg-card text-foreground">
+                  <form onSubmit={handleSubmitRecurring}>
+                    <DialogHeader>
+                      <DialogTitle>Add Recurring Transaction</DialogTitle>
+                      <DialogDescription className="text-muted-foreground">
+                        Set up an automatic recurring deposit or withdrawal
+                      </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="recurringAsset" className="text-muted-foreground">
+                          Account *
+                        </Label>
+                        <Select
+                          value={recurringFormData.assetId}
+                          onValueChange={(value) =>
+                            setRecurringFormData({ ...recurringFormData, assetId: value })
+                          }
+                        >
+                          <SelectTrigger className="border-border/60 bg-card text-foreground">
+                            <SelectValue placeholder="Select an account" />
+                          </SelectTrigger>
+                          <SelectContent className="border-border/60 bg-card text-foreground">
+                            {assets.map((asset) => (
+                              <SelectItem key={asset.id} value={asset.id.toString()}>
+                                {asset.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="recurringAmount" className="text-muted-foreground">
+                          Amount * (positive to add, negative to subtract)
+                        </Label>
+                        <Input
+                          id="recurringAmount"
+                          type="number"
+                          step="0.01"
+                          className="border-border/60 bg-card text-foreground placeholder:text-muted-foreground"
+                          value={recurringFormData.amount}
+                          onChange={(e) =>
+                            setRecurringFormData({ ...recurringFormData, amount: e.target.value })
+                          }
+                          required
+                          placeholder="e.g. 2500.00"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="recurringDescription" className="text-muted-foreground">
+                          Description *
+                        </Label>
+                        <Input
+                          id="recurringDescription"
+                          className="border-border/60 bg-card text-foreground placeholder:text-muted-foreground"
+                          value={recurringFormData.description}
+                          onChange={(e) =>
+                            setRecurringFormData({
+                              ...recurringFormData,
+                              description: e.target.value,
+                            })
+                          }
+                          required
+                          placeholder="e.g. Paycheck"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="recurringFrequency" className="text-muted-foreground">
+                          Frequency *
+                        </Label>
+                        <Select
+                          value={recurringFormData.frequency}
+                          onValueChange={(value) =>
+                            setRecurringFormData({
+                              ...recurringFormData,
+                              frequency: value as typeof recurringFormData.frequency,
+                            })
+                          }
+                        >
+                          <SelectTrigger className="border-border/60 bg-card text-foreground">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="border-border/60 bg-card text-foreground">
+                            <SelectItem value="Weekly">Weekly</SelectItem>
+                            <SelectItem value="Biweekly">Every 2 Weeks</SelectItem>
+                            <SelectItem value="Monthly">Monthly</SelectItem>
+                            <SelectItem value="Quarterly">Quarterly</SelectItem>
+                            <SelectItem value="Yearly">Yearly</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {(recurringFormData.frequency === 'Weekly' ||
+                        recurringFormData.frequency === 'Biweekly') && (
+                        <div className="space-y-2">
+                          <Label htmlFor="recurringDayOfWeek" className="text-muted-foreground">
+                            Day of Week
+                          </Label>
+                          <Select
+                            value={recurringFormData.dayOfWeek}
+                            onValueChange={(value) =>
+                              setRecurringFormData({ ...recurringFormData, dayOfWeek: value })
+                            }
+                          >
+                            <SelectTrigger className="border-border/60 bg-card text-foreground">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="border-border/60 bg-card text-foreground">
+                              <SelectItem value="Sunday">Sunday</SelectItem>
+                              <SelectItem value="Monday">Monday</SelectItem>
+                              <SelectItem value="Tuesday">Tuesday</SelectItem>
+                              <SelectItem value="Wednesday">Wednesday</SelectItem>
+                              <SelectItem value="Thursday">Thursday</SelectItem>
+                              <SelectItem value="Friday">Friday</SelectItem>
+                              <SelectItem value="Saturday">Saturday</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+
+                      {(recurringFormData.frequency === 'Monthly' ||
+                        recurringFormData.frequency === 'Quarterly') && (
+                        <div className="space-y-2">
+                          <Label htmlFor="recurringDayOfMonth" className="text-muted-foreground">
+                            Day of Month
+                          </Label>
+                          <Input
+                            id="recurringDayOfMonth"
+                            type="number"
+                            min="1"
+                            max="31"
+                            className="border-border/60 bg-card text-foreground"
+                            value={recurringFormData.dayOfMonth}
+                            onChange={(e) =>
+                              setRecurringFormData({
+                                ...recurringFormData,
+                                dayOfMonth: e.target.value,
+                              })
+                            }
+                            placeholder="1-31"
+                          />
+                        </div>
+                      )}
+
+                      <div className="space-y-2">
+                        <Label htmlFor="recurringStartDate" className="text-muted-foreground">
+                          Start Date *
+                        </Label>
+                        <Input
+                          id="recurringStartDate"
+                          type="date"
+                          className="border-border/60 bg-card text-foreground"
+                          value={recurringFormData.startDate}
+                          onChange={(e) =>
+                            setRecurringFormData({
+                              ...recurringFormData,
+                              startDate: e.target.value,
+                            })
+                          }
+                          required
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="recurringEndDate" className="text-muted-foreground">
+                          End Date (optional)
+                        </Label>
+                        <Input
+                          id="recurringEndDate"
+                          type="date"
+                          className="border-border/60 bg-card text-foreground"
+                          value={recurringFormData.endDate}
+                          onChange={(e) =>
+                            setRecurringFormData({ ...recurringFormData, endDate: e.target.value })
+                          }
+                        />
+                      </div>
+                    </div>
+
+                    <DialogFooter>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="border-border/60 bg-card/80 text-foreground hover:bg-card/70"
+                        onClick={() => {
+                          setIsAddRecurringDialogOpen(false);
+                          resetRecurringForm();
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="submit"
+                        className="bg-primary text-primary-foreground hover:bg-primary/90"
+                      >
+                        Create Recurring
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="py-8 text-center text-muted-foreground">
+                Loading recurring transactions...
+              </div>
+            ) : recurringTransactions.length === 0 ? (
+              <div className="py-8 text-center text-muted-foreground">
+                <p>No recurring transactions set up.</p>
+                <p className="mt-2 text-sm">
+                  Click "Add Recurring" to automate deposits like paychecks.
+                </p>
+              </div>
+            ) : (
+              <Table className="text-foreground">
+                <TableHeader className="[&_tr]:border-border/60">
+                  <TableRow className="border-border/60">
+                    <TableHead className="text-muted-foreground">Description</TableHead>
+                    <TableHead className="text-muted-foreground">Account</TableHead>
+                    <TableHead className="text-muted-foreground">Frequency</TableHead>
+                    <TableHead className="text-right text-muted-foreground">Amount</TableHead>
+                    <TableHead className="text-muted-foreground">Next Run</TableHead>
+                    <TableHead className="text-muted-foreground">Status</TableHead>
+                    <TableHead className="text-right text-muted-foreground">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {recurringTransactions.map((rt) => (
+                    <TableRow key={rt.id} className="border-border/60 hover:bg-card/80">
+                      <TableCell className="font-medium text-foreground">
+                        {rt.description}
+                      </TableCell>
+                      <TableCell className="text-foreground">{rt.assetName}</TableCell>
+                      <TableCell className="text-foreground">
+                        {rt.frequency}
+                        {rt.dayOfWeek && ` (${rt.dayOfWeek})`}
+                        {rt.dayOfMonth && ` (Day ${rt.dayOfMonth})`}
+                      </TableCell>
+                      <TableCell
+                        className={`text-right font-semibold ${rt.amount >= 0 ? 'text-success-foreground' : 'text-destructive'}`}
+                      >
+                        {rt.amount >= 0 ? '+' : ''}
+                        {formatCurrency(rt.amount)}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {formatDate(rt.nextRunDate)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="secondary"
+                          className={
+                            rt.isActive
+                              ? 'border-success/60 bg-success/10 text-success-foreground'
+                              : 'border-muted bg-muted/10 text-muted-foreground'
+                          }
+                        >
+                          {rt.isActive ? 'Active' : 'Paused'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-foreground hover:bg-card/70"
+                            onClick={() => handleToggleRecurringActive(rt)}
+                            title={rt.isActive ? 'Pause' : 'Resume'}
+                          >
+                            {rt.isActive ? (
+                              <Minus className="h-4 w-4" />
+                            ) : (
+                              <RefreshCw className="h-4 w-4" />
+                            )}
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-destructive hover:bg-destructive/10"
+                                title="Delete"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent className="border-border/60 bg-card text-foreground">
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Recurring Transaction</AlertDialogTitle>
+                                <AlertDialogDescription className="text-muted-foreground">
+                                  Are you sure you want to delete "{rt.description}"? This action
+                                  cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel className="border-border/60 bg-card/80 text-foreground hover:bg-card/70">
+                                  Cancel
+                                </AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteRecurring(rt.id)}
                                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                 >
                                   Delete

@@ -761,3 +761,104 @@ export const netWorthApi = {
     return handleResponse<NetWorthComparison>(response);
   },
 };
+
+// Recurring Transaction types
+export interface RecurringTransaction {
+  id: number;
+  assetId: number;
+  assetName: string;
+  amount: number;
+  description: string;
+  frequency: 'Weekly' | 'Biweekly' | 'Monthly' | 'Quarterly' | 'Yearly';
+  dayOfWeek?: string;
+  dayOfMonth?: number;
+  startDate: string;
+  endDate?: string;
+  nextRunDate: string;
+  lastRunDate?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateRecurringTransaction {
+  assetId: number;
+  amount: number;
+  description: string;
+  frequency: 'Weekly' | 'Biweekly' | 'Monthly' | 'Quarterly' | 'Yearly';
+  dayOfWeek?: string;
+  dayOfMonth?: number;
+  startDate: string;
+  endDate?: string;
+}
+
+export interface UpdateRecurringTransaction {
+  amount?: number;
+  description?: string;
+  frequency?: 'Weekly' | 'Biweekly' | 'Monthly' | 'Quarterly' | 'Yearly';
+  dayOfWeek?: string;
+  dayOfMonth?: number;
+  startDate?: string;
+  endDate?: string;
+  isActive?: boolean;
+}
+
+// Recurring Transaction API
+export const recurringTransactionApi = {
+  async getByUser(userId: number): Promise<RecurringTransaction[]> {
+    const response = await fetch(`${API_BASE_URL}/recurringtransactions/user/${userId}`, {
+      credentials: 'include',
+    });
+    return handleResponse<RecurringTransaction[]>(response);
+  },
+
+  async getByAsset(assetId: number, userId: number): Promise<RecurringTransaction[]> {
+    const response = await fetch(
+      `${API_BASE_URL}/recurringtransactions/asset/${assetId}/user/${userId}`,
+      { credentials: 'include' }
+    );
+    return handleResponse<RecurringTransaction[]>(response);
+  },
+
+  async getById(id: number, userId: number): Promise<RecurringTransaction> {
+    const response = await fetch(`${API_BASE_URL}/recurringtransactions/${id}/user/${userId}`, {
+      credentials: 'include',
+    });
+    return handleResponse<RecurringTransaction>(response);
+  },
+
+  async create(
+    userId: number,
+    transaction: CreateRecurringTransaction
+  ): Promise<RecurringTransaction> {
+    const response = await fetch(`${API_BASE_URL}/recurringtransactions/user/${userId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(transaction),
+      credentials: 'include',
+    });
+    return handleResponse<RecurringTransaction>(response);
+  },
+
+  async update(
+    id: number,
+    userId: number,
+    transaction: UpdateRecurringTransaction
+  ): Promise<RecurringTransaction> {
+    const response = await fetch(`${API_BASE_URL}/recurringtransactions/${id}/user/${userId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(transaction),
+      credentials: 'include',
+    });
+    return handleResponse<RecurringTransaction>(response);
+  },
+
+  async delete(id: number, userId: number): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/recurringtransactions/${id}/user/${userId}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+    return handleResponse<void>(response);
+  },
+};
