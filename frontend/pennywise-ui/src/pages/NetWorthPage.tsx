@@ -82,6 +82,9 @@ import {
 type TimeRange = 'month' | 'quarter' | 'year' | 'all';
 type GroupBy = 'day' | 'week' | 'month' | 'quarter' | 'year';
 
+// Maximum years of history to show for "All Time" view
+const ALL_TIME_LOOKBACK_YEARS = 5;
+
 export default function NetWorthPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const { categories, isLoading: categoriesLoading } = useAssetCategories();
@@ -130,7 +133,7 @@ export default function NetWorthPage() {
         startDate.setFullYear(startDate.getFullYear() - 1);
         break;
       case 'all':
-        startDate.setFullYear(startDate.getFullYear() - 5);
+        startDate.setFullYear(startDate.getFullYear() - ALL_TIME_LOOKBACK_YEARS);
         break;
     }
 
