@@ -91,6 +91,7 @@ export default function NetWorthPage() {
   const [includeRecurringTransfers, setIncludeRecurringTransfers] = useState(true);
   const [includeAverageExpenses, setIncludeAverageExpenses] = useState(false);
   const [customProjectionItems, setCustomProjectionItems] = useState<CustomProjectionItem[]>([]);
+  const [projectionYears, setProjectionYears] = useState(1);
 
   // Asset history for individual account chart
   const [assetSnapshots, setAssetSnapshots] = useState<Map<number, AssetSnapshot[]>>(new Map());
@@ -188,7 +189,7 @@ export default function NetWorthPage() {
       const projectionData = await netWorthApi.getProjection(
         user.id,
         goalAmount,
-        12,
+        projectionYears * 12,
         includeRecurringTransfers,
         includeAverageExpenses,
         customProjectionItems.length > 0 ? customProjectionItems : undefined
@@ -209,6 +210,7 @@ export default function NetWorthPage() {
     isAuthenticated,
     user,
     goalAmount,
+    projectionYears,
     includeRecurringTransfers,
     includeAverageExpenses,
     customProjectionItems,
@@ -237,6 +239,10 @@ export default function NetWorthPage() {
 
   const handleCustomItemsChange = useCallback((items: CustomProjectionItem[]) => {
     setCustomProjectionItems(items);
+  }, []);
+
+  const handleProjectionYearsChange = useCallback((years: number) => {
+    setProjectionYears(years);
   }, []);
 
   const getRandomUnusedColor = useCallback(() => {
@@ -679,10 +685,12 @@ export default function NetWorthPage() {
           onRecurringToggle={handleRecurringToggle}
           onAverageExpensesToggle={handleAverageExpensesToggle}
           onCustomItemsChange={handleCustomItemsChange}
+          onProjectionYearsChange={handleProjectionYearsChange}
           currentGoal={goalAmount}
           includeRecurringTransfers={includeRecurringTransfers}
           includeAverageExpenses={includeAverageExpenses}
           customItems={customProjectionItems}
+          projectionYears={projectionYears}
         />
 
         {/* Accounts Table */}

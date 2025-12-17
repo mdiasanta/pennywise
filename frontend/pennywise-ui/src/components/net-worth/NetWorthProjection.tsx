@@ -46,10 +46,12 @@ interface NetWorthProjectionProps {
   onRecurringToggle: (includeRecurring: boolean) => void;
   onAverageExpensesToggle: (includeExpenses: boolean) => void;
   onCustomItemsChange: (items: CustomProjectionItem[]) => void;
+  onProjectionYearsChange: (years: number) => void;
   currentGoal?: number;
   includeRecurringTransfers: boolean;
   includeAverageExpenses: boolean;
   customItems: CustomProjectionItem[];
+  projectionYears: number;
 }
 
 const chartTooltipStyle = {
@@ -79,10 +81,12 @@ export function NetWorthProjectionComponent({
   onRecurringToggle,
   onAverageExpensesToggle,
   onCustomItemsChange,
+  onProjectionYearsChange,
   currentGoal,
   includeRecurringTransfers,
   includeAverageExpenses,
   customItems,
+  projectionYears,
 }: NetWorthProjectionProps) {
   const [goalInput, setGoalInput] = useState(currentGoal?.toString() || '');
   const [newItemDescription, setNewItemDescription] = useState('');
@@ -194,6 +198,32 @@ export function NetWorthProjectionComponent({
         {/* Projection Settings */}
         <div className="rounded-lg border border-border/60 bg-card/60 p-4 space-y-4">
           <div className="text-sm font-medium">Projection Settings</div>
+
+          {/* Projection Years Selector */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CalendarClock className="h-4 w-4 text-muted-foreground" />
+              <Label htmlFor="projection-years" className="text-sm cursor-pointer">
+                Projection Period
+              </Label>
+              <InfoTooltip content="Choose how far into the future you want to project your net worth. Longer periods give you a broader view but may be less accurate." />
+            </div>
+            <Select
+              value={projectionYears.toString()}
+              onValueChange={(value) => onProjectionYearsChange(parseInt(value, 10))}
+            >
+              <SelectTrigger id="projection-years" className="w-32 border-border/60 bg-card/70">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">1 Year</SelectItem>
+                <SelectItem value="2">2 Years</SelectItem>
+                <SelectItem value="3">3 Years</SelectItem>
+                <SelectItem value="5">5 Years</SelectItem>
+                <SelectItem value="10">10 Years</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
           {/* Include Recurring Transfers Toggle */}
           <div className="flex items-center justify-between">
