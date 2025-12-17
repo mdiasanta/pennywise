@@ -8,6 +8,9 @@ public class NetWorthService : INetWorthService
 {
     private const int HistoricalLookbackMonths = 12;
     private const int RecentHistoryMonthsToDisplay = 6;
+    private const string UnknownAssetName = "Unknown";
+    private const decimal WeeksPerMonth = 4.33m;
+    private const decimal BiweeklyPerMonth = 2.17m;
 
     private readonly IAssetRepository _assetRepository;
     private readonly IAssetSnapshotRepository _snapshotRepository;
@@ -245,7 +248,7 @@ public class NetWorthService : INetWorthService
             {
                 Id = rt.Id,
                 Description = rt.Description,
-                AssetName = rt.Asset?.Name ?? "Unknown",
+                AssetName = rt.Asset?.Name ?? UnknownAssetName,
                 Amount = rt.Amount,
                 Frequency = rt.Frequency.ToString(),
                 MonthlyEquivalent = monthlyEquivalent
@@ -364,8 +367,8 @@ public class NetWorthService : INetWorthService
     {
         return frequency switch
         {
-            RecurringFrequency.Weekly => amount * 4.33m, // Average weeks per month
-            RecurringFrequency.Biweekly => amount * 2.17m, // Average bi-weekly occurrences per month
+            RecurringFrequency.Weekly => amount * WeeksPerMonth,
+            RecurringFrequency.Biweekly => amount * BiweeklyPerMonth,
             RecurringFrequency.Monthly => amount,
             RecurringFrequency.Quarterly => amount / 3m,
             RecurringFrequency.Yearly => amount / 12m,
