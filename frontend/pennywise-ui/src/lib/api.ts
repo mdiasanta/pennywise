@@ -568,12 +568,34 @@ export interface NetWorthGoal {
   isAchievable: boolean;
 }
 
+export interface RecurringTransferSummary {
+  id: number;
+  description: string;
+  assetName: string;
+  amount: number;
+  frequency: string;
+  monthlyEquivalent: number;
+}
+
+export interface ProjectionCalculationDescription {
+  averageMonthlyExpenses: string;
+  averageMonthlyNetChange: string;
+  recurringTransfersMonthlyTotal: string;
+  projectedMonthlyChange: string;
+  projection: string;
+}
+
 export interface NetWorthProjection {
   currentNetWorth: number;
   averageMonthlyExpenses: number;
   averageMonthlyNetChange: number;
+  recurringTransfersMonthlyTotal: number;
+  projectedMonthlyChange: number;
+  includesRecurringTransfers: boolean;
   projectedHistory: NetWorthProjectionPoint[];
+  recurringTransfers: RecurringTransferSummary[];
   goal?: NetWorthGoal;
+  calculationDescriptions: ProjectionCalculationDescription;
 }
 
 // Asset Category API
@@ -785,13 +807,15 @@ export const netWorthApi = {
   async getProjection(
     userId: number,
     goalAmount?: number,
-    projectionMonths: number = 12
+    projectionMonths: number = 12,
+    includeRecurringTransfers: boolean = false
   ): Promise<NetWorthProjection> {
     const params = new URLSearchParams();
     if (goalAmount !== undefined) {
       params.set('goalAmount', goalAmount.toString());
     }
     params.set('projectionMonths', projectionMonths.toString());
+    params.set('includeRecurringTransfers', includeRecurringTransfers.toString());
     const response = await fetch(`${API_BASE_URL}/networth/user/${userId}/projection?${params}`, {
       credentials: 'include',
     });

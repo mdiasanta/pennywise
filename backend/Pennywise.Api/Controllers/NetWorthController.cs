@@ -61,9 +61,10 @@ public class NetWorthController : ControllerBase
     public async Task<ActionResult<NetWorthProjectionDto>> GetProjection(
         int userId,
         [FromQuery] decimal? goalAmount = null,
-        [FromQuery] int projectionMonths = 12)
+        [FromQuery] int projectionMonths = 12,
+        [FromQuery] bool includeRecurringTransfers = false)
     {
-        var projection = await _netWorthService.GetProjectionAsync(userId, goalAmount, projectionMonths);
+        var projection = await _netWorthService.GetProjectionAsync(userId, goalAmount, projectionMonths, includeRecurringTransfers);
         return Ok(projection);
     }
 }

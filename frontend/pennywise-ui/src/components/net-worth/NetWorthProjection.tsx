@@ -2,8 +2,17 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Tooltip as UITooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { NetWorthProjection } from '@/lib/api';
-import { Target, TrendingDown, TrendingUp } from 'lucide-react';
+import {
+  CalendarClock,
+  HelpCircle,
+  RefreshCcw,
+  Target,
+  TrendingDown,
+  TrendingUp,
+} from 'lucide-react';
 import { useState } from 'react';
 import {
   CartesianGrid,
@@ -22,7 +31,9 @@ interface NetWorthProjectionProps {
   projection: NetWorthProjection | null;
   loading: boolean;
   onGoalChange: (goalAmount: number | undefined) => void;
+  onRecurringToggle: (includeRecurring: boolean) => void;
   currentGoal?: number;
+  includeRecurringTransfers: boolean;
 }
 
 const chartTooltipStyle = {
@@ -32,11 +43,26 @@ const chartTooltipStyle = {
   color: '#e2e8f0',
 };
 
+function InfoTooltip({ content }: { content: string }) {
+  return (
+    <UITooltip>
+      <TooltipTrigger asChild>
+        <HelpCircle className="h-3.5 w-3.5 cursor-help text-muted-foreground hover:text-foreground" />
+      </TooltipTrigger>
+      <TooltipContent className="max-w-xs text-sm" side="top">
+        {content}
+      </TooltipContent>
+    </UITooltip>
+  );
+}
+
 export function NetWorthProjectionComponent({
   projection,
   loading,
   onGoalChange,
+  onRecurringToggle,
   currentGoal,
+  includeRecurringTransfers,
 }: NetWorthProjectionProps) {
   const [goalInput, setGoalInput] = useState(currentGoal?.toString() || '');
 
@@ -82,7 +108,6 @@ export function NetWorthProjectionComponent({
     date: formatChartDate(point.date, 'month' as GroupBy),
     historical: point.isHistorical ? point.projectedNetWorth : null,
     projected: !point.isHistorical ? point.projectedNetWorth : null,
-    // Add connection point: last historical point also appears in projected for continuity
     isLastHistorical:
       point.isHistorical &&
       projection.projectedHistory.findIndex((p) => !p.isHistorical) ===
@@ -94,7 +119,6 @@ export function NetWorthProjectionComponent({
   if (lastHistoricalIndex >= 0 && lastHistoricalIndex < chartData.length - 1) {
     chartData[lastHistoricalIndex + 1].projected =
       chartData[lastHistoricalIndex + 1].projected ?? chartData[lastHistoricalIndex].historical;
-    // Also set the last historical point as the first projected point for continuity
     chartData[lastHistoricalIndex].projected = chartData[lastHistoricalIndex].historical;
   }
 
@@ -110,16 +134,106 @@ export function NetWorthProjectionComponent({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Recurring Transfers Toggle */}
+        <div className="rounded-lg border border-border/60 bg-card/60 p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <RefreshCcw className="h-4 w-4 text-muted-foreground" />
+              <Label htmlFor="include-recurring" className="text-sm font-medium cursor-pointer">
+                Include Recurring Transfers in Projection
+              </Label>
+              <InfoTooltip
+                content={
+                  projection.calculationDescriptions?.recurringTransfersMonthlyTotal ||
+                  'Include your scheduled recurring transfers to see how they affect your net worth projection.'
+                }
+              />
+            </div>
+            <Switch
+              id="include-recurring"
+              checked={includeRecurringTransfers}
+              onCheckedChange={onRecurringToggle}
+            />
+          </div>
+
+          {/* Recurring Transfers Summary */}
+          {projection.recurringTransfers && projection.recurringTransfers.length > 0 && (
+            <div className="mt-4 space-y-2">
+              <div className="text-xs font-medium uppercase text-muted-foreground">
+                Active Recurring Transfers ({projection.recurringTransfers.length})
+              </div>
+              <div className="max-h-32 overflow-y-auto space-y-1">
+                {projection.recurringTransfers.map((rt) => (
+                  <div
+                    key={rt.id}
+                    className="flex items-center justify-between rounded bg-card/40 px-2 py-1 text-xs"
+                  >
+                    <div className="flex items-center gap-2">
+                      <CalendarClock className="h-3 w-3 text-muted-foreground" />
+                      <span>{rt.description || rt.assetName}</span>
+                      <span className="text-muted-foreground">({rt.frequency})</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={rt.amount >= 0 ? 'text-success' : 'text-destructive'}>
+                        {formatCurrency(rt.amount)}
+                      </span>
+                      <span className="text-muted-foreground">
+                        ≈ {formatCurrency(rt.monthlyEquivalent)}/mo
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-between border-t border-border/40 pt-2 text-sm font-medium">
+                <span>Monthly Total from Recurring</span>
+                <span
+                  className={
+                    projection.recurringTransfersMonthlyTotal >= 0
+                      ? 'text-success'
+                      : 'text-destructive'
+                  }
+                >
+                  {formatCurrency(projection.recurringTransfersMonthlyTotal)}/mo
+                </span>
+              </div>
+            </div>
+          )}
+
+          {projection.recurringTransfers?.length === 0 && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              No active recurring transfers. Add recurring transfers to see how scheduled deposits
+              affect your projection.
+            </p>
+          )}
+        </div>
+
         {/* Statistics Cards */}
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-lg border border-border/60 bg-card/60 p-4">
-            <div className="text-sm text-muted-foreground">Avg Monthly Expenses</div>
+            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+              Avg Monthly Expenses
+              <InfoTooltip
+                content={
+                  projection.calculationDescriptions?.averageMonthlyExpenses ||
+                  'Average of your monthly expenses over the last 12 months.'
+                }
+              />
+            </div>
             <div className="mt-1 text-xl font-semibold text-destructive">
               {formatCurrency(projection.averageMonthlyExpenses)}
             </div>
           </div>
+
           <div className="rounded-lg border border-border/60 bg-card/60 p-4">
-            <div className="text-sm text-muted-foreground">Avg Monthly Net Change</div>
+            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+              Avg Monthly Net Change
+              <InfoTooltip
+                content={
+                  projection.calculationDescriptions?.averageMonthlyNetChange ||
+                  'Average change in net worth each month based on historical data.'
+                }
+              />
+            </div>
             <div
               className={`mt-1 flex items-center gap-1 text-xl font-semibold ${
                 projection.averageMonthlyNetChange >= 0 ? 'text-success' : 'text-destructive'
@@ -134,6 +248,37 @@ export function NetWorthProjectionComponent({
               {projection.averageMonthlyNetChange >= 0 ? '/mo' : '/mo loss'}
             </div>
           </div>
+
+          <div className="rounded-lg border border-border/60 bg-card/60 p-4">
+            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+              Projected Monthly Change
+              <InfoTooltip
+                content={
+                  projection.calculationDescriptions?.projectedMonthlyChange ||
+                  'The monthly change used for projections, including recurring transfers if enabled.'
+                }
+              />
+            </div>
+            <div
+              className={`mt-1 flex items-center gap-1 text-xl font-semibold ${
+                projection.projectedMonthlyChange >= 0 ? 'text-success' : 'text-destructive'
+              }`}
+            >
+              {projection.projectedMonthlyChange >= 0 ? (
+                <TrendingUp className="h-4 w-4" />
+              ) : (
+                <TrendingDown className="h-4 w-4" />
+              )}
+              {formatCurrency(Math.abs(projection.projectedMonthlyChange))}
+              /mo
+            </div>
+            {includeRecurringTransfers && projection.recurringTransfersMonthlyTotal !== 0 && (
+              <div className="mt-1 text-xs text-muted-foreground">
+                Includes {formatCurrency(projection.recurringTransfersMonthlyTotal)} from recurring
+              </div>
+            )}
+          </div>
+
           <div className="rounded-lg border border-border/60 bg-card/60 p-4">
             <div className="text-sm text-muted-foreground">Current Net Worth</div>
             <div className="mt-1 text-xl font-semibold">
@@ -262,12 +407,12 @@ export function NetWorthProjectionComponent({
             <Line
               type="monotone"
               dataKey="projected"
-              name="Projected"
-              stroke="#8884d8"
+              name={includeRecurringTransfers ? 'Projected (w/ Recurring)' : 'Projected'}
+              stroke={includeRecurringTransfers ? '#00C49F' : '#8884d8'}
               strokeWidth={3}
               strokeDasharray="8 4"
               dot={false}
-              activeDot={{ r: 6, fill: '#8884d8' }}
+              activeDot={{ r: 6, fill: includeRecurringTransfers ? '#00C49F' : '#8884d8' }}
               connectNulls={false}
             />
 
@@ -275,12 +420,12 @@ export function NetWorthProjectionComponent({
             {projection.goal && (
               <ReferenceLine
                 y={projection.goal.goalAmount}
-                stroke="#00C49F"
+                stroke="#FFBB28"
                 strokeDasharray="5 5"
                 strokeWidth={2}
                 label={{
                   value: `Goal: ${formatCurrency(projection.goal.goalAmount)}`,
-                  fill: '#00C49F',
+                  fill: '#FFBB28',
                   fontSize: 12,
                   position: 'right',
                 }}
@@ -290,21 +435,35 @@ export function NetWorthProjectionComponent({
         </ResponsiveContainer>
 
         {/* Chart Legend */}
-        <div className="flex justify-center gap-6 text-sm text-muted-foreground">
+        <div className="flex flex-wrap justify-center gap-6 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
             <div className="h-0.5 w-8 bg-[#8884d8]" />
             <span>Historical</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="h-0.5 w-8 border-b-2 border-dashed border-[#8884d8]" />
-            <span>Projected</span>
+            <div
+              className={`h-0.5 w-8 border-b-2 border-dashed ${includeRecurringTransfers ? 'border-[#00C49F]' : 'border-[#8884d8]'}`}
+            />
+            <span>{includeRecurringTransfers ? 'Projected (w/ Recurring)' : 'Projected'}</span>
           </div>
           {projection.goal && (
             <div className="flex items-center gap-2">
-              <div className="h-0.5 w-8 border-b-2 border-dashed border-[#00C49F]" />
+              <div className="h-0.5 w-8 border-b-2 border-dashed border-[#FFBB28]" />
               <span>Goal</span>
             </div>
           )}
+        </div>
+
+        {/* How It's Calculated Section */}
+        <div className="rounded-lg border border-border/60 bg-card/60 p-4">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <HelpCircle className="h-4 w-4" />
+            How the Projection is Calculated
+          </div>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {projection.calculationDescriptions?.projection ||
+              'The projection starts from your current net worth and adds the projected monthly change for each future month. This gives you an estimate of where your net worth will be over time based on your historical trends.'}
+          </p>
         </div>
       </CardContent>
     </Card>

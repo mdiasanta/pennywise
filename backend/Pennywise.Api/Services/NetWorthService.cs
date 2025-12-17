@@ -1,4 +1,5 @@
 using Pennywise.Api.DTOs;
+using Pennywise.Api.Models;
 using Pennywise.Api.Repositories;
 
 namespace Pennywise.Api.Services;
@@ -12,17 +13,20 @@ public class NetWorthService : INetWorthService
     private readonly IAssetSnapshotRepository _snapshotRepository;
     private readonly IAssetCategoryRepository _categoryRepository;
     private readonly IExpenseRepository _expenseRepository;
+    private readonly IRecurringTransactionRepository _recurringTransactionRepository;
 
     public NetWorthService(
         IAssetRepository assetRepository,
         IAssetSnapshotRepository snapshotRepository,
         IAssetCategoryRepository categoryRepository,
-        IExpenseRepository expenseRepository)
+        IExpenseRepository expenseRepository,
+        IRecurringTransactionRepository recurringTransactionRepository)
     {
         _assetRepository = assetRepository;
         _snapshotRepository = snapshotRepository;
         _categoryRepository = categoryRepository;
         _expenseRepository = expenseRepository;
+        _recurringTransactionRepository = recurringTransactionRepository;
     }
 
     public async Task<NetWorthSummaryDto> GetSummaryAsync(int userId, DateTime? asOfDate = null)
@@ -194,7 +198,7 @@ public class NetWorthService : INetWorthService
         };
     }
 
-    public async Task<NetWorthProjectionDto> GetProjectionAsync(int userId, decimal? goalAmount = null, int projectionMonths = 12)
+    public async Task<NetWorthProjectionDto> GetProjectionAsync(int userId, decimal? goalAmount = null, int projectionMonths = 12, bool includeRecurringTransfers = false)
     {
         // Get historical data from the configured lookback period
         var endDate = DateTime.UtcNow;
@@ -224,9 +228,38 @@ public class NetWorthService : INetWorthService
             ? monthlyNetChanges.Average() 
             : 0;
         
+        // Get recurring transactions and calculate monthly equivalent
+        var recurringTransactions = (await _recurringTransactionRepository.GetByUserAsync(userId))
+            .Where(rt => rt.IsActive)
+            .ToList();
+        
+        var recurringTransferSummaries = new List<RecurringTransferSummaryDto>();
+        decimal recurringTransfersMonthlyTotal = 0;
+        
+        foreach (var rt in recurringTransactions)
+        {
+            var monthlyEquivalent = CalculateMonthlyEquivalent(rt.Amount, rt.Frequency);
+            recurringTransfersMonthlyTotal += monthlyEquivalent;
+            
+            recurringTransferSummaries.Add(new RecurringTransferSummaryDto
+            {
+                Id = rt.Id,
+                Description = rt.Description,
+                AssetName = rt.Asset?.Name ?? "Unknown",
+                Amount = rt.Amount,
+                Frequency = rt.Frequency.ToString(),
+                MonthlyEquivalent = monthlyEquivalent
+            });
+        }
+        
         // Get current net worth
         var summary = await GetSummaryAsync(userId);
         var currentNetWorth = summary.NetWorth;
+        
+        // Calculate projected monthly change (with or without recurring transfers)
+        var projectedMonthlyChange = includeRecurringTransfers 
+            ? averageMonthlyNetChange + recurringTransfersMonthlyTotal 
+            : averageMonthlyNetChange;
         
         // Build projection points
         var projectedHistory = new List<NetWorthProjectionPointDto>();
@@ -249,7 +282,7 @@ public class NetWorthService : INetWorthService
         
         for (int i = 0; i < projectionMonths; i++)
         {
-            projectedNetWorth += averageMonthlyNetChange;
+            projectedNetWorth += projectedMonthlyChange;
             projectedHistory.Add(new NetWorthProjectionPointDto
             {
                 Date = projectionStart.AddMonths(i),
@@ -263,7 +296,7 @@ public class NetWorthService : INetWorthService
         if (goalAmount.HasValue)
         {
             var goal = goalAmount.Value;
-            var isAchievable = averageMonthlyNetChange > 0 || currentNetWorth >= goal;
+            var isAchievable = projectedMonthlyChange > 0 || currentNetWorth >= goal;
             DateTime? estimatedGoalDate = null;
             int? monthsToGoal = null;
             
@@ -274,10 +307,10 @@ public class NetWorthService : INetWorthService
                 monthsToGoal = 0;
                 isAchievable = true;
             }
-            else if (averageMonthlyNetChange > 0)
+            else if (projectedMonthlyChange > 0)
             {
                 // Calculate months to reach goal
-                var monthsNeeded = (int)Math.Ceiling((goal - currentNetWorth) / averageMonthlyNetChange);
+                var monthsNeeded = (int)Math.Ceiling((goal - currentNetWorth) / projectedMonthlyChange);
                 monthsToGoal = monthsNeeded;
                 estimatedGoalDate = DateTime.UtcNow.AddMonths(monthsNeeded);
                 isAchievable = true;
@@ -297,13 +330,46 @@ public class NetWorthService : INetWorthService
             };
         }
         
+        // Build calculation descriptions
+        var monthsUsed = monthlyExpenses.Count > 0 ? monthlyExpenses.Count : HistoricalLookbackMonths;
+        var netChangeMonths = monthlyNetChanges.Count > 0 ? monthlyNetChanges.Count : 0;
+        
+        var calculationDescriptions = new ProjectionCalculationDescriptionDto
+        {
+            AverageMonthlyExpenses = $"Sum of all expenses over the last {monthsUsed} months, divided by {monthsUsed}. This represents your typical monthly spending.",
+            AverageMonthlyNetChange = $"The average change in net worth between consecutive months over the last {netChangeMonths} months. Calculated by comparing net worth at the end of each month to the previous month.",
+            RecurringTransfersMonthlyTotal = $"Sum of all active recurring transfers converted to their monthly equivalent. Weekly transfers × 4.33, Biweekly × 2.17, Monthly × 1, Quarterly ÷ 3, Yearly ÷ 12.",
+            ProjectedMonthlyChange = includeRecurringTransfers 
+                ? "Average Monthly Net Change plus Recurring Transfers Monthly Total. This is the expected net worth change per month when including your scheduled recurring deposits."
+                : "Based solely on the Average Monthly Net Change from your historical data. Enable 'Include Recurring Transfers' to factor in scheduled deposits.",
+            Projection = $"Starting from your current net worth, each future month adds the Projected Monthly Change. The projection extends {projectionMonths} months into the future."
+        };
+        
         return new NetWorthProjectionDto
         {
             CurrentNetWorth = currentNetWorth,
             AverageMonthlyExpenses = averageMonthlyExpenses,
             AverageMonthlyNetChange = averageMonthlyNetChange,
+            RecurringTransfersMonthlyTotal = recurringTransfersMonthlyTotal,
+            ProjectedMonthlyChange = projectedMonthlyChange,
+            IncludesRecurringTransfers = includeRecurringTransfers,
             ProjectedHistory = projectedHistory,
-            Goal = goalInfo
+            RecurringTransfers = recurringTransferSummaries,
+            Goal = goalInfo,
+            CalculationDescriptions = calculationDescriptions
+        };
+    }
+    
+    private static decimal CalculateMonthlyEquivalent(decimal amount, RecurringFrequency frequency)
+    {
+        return frequency switch
+        {
+            RecurringFrequency.Weekly => amount * 4.33m, // Average weeks per month
+            RecurringFrequency.Biweekly => amount * 2.17m, // Average bi-weekly occurrences per month
+            RecurringFrequency.Monthly => amount,
+            RecurringFrequency.Quarterly => amount / 3m,
+            RecurringFrequency.Yearly => amount / 12m,
+            _ => amount
         };
     }
 

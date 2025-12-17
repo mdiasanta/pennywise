@@ -87,6 +87,7 @@ export default function NetWorthPage() {
   const [projection, setProjection] = useState<NetWorthProjection | null>(null);
   const [projectionLoading, setProjectionLoading] = useState(true);
   const [goalAmount, setGoalAmount] = useState<number | undefined>(undefined);
+  const [includeRecurringTransfers, setIncludeRecurringTransfers] = useState(false);
 
   // Asset history for individual account chart
   const [assetSnapshots, setAssetSnapshots] = useState<Map<number, AssetSnapshot[]>>(new Map());
@@ -181,7 +182,12 @@ export default function NetWorthPage() {
 
     try {
       setProjectionLoading(true);
-      const projectionData = await netWorthApi.getProjection(user.id, goalAmount, 12);
+      const projectionData = await netWorthApi.getProjection(
+        user.id,
+        goalAmount,
+        12,
+        includeRecurringTransfers
+      );
       setProjection(projectionData);
     } catch (error) {
       console.error('Error loading projection data:', error);
@@ -193,7 +199,7 @@ export default function NetWorthPage() {
     } finally {
       setProjectionLoading(false);
     }
-  }, [authLoading, isAuthenticated, user, goalAmount, toast]);
+  }, [authLoading, isAuthenticated, user, goalAmount, includeRecurringTransfers, toast]);
 
   useEffect(() => {
     loadData();
@@ -205,6 +211,10 @@ export default function NetWorthPage() {
 
   const handleGoalChange = useCallback((newGoal: number | undefined) => {
     setGoalAmount(newGoal);
+  }, []);
+
+  const handleRecurringToggle = useCallback((include: boolean) => {
+    setIncludeRecurringTransfers(include);
   }, []);
 
   const getRandomUnusedColor = useCallback(() => {
@@ -644,7 +654,9 @@ export default function NetWorthPage() {
           projection={projection}
           loading={projectionLoading}
           onGoalChange={handleGoalChange}
+          onRecurringToggle={handleRecurringToggle}
           currentGoal={goalAmount}
+          includeRecurringTransfers={includeRecurringTransfers}
         />
 
         {/* Accounts Table */}
