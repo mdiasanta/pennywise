@@ -7,6 +7,8 @@ import {
   type AssetFormData,
   AssetFormDialog,
   type BalanceFormData,
+  type BulkBalanceFormData,
+  BulkUpdateBalanceDialog,
   formatChartDate,
   getTimeRangeLabel,
   type GroupBy,
@@ -33,6 +35,7 @@ import { useToast } from '@/hooks/use-toast';
 import type {
   Asset,
   AssetSnapshot,
+  BulkCreateAssetSnapshot,
   CreateAsset,
   CreateAssetSnapshot,
   CreateRecurringTransaction,
@@ -62,8 +65,10 @@ export default function NetWorthPage() {
   // Dialog states
   const [isAddAssetDialogOpen, setIsAddAssetDialogOpen] = useState(false);
   const [isUpdateBalanceDialogOpen, setIsUpdateBalanceDialogOpen] = useState(false);
+  const [isBulkUpdateBalanceDialogOpen, setIsBulkUpdateBalanceDialogOpen] = useState(false);
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
   const [selectedAssetForUpdate, setSelectedAssetForUpdate] = useState<Asset | null>(null);
+  const [selectedAssetForBulkUpdate, setSelectedAssetForBulkUpdate] = useState<Asset | null>(null);
 
   // Form states
   const [assetFormData, setAssetFormData] = useState<AssetFormData>({
@@ -78,6 +83,10 @@ export default function NetWorthPage() {
     balance: '',
     date: new Date().toISOString().split('T')[0],
     notes: '',
+  });
+
+  const [bulkBalanceFormData, setBulkBalanceFormData] = useState<BulkBalanceFormData>({
+    entries: [{ balance: '', date: new Date().toISOString().split('T')[0], notes: '' }],
   });
 
   // Recurring transaction states
@@ -275,6 +284,13 @@ export default function NetWorthPage() {
       notes: '',
     });
     setSelectedAssetForUpdate(null);
+  };
+
+  const resetBulkBalanceForm = () => {
+    setBulkBalanceFormData({
+      entries: [{ balance: '', date: new Date().toISOString().split('T')[0], notes: '' }],
+    });
+    setSelectedAssetForBulkUpdate(null);
   };
 
   const resetRecurringForm = () => {
@@ -502,6 +518,52 @@ export default function NetWorthPage() {
     }
   };
 
+  const handleBulkUpdateBalance = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedAssetForBulkUpdate) return;
+
+    // Validate all entries have valid balances
+    const invalidEntries = bulkBalanceFormData.entries.filter(
+      (entry) => Number.isNaN(parseFloat(entry.balance))
+    );
+    if (invalidEntries.length > 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid balance',
+        description: 'Please enter valid numbers for all balance entries.',
+      });
+      return;
+    }
+
+    try {
+      const bulkData: BulkCreateAssetSnapshot = {
+        assetId: selectedAssetForBulkUpdate.id,
+        entries: bulkBalanceFormData.entries.map((entry) => ({
+          balance: parseFloat(entry.balance),
+          date: new Date(entry.date).toISOString(),
+          notes: entry.notes || undefined,
+        })),
+      };
+
+      const result = await assetSnapshotApi.createBulk(bulkData);
+      toast({
+        title: 'Success',
+        description: `${result.created} balance(s) created, ${result.updated} balance(s) updated.`,
+      });
+
+      setIsBulkUpdateBalanceDialogOpen(false);
+      resetBulkBalanceForm();
+      loadData();
+    } catch (error) {
+      console.error('Error bulk updating balances:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to update balances. Please try again.',
+      });
+    }
+  };
+
   const handleEditAsset = (asset: Asset) => {
     setEditingAsset(asset);
     setAssetFormData({
@@ -522,6 +584,14 @@ export default function NetWorthPage() {
       notes: '',
     });
     setIsUpdateBalanceDialogOpen(true);
+  };
+
+  const handleOpenBulkUpdateBalance = (asset: Asset) => {
+    setSelectedAssetForBulkUpdate(asset);
+    setBulkBalanceFormData({
+      entries: [{ balance: '', date: new Date().toISOString().split('T')[0], notes: '' }],
+    });
+    setIsBulkUpdateBalanceDialogOpen(true);
   };
 
   const handleDeleteAsset = async (asset: Asset) => {
@@ -700,6 +770,7 @@ export default function NetWorthPage() {
           onAddAccount={handleAddAccount}
           onEditAccount={handleEditAsset}
           onUpdateBalance={handleOpenUpdateBalance}
+          onBulkUpdateBalance={handleOpenBulkUpdateBalance}
           onDeleteAccount={handleDeleteAsset}
         />
 
@@ -738,6 +809,18 @@ export default function NetWorthPage() {
           onFormDataChange={setBalanceFormData}
           onSubmit={handleUpdateBalance}
           selectedAsset={selectedAssetForUpdate}
+        />
+
+        <BulkUpdateBalanceDialog
+          open={isBulkUpdateBalanceDialogOpen}
+          onOpenChange={(open) => {
+            setIsBulkUpdateBalanceDialogOpen(open);
+            if (!open) resetBulkBalanceForm();
+          }}
+          formData={bulkBalanceFormData}
+          onFormDataChange={setBulkBalanceFormData}
+          onSubmit={handleBulkUpdateBalance}
+          selectedAsset={selectedAssetForBulkUpdate}
         />
 
         <RecurringTransactionDialog

@@ -142,3 +142,63 @@ describe('expenseApi.importExpenses and template download', () => {
     expect(filename).toBe('expenses-template.csv');
   });
 });
+
+describe('assetSnapshotApi.createBulk', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('posts bulk snapshots and returns result', async () => {
+    const mockResult = {
+      created: 2,
+      updated: 1,
+      snapshots: [
+        { id: 1, assetId: 5, balance: 1000, date: '2025-01-01T00:00:00Z' },
+        { id: 2, assetId: 5, balance: 1500, date: '2025-02-01T00:00:00Z' },
+        { id: 3, assetId: 5, balance: 2000, date: '2025-03-01T00:00:00Z' },
+      ],
+    };
+
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(mockResult), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { assetSnapshotApi } = await import('./api');
+
+    const result = await assetSnapshotApi.createBulk({
+      assetId: 5,
+      entries: [
+        { balance: 1000, date: '2025-01-01T00:00:00Z' },
+        { balance: 1500, date: '2025-02-01T00:00:00Z' },
+        { balance: 2000, date: '2025-03-01T00:00:00Z' },
+      ],
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/assetsnapshots/bulk'),
+      expect.objectContaining({
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      })
+    );
+    expect(result.created).toBe(2);
+    expect(result.updated).toBe(1);
+    expect(result.snapshots).toHaveLength(3);
+  });
+
+  it('throws when bulk create fails', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('Bad request', { status: 400 })));
+    const { assetSnapshotApi } = await import('./api');
+
+    await expect(
+      assetSnapshotApi.createBulk({
+        assetId: 1,
+        entries: [{ balance: 1000, date: '2025-01-01T00:00:00Z' }],
+      })
+    ).rejects.toThrow('Bad request');
+  });
+});

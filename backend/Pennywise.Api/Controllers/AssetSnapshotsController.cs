@@ -58,6 +58,18 @@ public class AssetSnapshotsController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = snapshot.Id }, snapshot);
     }
 
+    [HttpPost("bulk")]
+    public async Task<ActionResult<BulkCreateAssetSnapshotResultDto>> CreateBulk(BulkCreateAssetSnapshotDto bulkCreateDto)
+    {
+        if (bulkCreateDto.Entries.Count == 0)
+        {
+            return BadRequest("At least one entry is required.");
+        }
+
+        var result = await _snapshotService.CreateBulkAsync(bulkCreateDto);
+        return Ok(result);
+    }
+
     [HttpPut("{id}")]
     public async Task<ActionResult<AssetSnapshotDto>> Update(int id, UpdateAssetSnapshotDto updateDto)
     {

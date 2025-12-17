@@ -1,5 +1,6 @@
 export { AccountsTable } from './AccountsTable';
 export { AssetFormDialog, type AssetFormData } from './AssetFormDialog';
+export { BulkUpdateBalanceDialog, type BulkBalanceEntry, type BulkBalanceFormData } from './BulkUpdateBalanceDialog';
 export * from './constants';
 export { NetWorthCharts } from './NetWorthCharts';
 export { NetWorthProjectionComponent } from './NetWorthProjection';

@@ -57,6 +57,46 @@ public class AssetSnapshotService : IAssetSnapshotService
         return MapToDto(created);
     }
 
+    public async Task<BulkCreateAssetSnapshotResultDto> CreateBulkAsync(BulkCreateAssetSnapshotDto bulkCreateDto)
+    {
+        var result = new BulkCreateAssetSnapshotResultDto();
+        var snapshots = new List<AssetSnapshotDto>();
+
+        foreach (var entry in bulkCreateDto.Entries)
+        {
+            // Check if there's already a snapshot for this asset on this date
+            var existingSnapshot = await _snapshotRepository.GetByAssetAndDateAsync(bulkCreateDto.AssetId, entry.Date);
+
+            if (existingSnapshot != null)
+            {
+                // Update the existing snapshot
+                existingSnapshot.Balance = entry.Balance;
+                existingSnapshot.Notes = entry.Notes;
+                var updated = await _snapshotRepository.UpdateAsync(existingSnapshot);
+                snapshots.Add(MapToDto(updated!));
+                result.Updated++;
+            }
+            else
+            {
+                // Create a new snapshot
+                var snapshot = new AssetSnapshot
+                {
+                    AssetId = bulkCreateDto.AssetId,
+                    Balance = entry.Balance,
+                    Date = entry.Date,
+                    Notes = entry.Notes
+                };
+
+                var created = await _snapshotRepository.CreateAsync(snapshot);
+                snapshots.Add(MapToDto(created));
+                result.Created++;
+            }
+        }
+
+        result.Snapshots = snapshots;
+        return result;
+    }
+
     public async Task<AssetSnapshotDto?> UpdateAsync(int id, UpdateAssetSnapshotDto updateDto)
     {
         var existing = await _snapshotRepository.GetByIdAsync(id);

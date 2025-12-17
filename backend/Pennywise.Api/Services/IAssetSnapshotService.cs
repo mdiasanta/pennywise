@@ -8,6 +8,7 @@ public interface IAssetSnapshotService
     Task<AssetSnapshotDto?> GetByIdAsync(int id);
     Task<AssetSnapshotDto?> GetLatestByAssetAsync(int assetId);
     Task<AssetSnapshotDto> CreateAsync(CreateAssetSnapshotDto createDto);
+    Task<BulkCreateAssetSnapshotResultDto> CreateBulkAsync(BulkCreateAssetSnapshotDto bulkCreateDto);
     Task<AssetSnapshotDto?> UpdateAsync(int id, UpdateAssetSnapshotDto updateDto);
     Task<bool> DeleteAsync(int id);
 }

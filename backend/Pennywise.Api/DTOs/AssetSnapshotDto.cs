@@ -27,6 +27,26 @@ public class UpdateAssetSnapshotDto
     public string? Notes { get; set; }
 }
 
+public class BulkCreateAssetSnapshotDto
+{
+    public int AssetId { get; set; }
+    public List<BulkSnapshotEntryDto> Entries { get; set; } = new();
+}
+
+public class BulkSnapshotEntryDto
+{
+    public decimal Balance { get; set; }
+    public DateTime Date { get; set; }
+    public string? Notes { get; set; }
+}
+
+public class BulkCreateAssetSnapshotResultDto
+{
+    public int Created { get; set; }
+    public int Updated { get; set; }
+    public List<AssetSnapshotDto> Snapshots { get; set; } = new();
+}
+
 public class NetWorthSummaryDto
 {
     public decimal TotalAssets { get; set; }

@@ -21,7 +21,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import type { Asset } from '@/lib/api';
-import { DollarSign, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Calendar, DollarSign, Pencil, Plus, Trash2 } from 'lucide-react';
 import { formatCurrency, formatDate } from './constants';
 
 interface AccountsTableProps {
@@ -30,6 +30,7 @@ interface AccountsTableProps {
   onAddAccount: () => void;
   onEditAccount: (asset: Asset) => void;
   onUpdateBalance: (asset: Asset) => void;
+  onBulkUpdateBalance: (asset: Asset) => void;
   onDeleteAccount: (asset: Asset) => void;
 }
 
@@ -39,6 +40,7 @@ export function AccountsTable({
   onAddAccount,
   onEditAccount,
   onUpdateBalance,
+  onBulkUpdateBalance,
   onDeleteAccount,
 }: AccountsTableProps) {
   return (
@@ -130,6 +132,15 @@ export function AccountsTable({
                         title="Update Balance"
                       >
                         <DollarSign className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-foreground hover:bg-card/70"
+                        onClick={() => onBulkUpdateBalance(asset)}
+                        title="Bulk Update Balances"
+                      >
+                        <Calendar className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
