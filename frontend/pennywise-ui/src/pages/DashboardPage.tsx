@@ -19,9 +19,17 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useAuth } from '@/hooks/use-auth';
-import type { Expense } from '@/lib/api';
-import { expenseApi } from '@/lib/api';
-import { Calendar, CreditCard, DollarSign, TrendingDown } from 'lucide-react';
+import type { Expense, NetWorthSummary } from '@/lib/api';
+import { expenseApi, netWorthApi } from '@/lib/api';
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  Calendar,
+  CreditCard,
+  DollarSign,
+  TrendingDown,
+  Wallet,
+} from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -54,6 +62,7 @@ const COLORS = [
 export default function DashboardPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [netWorthSummary, setNetWorthSummary] = useState<NetWorthSummary | null>(null);
   const [timeRange, setTimeRange] = useState<TimeRange>('month');
   const [loading, setLoading] = useState(true);
 
@@ -97,9 +106,13 @@ export default function DashboardPage() {
       setLoading(true);
       const { startDate, endDate } = getDateRange(timeRange);
 
-      const expensesData = await expenseApi.getByDateRange(user.id, startDate, endDate);
+      const [expensesData, summaryData] = await Promise.all([
+        expenseApi.getByDateRange(user.id, startDate, endDate),
+        netWorthApi.getSummary(user.id),
+      ]);
 
       setExpenses(expensesData);
+      setNetWorthSummary(summaryData);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -232,7 +245,41 @@ export default function DashboardPage() {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-4">
+          <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Net Worth</CardTitle>
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand text-brand-foreground">
+                <Wallet className="h-4 w-4" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-semibold">
+                {loading ? '...' : formatCurrency(netWorthSummary?.netWorth || 0)}
+              </div>
+              {netWorthSummary && netWorthSummary.changePercent !== 0 && (
+                <div
+                  className={`mt-1 flex items-center text-xs ${
+                    netWorthSummary.changeFromLastPeriod >= 0
+                      ? 'text-success-foreground'
+                      : 'text-destructive'
+                  }`}
+                >
+                  {netWorthSummary.changeFromLastPeriod >= 0 ? (
+                    <ArrowUpRight className="h-3 w-3 mr-1" />
+                  ) : (
+                    <ArrowDownRight className="h-3 w-3 mr-1" />
+                  )}
+                  {formatCurrency(Math.abs(netWorthSummary.changeFromLastPeriod))} (
+                  {netWorthSummary.changePercent.toFixed(1)}%)
+                </div>
+              )}
+              {(!netWorthSummary || netWorthSummary.changePercent === 0) && (
+                <p className="mt-1 text-xs text-muted-foreground">Current balance</p>
+              )}
+            </CardContent>
+          </Card>
+
           <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
