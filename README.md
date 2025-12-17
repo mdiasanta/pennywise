@@ -160,6 +160,45 @@ pennywise/
 
 All services communicate through a dedicated Docker network (`pennywise-network`).
 
+## Database Backup
+
+### Creating a Backup
+
+To create a SQL backup of the PostgreSQL database:
+
+```bash
+# Backup to a timestamped file
+docker compose exec postgres pg_dump -U pennywise pennywise > backup_$(date +%Y%m%d_%H%M%S).sql
+
+# Or backup to a specific filename
+docker compose exec postgres pg_dump -U pennywise pennywise > backup.sql
+```
+
+### Restoring from Backup
+
+To restore the database from a backup file:
+
+```bash
+# First, you may want to drop and recreate the database
+docker compose exec -T postgres psql -U pennywise -c "DROP DATABASE IF EXISTS pennywise;"
+docker compose exec -T postgres psql -U pennywise -c "CREATE DATABASE pennywise;"
+
+# Restore from backup file
+docker compose exec -T postgres psql -U pennywise pennywise < backup.sql
+```
+
+### Backup with Compression
+
+For larger databases, use compressed backups:
+
+```bash
+# Create compressed backup
+docker compose exec postgres pg_dump -U pennywise pennywise | gzip > backup_$(date +%Y%m%d_%H%M%S).sql.gz
+
+# Restore from compressed backup
+gunzip -c backup.sql.gz | docker compose exec -T postgres psql -U pennywise pennywise
+```
+
 ## Stopping the Application
 
 ```bash
