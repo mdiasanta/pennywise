@@ -509,6 +509,23 @@ export interface UpdateAssetSnapshot {
   notes?: string;
 }
 
+export interface BulkSnapshotEntry {
+  balance: number;
+  date: string;
+  notes?: string;
+}
+
+export interface BulkCreateAssetSnapshot {
+  assetId: number;
+  entries: BulkSnapshotEntry[];
+}
+
+export interface BulkCreateAssetSnapshotResult {
+  created: number;
+  updated: number;
+  snapshots: AssetSnapshot[];
+}
+
 // Net Worth Types
 export interface NetWorthSummary {
   totalAssets: number;
@@ -749,6 +766,16 @@ export const assetSnapshotApi = {
       credentials: 'include',
     });
     return handleResponse<AssetSnapshot>(response);
+  },
+
+  async createBulk(bulkSnapshot: BulkCreateAssetSnapshot): Promise<BulkCreateAssetSnapshotResult> {
+    const response = await fetch(`${API_BASE_URL}/assetsnapshots/bulk`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(bulkSnapshot),
+      credentials: 'include',
+    });
+    return handleResponse<BulkCreateAssetSnapshotResult>(response);
   },
 
   async update(id: number, snapshot: UpdateAssetSnapshot): Promise<AssetSnapshot> {

@@ -129,4 +129,13 @@ public class AssetSnapshotRepository : IAssetSnapshotRepository
             .Where(s => s.AssetId == assetId && s.Date.Date == dateOnly)
             .FirstOrDefaultAsync();
     }
+
+    public async Task<IEnumerable<AssetSnapshot>> GetByAssetAndDatesAsync(int assetId, IEnumerable<DateTime> dates)
+    {
+        var dateOnlyList = dates.Select(d => d.Date).ToList();
+        return await _context.AssetSnapshots
+            .Include(s => s.Asset)
+            .Where(s => s.AssetId == assetId && dateOnlyList.Contains(s.Date.Date))
+            .ToListAsync();
+    }
 }
