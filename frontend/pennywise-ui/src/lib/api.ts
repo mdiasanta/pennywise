@@ -555,6 +555,62 @@ export interface NetWorthComparison {
   expenseHistory: ExpenseHistoryPoint[];
 }
 
+export interface NetWorthProjectionPoint {
+  date: string;
+  projectedNetWorth: number;
+  isHistorical: boolean;
+}
+
+export interface NetWorthGoal {
+  goalAmount: number;
+  estimatedGoalDate?: string;
+  monthsToGoal?: number;
+  isAchievable: boolean;
+}
+
+export interface RecurringTransferSummary {
+  id: number;
+  description: string;
+  assetName: string;
+  amount: number;
+  frequency: string;
+  monthlyEquivalent: number;
+}
+
+export interface CustomProjectionItem {
+  description: string;
+  amount: number;
+  date?: string;
+  isRecurring: boolean;
+  frequency?: string;
+  monthlyEquivalent?: number;
+}
+
+export interface ProjectionCalculationDescription {
+  averageMonthlyExpenses: string;
+  averageMonthlyNetChange: string;
+  recurringTransfersMonthlyTotal: string;
+  customItemsTotal: string;
+  projectedMonthlyChange: string;
+  projection: string;
+}
+
+export interface NetWorthProjection {
+  currentNetWorth: number;
+  averageMonthlyExpenses: number;
+  averageMonthlyNetChange: number;
+  recurringTransfersMonthlyTotal: number;
+  customItemsMonthlyTotal: number;
+  projectedMonthlyChange: number;
+  includesRecurringTransfers: boolean;
+  includesAverageExpenses: boolean;
+  projectedHistory: NetWorthProjectionPoint[];
+  recurringTransfers: RecurringTransferSummary[];
+  customItems: CustomProjectionItem[];
+  goal?: NetWorthGoal;
+  calculationDescriptions: ProjectionCalculationDescription;
+}
+
 // Asset Category API
 export const assetCategoryApi = {
   async getAll(): Promise<AssetCategory[]> {
@@ -759,6 +815,39 @@ export const netWorthApi = {
       credentials: 'include',
     });
     return handleResponse<NetWorthComparison>(response);
+  },
+
+  async getProjection(
+    userId: number,
+    goalAmount?: number,
+    projectionMonths: number = 12,
+    includeRecurringTransfers: boolean = true,
+    includeAverageExpenses: boolean = false,
+    customItems?: CustomProjectionItem[]
+  ): Promise<NetWorthProjection> {
+    const params = new URLSearchParams();
+    if (goalAmount !== undefined) {
+      params.set('goalAmount', goalAmount.toString());
+    }
+    params.set('projectionMonths', projectionMonths.toString());
+    params.set('includeRecurringTransfers', includeRecurringTransfers.toString());
+    params.set('includeAverageExpenses', includeAverageExpenses.toString());
+
+    // Use POST if custom items provided, GET otherwise
+    if (customItems && customItems.length > 0) {
+      const response = await fetch(`${API_BASE_URL}/networth/user/${userId}/projection?${params}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(customItems),
+        credentials: 'include',
+      });
+      return handleResponse<NetWorthProjection>(response);
+    }
+
+    const response = await fetch(`${API_BASE_URL}/networth/user/${userId}/projection?${params}`, {
+      credentials: 'include',
+    });
+    return handleResponse<NetWorthProjection>(response);
   },
 };
 

@@ -77,3 +77,65 @@ public class ExpenseHistoryPointDto
     public DateTime Date { get; set; }
     public decimal TotalExpenses { get; set; }
 }
+
+public class NetWorthProjectionDto
+{
+    public decimal CurrentNetWorth { get; set; }
+    public decimal AverageMonthlyExpenses { get; set; }
+    public decimal AverageMonthlyNetChange { get; set; }
+    public decimal RecurringTransfersMonthlyTotal { get; set; }
+    public decimal CustomItemsMonthlyTotal { get; set; }
+    public decimal ProjectedMonthlyChange { get; set; }
+    public bool IncludesRecurringTransfers { get; set; }
+    public bool IncludesAverageExpenses { get; set; }
+    public List<NetWorthProjectionPointDto> ProjectedHistory { get; set; } = new();
+    public List<RecurringTransferSummaryDto> RecurringTransfers { get; set; } = new();
+    public List<CustomProjectionItemDto> CustomItems { get; set; } = new();
+    public NetWorthGoalDto? Goal { get; set; }
+    public ProjectionCalculationDescriptionDto CalculationDescriptions { get; set; } = new();
+}
+
+public class NetWorthProjectionPointDto
+{
+    public DateTime Date { get; set; }
+    public decimal ProjectedNetWorth { get; set; }
+    public bool IsHistorical { get; set; }
+}
+
+public class NetWorthGoalDto
+{
+    public decimal GoalAmount { get; set; }
+    public DateTime? EstimatedGoalDate { get; set; }
+    public int? MonthsToGoal { get; set; }
+    public bool IsAchievable { get; set; }
+}
+
+public class RecurringTransferSummaryDto
+{
+    public int Id { get; set; }
+    public string Description { get; set; } = string.Empty;
+    public string AssetName { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public string Frequency { get; set; } = string.Empty;
+    public decimal MonthlyEquivalent { get; set; }
+}
+
+public class CustomProjectionItemDto
+{
+    public string Description { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public DateTime? Date { get; set; }
+    public bool IsRecurring { get; set; }
+    public string? Frequency { get; set; }
+    public decimal MonthlyEquivalent { get; set; }
+}
+
+public class ProjectionCalculationDescriptionDto
+{
+    public string AverageMonthlyExpenses { get; set; } = string.Empty;
+    public string AverageMonthlyNetChange { get; set; } = string.Empty;
+    public string RecurringTransfersMonthlyTotal { get; set; } = string.Empty;
+    public string CustomItemsTotal { get; set; } = string.Empty;
+    public string ProjectedMonthlyChange { get; set; } = string.Empty;
+    public string Projection { get; set; } = string.Empty;
+}

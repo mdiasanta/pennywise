@@ -11,6 +11,7 @@ import {
   getTimeRangeLabel,
   type GroupBy,
   NetWorthCharts,
+  NetWorthProjectionComponent,
   NetWorthSummaryCards,
   type RecurringFormData,
   RecurringTransactionDialog,
@@ -35,7 +36,9 @@ import type {
   CreateAsset,
   CreateAssetSnapshot,
   CreateRecurringTransaction,
+  CustomProjectionItem,
   NetWorthComparison,
+  NetWorthProjection,
   NetWorthSummary,
   RecurringTransaction,
   UpdateAsset,
@@ -80,6 +83,14 @@ export default function NetWorthPage() {
   // Recurring transaction states
   const [recurringTransactions, setRecurringTransactions] = useState<RecurringTransaction[]>([]);
   const [isAddRecurringDialogOpen, setIsAddRecurringDialogOpen] = useState(false);
+
+  // Projection states
+  const [projection, setProjection] = useState<NetWorthProjection | null>(null);
+  const [projectionLoading, setProjectionLoading] = useState(true);
+  const [goalAmount, setGoalAmount] = useState<number | undefined>(undefined);
+  const [includeRecurringTransfers, setIncludeRecurringTransfers] = useState(true);
+  const [includeAverageExpenses, setIncludeAverageExpenses] = useState(false);
+  const [customProjectionItems, setCustomProjectionItems] = useState<CustomProjectionItem[]>([]);
 
   // Asset history for individual account chart
   const [assetSnapshots, setAssetSnapshots] = useState<Map<number, AssetSnapshot[]>>(new Map());
@@ -165,9 +176,68 @@ export default function NetWorthPage() {
     }
   }, [authLoading, isAuthenticated, user, timeRange, groupBy, getDateRange, toast]);
 
+  const loadProjection = useCallback(async () => {
+    if (authLoading) return;
+    if (!isAuthenticated || !user) {
+      setProjectionLoading(false);
+      return;
+    }
+
+    try {
+      setProjectionLoading(true);
+      const projectionData = await netWorthApi.getProjection(
+        user.id,
+        goalAmount,
+        12,
+        includeRecurringTransfers,
+        includeAverageExpenses,
+        customProjectionItems.length > 0 ? customProjectionItems : undefined
+      );
+      setProjection(projectionData);
+    } catch (error) {
+      console.error('Error loading projection data:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to load projection data. Please try again.',
+      });
+    } finally {
+      setProjectionLoading(false);
+    }
+  }, [
+    authLoading,
+    isAuthenticated,
+    user,
+    goalAmount,
+    includeRecurringTransfers,
+    includeAverageExpenses,
+    customProjectionItems,
+    toast,
+  ]);
+
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    loadProjection();
+  }, [loadProjection]);
+
+  const handleGoalChange = useCallback((newGoal: number | undefined) => {
+    setGoalAmount(newGoal);
+  }, []);
+
+  const handleRecurringToggle = useCallback((include: boolean) => {
+    setIncludeRecurringTransfers(include);
+  }, []);
+
+  const handleAverageExpensesToggle = useCallback((include: boolean) => {
+    setIncludeAverageExpenses(include);
+  }, []);
+
+  const handleCustomItemsChange = useCallback((items: CustomProjectionItem[]) => {
+    setCustomProjectionItems(items);
+  }, []);
 
   const getRandomUnusedColor = useCallback(() => {
     const usedColors = new Set(assets.map((a) => a.color?.toLowerCase()));
@@ -599,6 +669,20 @@ export default function NetWorthPage() {
           assets={assets}
           loading={loading}
           timeRangeLabel={getTimeRangeLabel(timeRange)}
+        />
+
+        {/* Net Worth Projection - Project future net worth based on recurring transfers and custom items */}
+        <NetWorthProjectionComponent
+          projection={projection}
+          loading={projectionLoading}
+          onGoalChange={handleGoalChange}
+          onRecurringToggle={handleRecurringToggle}
+          onAverageExpensesToggle={handleAverageExpensesToggle}
+          onCustomItemsChange={handleCustomItemsChange}
+          currentGoal={goalAmount}
+          includeRecurringTransfers={includeRecurringTransfers}
+          includeAverageExpenses={includeAverageExpenses}
+          customItems={customProjectionItems}
         />
 
         {/* Accounts Table */}

@@ -56,4 +56,37 @@ public class NetWorthController : ControllerBase
             groupBy);
         return Ok(comparison);
     }
+
+    [HttpGet("user/{userId}/projection")]
+    public async Task<ActionResult<NetWorthProjectionDto>> GetProjection(
+        int userId,
+        [FromQuery] decimal? goalAmount = null,
+        [FromQuery] int projectionMonths = 12,
+        [FromQuery] bool includeRecurringTransfers = true,
+        [FromQuery] bool includeAverageExpenses = false)
+    {
+        if (projectionMonths < 1 || projectionMonths > 120)
+        {
+            return BadRequest("projectionMonths must be between 1 and 120.");
+        }
+        var projection = await _netWorthService.GetProjectionAsync(userId, goalAmount, projectionMonths, includeRecurringTransfers, includeAverageExpenses);
+        return Ok(projection);
+    }
+
+    [HttpPost("user/{userId}/projection")]
+    public async Task<ActionResult<NetWorthProjectionDto>> GetProjectionWithCustomItems(
+        int userId,
+        [FromQuery] decimal? goalAmount = null,
+        [FromQuery] int projectionMonths = 12,
+        [FromQuery] bool includeRecurringTransfers = true,
+        [FromQuery] bool includeAverageExpenses = false,
+        [FromBody] List<CustomProjectionItemDto>? customItems = null)
+    {
+        if (projectionMonths < 1 || projectionMonths > 120)
+        {
+            return BadRequest("projectionMonths must be between 1 and 120.");
+        }
+        var projection = await _netWorthService.GetProjectionAsync(userId, goalAmount, projectionMonths, includeRecurringTransfers, includeAverageExpenses, customItems);
+        return Ok(projection);
+    }
 }

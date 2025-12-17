@@ -2,6 +2,7 @@ export { AccountsTable } from './AccountsTable';
 export { AssetFormDialog, type AssetFormData } from './AssetFormDialog';
 export * from './constants';
 export { NetWorthCharts } from './NetWorthCharts';
+export { NetWorthProjectionComponent } from './NetWorthProjection';
 export { NetWorthSummaryCards } from './NetWorthSummaryCards';
 export {
   RecurringTransactionDialog,
