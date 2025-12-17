@@ -62,12 +62,14 @@ public class AssetSnapshotService : IAssetSnapshotService
         var result = new BulkCreateAssetSnapshotResultDto();
         var snapshots = new List<AssetSnapshotDto>();
 
+        // Fetch all existing snapshots for the given dates in a single query
+        var entryDates = bulkCreateDto.Entries.Select(e => e.Date).ToList();
+        var existingSnapshots = await _snapshotRepository.GetByAssetAndDatesAsync(bulkCreateDto.AssetId, entryDates);
+        var existingByDate = existingSnapshots.ToDictionary(s => s.Date.Date);
+
         foreach (var entry in bulkCreateDto.Entries)
         {
-            // Check if there's already a snapshot for this asset on this date
-            var existingSnapshot = await _snapshotRepository.GetByAssetAndDateAsync(bulkCreateDto.AssetId, entry.Date);
-
-            if (existingSnapshot != null)
+            if (existingByDate.TryGetValue(entry.Date.Date, out var existingSnapshot))
             {
                 // Update the existing snapshot
                 existingSnapshot.Balance = entry.Balance;

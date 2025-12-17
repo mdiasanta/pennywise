@@ -12,4 +12,5 @@ public interface IAssetSnapshotRepository
     Task<bool> DeleteAsync(int id);
     Task<IEnumerable<AssetSnapshot>> GetByUserAsync(int userId, DateTime? startDate = null, DateTime? endDate = null);
     Task<AssetSnapshot?> GetByAssetAndDateAsync(int assetId, DateTime date);
+    Task<IEnumerable<AssetSnapshot>> GetByAssetAndDatesAsync(int assetId, IEnumerable<DateTime> dates);
 }

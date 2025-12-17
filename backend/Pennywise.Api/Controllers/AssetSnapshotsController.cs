@@ -66,6 +66,13 @@ public class AssetSnapshotsController : ControllerBase
             return BadRequest("At least one entry is required.");
         }
 
+        // Validate that all entries have valid dates
+        var invalidEntries = bulkCreateDto.Entries.Where(e => e.Date == default).ToList();
+        if (invalidEntries.Count > 0)
+        {
+            return BadRequest("All entries must have a valid date.");
+        }
+
         var result = await _snapshotService.CreateBulkAsync(bulkCreateDto);
         return Ok(result);
     }

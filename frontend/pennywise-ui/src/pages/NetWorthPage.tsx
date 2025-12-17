@@ -524,7 +524,7 @@ export default function NetWorthPage() {
 
     // Validate all entries have valid balances
     const invalidEntries = bulkBalanceFormData.entries.filter(
-      (entry) => Number.isNaN(parseFloat(entry.balance))
+      (entry) => !entry.balance.trim() || Number.isNaN(parseFloat(entry.balance))
     );
     if (invalidEntries.length > 0) {
       toast({
