@@ -47,6 +47,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import type {
   Asset,
+  AssetSnapshot,
   CreateAsset,
   CreateAssetSnapshot,
   CreateRecurringTransaction,
@@ -148,6 +149,9 @@ export default function NetWorthPage() {
   // Recurring transaction states
   const [recurringTransactions, setRecurringTransactions] = useState<RecurringTransaction[]>([]);
   const [isAddRecurringDialogOpen, setIsAddRecurringDialogOpen] = useState(false);
+
+  // Asset history for individual account chart
+  const [assetSnapshots, setAssetSnapshots] = useState<Map<number, AssetSnapshot[]>>(new Map());
   const [recurringFormData, setRecurringFormData] = useState({
     assetId: '',
     amount: '',
@@ -206,6 +210,18 @@ export default function NetWorthPage() {
       setSummary(summaryData);
       setComparison(comparisonData);
       setRecurringTransactions(recurringData);
+
+      // Load individual asset snapshots for the chart
+      const snapshotsMap = new Map<number, AssetSnapshot[]>();
+      const snapshotPromises = assetsData.map(async (asset) => {
+        const snapshots = await assetSnapshotApi.getByAsset(asset.id, startDate, endDate);
+        return { assetId: asset.id, snapshots };
+      });
+      const snapshotResults = await Promise.all(snapshotPromises);
+      snapshotResults.forEach(({ assetId, snapshots }) => {
+        snapshotsMap.set(assetId, snapshots);
+      });
+      setAssetSnapshots(snapshotsMap);
     } catch (error) {
       console.error('Error loading net worth data:', error);
       toast({
@@ -580,6 +596,42 @@ export default function NetWorthPage() {
       expenses: point.totalExpenses || 0,
     })) || [];
 
+  // Transform asset snapshots into chart data for individual accounts
+  const accountsChartData = (() => {
+    if (assetSnapshots.size === 0) return [];
+
+    // Collect all unique dates from all assets
+    const allDates = new Set<string>();
+    assetSnapshots.forEach((snapshots) => {
+      snapshots.forEach((snapshot) => {
+        allDates.add(snapshot.date.split('T')[0]);
+      });
+    });
+
+    // Sort dates chronologically
+    const sortedDates = Array.from(allDates).sort();
+
+    // Build chart data with each asset's balance at each date
+    return sortedDates.map((date) => {
+      const dataPoint: Record<string, number | string> = {
+        date: formatChartDate(date),
+      };
+
+      assets.forEach((asset) => {
+        const snapshots = assetSnapshots.get(asset.id) || [];
+        // Find the most recent snapshot on or before this date
+        const relevantSnapshots = snapshots.filter((s) => s.date.split('T')[0] <= date);
+        if (relevantSnapshots.length > 0) {
+          // Get the latest one
+          const latest = relevantSnapshots.reduce((a, b) => (a.date > b.date ? a : b));
+          dataPoint[asset.name] = latest.balance;
+        }
+      });
+
+      return dataPoint;
+    });
+  })();
+
   // Show sign-in prompt for unauthenticated users
   if (!isAuthenticated) {
     return (
@@ -786,6 +838,12 @@ export default function NetWorthPage() {
                     Assets vs Liabilities
                   </TabsTrigger>
                   <TabsTrigger
+                    value="accounts"
+                    className="data-[state=active]:bg-brand data-[state=active]:text-brand-foreground"
+                  >
+                    Accounts
+                  </TabsTrigger>
+                  <TabsTrigger
                     value="comparison"
                     className="data-[state=active]:bg-brand data-[state=active]:text-brand-foreground"
                   >
@@ -880,6 +938,63 @@ export default function NetWorthPage() {
                       />
                     </LineChart>
                   </ResponsiveContainer>
+                </TabsContent>
+
+                <TabsContent value="accounts">
+                  {accountsChartData.length === 0 ? (
+                    <div className="flex h-[350px] items-center justify-center text-muted-foreground">
+                      <p>
+                        No account history data available. Update account balances to see trends.
+                      </p>
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={350}>
+                      <LineChart data={accountsChartData}>
+                        <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
+                        <XAxis
+                          dataKey="date"
+                          tick={{ fill: '#cbd5f5' }}
+                          axisLine={{ stroke: 'rgba(255,255,255,0.2)' }}
+                          tickLine={false}
+                        />
+                        <YAxis
+                          tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                          tick={{ fill: '#cbd5f5' }}
+                          axisLine={{ stroke: 'rgba(255,255,255,0.2)' }}
+                          tickLine={false}
+                        />
+                        <Tooltip
+                          formatter={(value: number) => formatCurrency(value)}
+                          contentStyle={{
+                            backgroundColor: '#0f172a',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            borderRadius: 12,
+                            color: '#e2e8f0',
+                          }}
+                          labelStyle={{ color: '#e2e8f0' }}
+                          itemStyle={{ color: '#e2e8f0' }}
+                        />
+                        <Legend wrapperStyle={{ color: '#cbd5f5' }} />
+                        {assets.map((asset) => (
+                          <Line
+                            key={asset.id}
+                            type="monotone"
+                            dataKey={asset.name}
+                            name={asset.name}
+                            stroke={
+                              asset.color ||
+                              ASSET_COLOR_PALETTE[
+                                assets.indexOf(asset) % ASSET_COLOR_PALETTE.length
+                              ]
+                            }
+                            strokeWidth={2}
+                            dot={false}
+                            strokeDasharray={asset.isLiability ? '5 5' : undefined}
+                          />
+                        ))}
+                      </LineChart>
+                    </ResponsiveContainer>
+                  )}
                 </TabsContent>
 
                 <TabsContent value="comparison">
