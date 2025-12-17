@@ -77,14 +77,26 @@ export function NetWorthProjectionComponent({
     );
   }
 
+  // Transform data for chart - separate historical and projected values
   const chartData = projection.projectedHistory.map((point) => ({
     date: formatChartDate(point.date, 'month' as GroupBy),
-    netWorth: point.projectedNetWorth,
-    isHistorical: point.isHistorical,
+    historical: point.isHistorical ? point.projectedNetWorth : null,
+    projected: !point.isHistorical ? point.projectedNetWorth : null,
+    // Add connection point: last historical point also appears in projected for continuity
+    isLastHistorical:
+      point.isHistorical &&
+      projection.projectedHistory.findIndex((p) => !p.isHistorical) ===
+        projection.projectedHistory.indexOf(point) + 1,
   }));
 
-  // Find where historical ends and projection begins
-  const projectionStartIndex = chartData.findIndex((d) => !d.isHistorical);
+  // Add the last historical value to the first projected point for line continuity
+  const lastHistoricalIndex = chartData.findIndex((d) => d.projected !== null) - 1;
+  if (lastHistoricalIndex >= 0 && lastHistoricalIndex < chartData.length - 1) {
+    chartData[lastHistoricalIndex + 1].projected =
+      chartData[lastHistoricalIndex + 1].projected ?? chartData[lastHistoricalIndex].historical;
+    // Also set the last historical point as the first projected point for continuity
+    chartData[lastHistoricalIndex].projected = chartData[lastHistoricalIndex].historical;
+  }
 
   return (
     <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
@@ -183,7 +195,8 @@ export function NetWorthProjectionComponent({
                     <>
                       Estimated to reach goal in{' '}
                       <span className="font-medium text-foreground">
-                        {projection.goal.monthsToGoal} months
+                        {projection.goal.monthsToGoal}{' '}
+                        {projection.goal.monthsToGoal === 1 ? 'month' : 'months'}
                       </span>
                       {projection.goal.estimatedGoalDate && (
                         <>
@@ -236,17 +249,26 @@ export function NetWorthProjectionComponent({
             {/* Historical net worth (solid line) */}
             <Line
               type="monotone"
-              dataKey="netWorth"
-              name="Net Worth"
+              dataKey="historical"
+              name="Historical"
               stroke="#8884d8"
               strokeWidth={3}
               dot={false}
               activeDot={{ r: 6, fill: '#8884d8' }}
-              strokeDasharray={
-                projectionStartIndex > 0
-                  ? `${projectionStartIndex * 50} ${(chartData.length - projectionStartIndex) * 50}`
-                  : undefined
-              }
+              connectNulls={false}
+            />
+
+            {/* Projected net worth (dashed line) */}
+            <Line
+              type="monotone"
+              dataKey="projected"
+              name="Projected"
+              stroke="#8884d8"
+              strokeWidth={3}
+              strokeDasharray="8 4"
+              dot={false}
+              activeDot={{ r: 6, fill: '#8884d8' }}
+              connectNulls={false}
             />
 
             {/* Goal reference line */}

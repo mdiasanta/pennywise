@@ -5,6 +5,9 @@ namespace Pennywise.Api.Services;
 
 public class NetWorthService : INetWorthService
 {
+    private const int HistoricalLookbackMonths = 12;
+    private const int RecentHistoryMonthsToDisplay = 6;
+
     private readonly IAssetRepository _assetRepository;
     private readonly IAssetSnapshotRepository _snapshotRepository;
     private readonly IAssetCategoryRepository _categoryRepository;
@@ -193,9 +196,9 @@ public class NetWorthService : INetWorthService
 
     public async Task<NetWorthProjectionDto> GetProjectionAsync(int userId, decimal? goalAmount = null, int projectionMonths = 12)
     {
-        // Get historical data from the last 12 months
+        // Get historical data from the configured lookback period
         var endDate = DateTime.UtcNow;
-        var startDate = endDate.AddMonths(-12);
+        var startDate = endDate.AddMonths(-HistoricalLookbackMonths);
         
         var history = (await GetHistoryAsync(userId, startDate, endDate, "month")).ToList();
         var expenses = await _expenseRepository.GetByDateRangeAsync(userId, startDate, endDate);
@@ -228,8 +231,8 @@ public class NetWorthService : INetWorthService
         // Build projection points
         var projectedHistory = new List<NetWorthProjectionPointDto>();
         
-        // Add historical points (last 6 months)
-        var recentHistory = history.TakeLast(6);
+        // Add recent historical points for context in the chart
+        var recentHistory = history.TakeLast(RecentHistoryMonthsToDisplay);
         foreach (var point in recentHistory)
         {
             projectedHistory.Add(new NetWorthProjectionPointDto
