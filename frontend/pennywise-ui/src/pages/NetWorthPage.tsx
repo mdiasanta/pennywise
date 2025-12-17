@@ -36,6 +36,7 @@ import type {
   CreateAsset,
   CreateAssetSnapshot,
   CreateRecurringTransaction,
+  CustomProjectionItem,
   NetWorthComparison,
   NetWorthProjection,
   NetWorthSummary,
@@ -87,7 +88,9 @@ export default function NetWorthPage() {
   const [projection, setProjection] = useState<NetWorthProjection | null>(null);
   const [projectionLoading, setProjectionLoading] = useState(true);
   const [goalAmount, setGoalAmount] = useState<number | undefined>(undefined);
-  const [includeRecurringTransfers, setIncludeRecurringTransfers] = useState(false);
+  const [includeRecurringTransfers, setIncludeRecurringTransfers] = useState(true);
+  const [includeAverageExpenses, setIncludeAverageExpenses] = useState(false);
+  const [customProjectionItems, setCustomProjectionItems] = useState<CustomProjectionItem[]>([]);
 
   // Asset history for individual account chart
   const [assetSnapshots, setAssetSnapshots] = useState<Map<number, AssetSnapshot[]>>(new Map());
@@ -186,7 +189,9 @@ export default function NetWorthPage() {
         user.id,
         goalAmount,
         12,
-        includeRecurringTransfers
+        includeRecurringTransfers,
+        includeAverageExpenses,
+        customProjectionItems.length > 0 ? customProjectionItems : undefined
       );
       setProjection(projectionData);
     } catch (error) {
@@ -199,7 +204,16 @@ export default function NetWorthPage() {
     } finally {
       setProjectionLoading(false);
     }
-  }, [authLoading, isAuthenticated, user, goalAmount, includeRecurringTransfers, toast]);
+  }, [
+    authLoading,
+    isAuthenticated,
+    user,
+    goalAmount,
+    includeRecurringTransfers,
+    includeAverageExpenses,
+    customProjectionItems,
+    toast,
+  ]);
 
   useEffect(() => {
     loadData();
@@ -215,6 +229,14 @@ export default function NetWorthPage() {
 
   const handleRecurringToggle = useCallback((include: boolean) => {
     setIncludeRecurringTransfers(include);
+  }, []);
+
+  const handleAverageExpensesToggle = useCallback((include: boolean) => {
+    setIncludeAverageExpenses(include);
+  }, []);
+
+  const handleCustomItemsChange = useCallback((items: CustomProjectionItem[]) => {
+    setCustomProjectionItems(items);
   }, []);
 
   const getRandomUnusedColor = useCallback(() => {
@@ -649,14 +671,18 @@ export default function NetWorthPage() {
           timeRangeLabel={getTimeRangeLabel(timeRange)}
         />
 
-        {/* Net Worth Projection */}
+        {/* Net Worth Projection - Project future net worth based on recurring transfers and custom items */}
         <NetWorthProjectionComponent
           projection={projection}
           loading={projectionLoading}
           onGoalChange={handleGoalChange}
           onRecurringToggle={handleRecurringToggle}
+          onAverageExpensesToggle={handleAverageExpensesToggle}
+          onCustomItemsChange={handleCustomItemsChange}
           currentGoal={goalAmount}
           includeRecurringTransfers={includeRecurringTransfers}
+          includeAverageExpenses={includeAverageExpenses}
+          customItems={customProjectionItems}
         />
 
         {/* Accounts Table */}

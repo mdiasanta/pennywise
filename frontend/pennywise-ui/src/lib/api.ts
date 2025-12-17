@@ -577,10 +577,20 @@ export interface RecurringTransferSummary {
   monthlyEquivalent: number;
 }
 
+export interface CustomProjectionItem {
+  description: string;
+  amount: number;
+  date?: string;
+  isRecurring: boolean;
+  frequency?: string;
+  monthlyEquivalent?: number;
+}
+
 export interface ProjectionCalculationDescription {
   averageMonthlyExpenses: string;
   averageMonthlyNetChange: string;
   recurringTransfersMonthlyTotal: string;
+  customItemsTotal: string;
   projectedMonthlyChange: string;
   projection: string;
 }
@@ -590,10 +600,13 @@ export interface NetWorthProjection {
   averageMonthlyExpenses: number;
   averageMonthlyNetChange: number;
   recurringTransfersMonthlyTotal: number;
+  customItemsMonthlyTotal: number;
   projectedMonthlyChange: number;
   includesRecurringTransfers: boolean;
+  includesAverageExpenses: boolean;
   projectedHistory: NetWorthProjectionPoint[];
   recurringTransfers: RecurringTransferSummary[];
+  customItems: CustomProjectionItem[];
   goal?: NetWorthGoal;
   calculationDescriptions: ProjectionCalculationDescription;
 }
@@ -808,7 +821,9 @@ export const netWorthApi = {
     userId: number,
     goalAmount?: number,
     projectionMonths: number = 12,
-    includeRecurringTransfers: boolean = false
+    includeRecurringTransfers: boolean = true,
+    includeAverageExpenses: boolean = false,
+    customItems?: CustomProjectionItem[]
   ): Promise<NetWorthProjection> {
     const params = new URLSearchParams();
     if (goalAmount !== undefined) {
@@ -816,6 +831,19 @@ export const netWorthApi = {
     }
     params.set('projectionMonths', projectionMonths.toString());
     params.set('includeRecurringTransfers', includeRecurringTransfers.toString());
+    params.set('includeAverageExpenses', includeAverageExpenses.toString());
+
+    // Use POST if custom items provided, GET otherwise
+    if (customItems && customItems.length > 0) {
+      const response = await fetch(`${API_BASE_URL}/networth/user/${userId}/projection?${params}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(customItems),
+        credentials: 'include',
+      });
+      return handleResponse<NetWorthProjection>(response);
+    }
+
     const response = await fetch(`${API_BASE_URL}/networth/user/${userId}/projection?${params}`, {
       credentials: 'include',
     });

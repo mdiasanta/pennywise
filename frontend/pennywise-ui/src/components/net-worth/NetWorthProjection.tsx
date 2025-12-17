@@ -2,18 +2,30 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Tooltip as UITooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import type { NetWorthProjection } from '@/lib/api';
+import type { CustomProjectionItem, NetWorthProjection } from '@/lib/api';
 import {
   CalendarClock,
+  DollarSign,
   HelpCircle,
+  Home,
+  Car,
+  Plus,
   RefreshCcw,
   Target,
+  Trash2,
   TrendingDown,
   TrendingUp,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   CartesianGrid,
   Legend,
@@ -32,8 +44,12 @@ interface NetWorthProjectionProps {
   loading: boolean;
   onGoalChange: (goalAmount: number | undefined) => void;
   onRecurringToggle: (includeRecurring: boolean) => void;
+  onAverageExpensesToggle: (includeExpenses: boolean) => void;
+  onCustomItemsChange: (items: CustomProjectionItem[]) => void;
   currentGoal?: number;
   includeRecurringTransfers: boolean;
+  includeAverageExpenses: boolean;
+  customItems: CustomProjectionItem[];
 }
 
 const chartTooltipStyle = {
@@ -61,10 +77,24 @@ export function NetWorthProjectionComponent({
   loading,
   onGoalChange,
   onRecurringToggle,
+  onAverageExpensesToggle,
+  onCustomItemsChange,
   currentGoal,
   includeRecurringTransfers,
+  includeAverageExpenses,
+  customItems,
 }: NetWorthProjectionProps) {
   const [goalInput, setGoalInput] = useState(currentGoal?.toString() || '');
+  const [newItemDescription, setNewItemDescription] = useState('');
+  const [newItemAmount, setNewItemAmount] = useState('');
+  const [newItemDate, setNewItemDate] = useState('');
+  const [newItemIsRecurring, setNewItemIsRecurring] = useState(false);
+  const [newItemFrequency, setNewItemFrequency] = useState('Monthly');
+
+  // Sync goalInput when currentGoal changes
+  useEffect(() => {
+    setGoalInput(currentGoal?.toString() || '');
+  }, [currentGoal]);
 
   const handleSetGoal = () => {
     const goalValue = parseFloat(goalInput);
@@ -76,6 +106,38 @@ export function NetWorthProjectionComponent({
   const handleClearGoal = () => {
     setGoalInput('');
     onGoalChange(undefined);
+  };
+
+  const handleAddCustomItem = () => {
+    const amount = parseFloat(newItemAmount);
+    if (newItemDescription && !Number.isNaN(amount)) {
+      const newItem: CustomProjectionItem = {
+        description: newItemDescription,
+        amount: amount,
+        date: newItemIsRecurring ? undefined : newItemDate || undefined,
+        isRecurring: newItemIsRecurring,
+        frequency: newItemIsRecurring ? newItemFrequency : undefined,
+      };
+      onCustomItemsChange([...customItems, newItem]);
+      setNewItemDescription('');
+      setNewItemAmount('');
+      setNewItemDate('');
+      setNewItemIsRecurring(false);
+    }
+  };
+
+  const handleRemoveCustomItem = (index: number) => {
+    const updatedItems = customItems.filter((_, i) => i !== index);
+    onCustomItemsChange(updatedItems);
+  };
+
+  const addQuickItem = (description: string, amount: number) => {
+    const newItem: CustomProjectionItem = {
+      description,
+      amount,
+      isRecurring: false,
+    };
+    onCustomItemsChange([...customItems, newItem]);
   };
 
   if (loading) {
@@ -103,23 +165,18 @@ export function NetWorthProjectionComponent({
     );
   }
 
-  // Transform data for chart - separate historical and projected values
+  // Transform data for chart
   const chartData = projection.projectedHistory.map((point) => ({
     date: formatChartDate(point.date, 'month' as GroupBy),
     historical: point.isHistorical ? point.projectedNetWorth : null,
     projected: !point.isHistorical ? point.projectedNetWorth : null,
-    isLastHistorical:
-      point.isHistorical &&
-      projection.projectedHistory.findIndex((p) => !p.isHistorical) ===
-        projection.projectedHistory.indexOf(point) + 1,
   }));
 
-  // Add the last historical value to the first projected point for line continuity
-  const lastHistoricalIndex = chartData.findIndex((d) => d.projected !== null) - 1;
-  if (lastHistoricalIndex >= 0 && lastHistoricalIndex < chartData.length - 1) {
-    chartData[lastHistoricalIndex + 1].projected =
-      chartData[lastHistoricalIndex + 1].projected ?? chartData[lastHistoricalIndex].historical;
-    chartData[lastHistoricalIndex].projected = chartData[lastHistoricalIndex].historical;
+  // Add line continuity between historical and projected
+  const firstProjectedIndex = chartData.findIndex((d) => d.projected !== null);
+  if (firstProjectedIndex > 0) {
+    const lastHistoricalValue = chartData[firstProjectedIndex - 1].historical;
+    chartData[firstProjectedIndex - 1].projected = lastHistoricalValue;
   }
 
   return (
@@ -130,22 +187,25 @@ export function NetWorthProjectionComponent({
           Net Worth Projection
         </CardTitle>
         <CardDescription className="text-muted-foreground">
-          Future net worth based on your expense trends from the last 12 months
+          Project your future net worth based on recurring transfers and planned expenses
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Recurring Transfers Toggle */}
-        <div className="rounded-lg border border-border/60 bg-card/60 p-4">
+        {/* Projection Settings */}
+        <div className="rounded-lg border border-border/60 bg-card/60 p-4 space-y-4">
+          <div className="text-sm font-medium">Projection Settings</div>
+
+          {/* Include Recurring Transfers Toggle */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <RefreshCcw className="h-4 w-4 text-muted-foreground" />
-              <Label htmlFor="include-recurring" className="text-sm font-medium cursor-pointer">
-                Include Recurring Transfers in Projection
+              <Label htmlFor="include-recurring" className="text-sm cursor-pointer">
+                Include Recurring Transfers
               </Label>
               <InfoTooltip
                 content={
                   projection.calculationDescriptions?.recurringTransfersMonthlyTotal ||
-                  'Include your scheduled recurring transfers to see how they affect your net worth projection.'
+                  'Include your scheduled recurring transfers in the projection.'
                 }
               />
             </div>
@@ -156,96 +216,209 @@ export function NetWorthProjectionComponent({
             />
           </div>
 
-          {/* Recurring Transfers Summary */}
-          {projection.recurringTransfers && projection.recurringTransfers.length > 0 && (
-            <div className="mt-4 space-y-2">
-              <div className="text-xs font-medium uppercase text-muted-foreground">
-                Active Recurring Transfers ({projection.recurringTransfers.length})
-              </div>
-              <div className="max-h-32 overflow-y-auto space-y-1">
-                {projection.recurringTransfers.map((rt) => (
-                  <div
-                    key={rt.id}
-                    className="flex items-center justify-between rounded bg-card/40 px-2 py-1 text-xs"
-                  >
-                    <div className="flex items-center gap-2">
-                      <CalendarClock className="h-3 w-3 text-muted-foreground" />
-                      <span>{rt.description || rt.assetName}</span>
-                      <span className="text-muted-foreground">({rt.frequency})</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={rt.amount >= 0 ? 'text-success' : 'text-destructive'}>
-                        {formatCurrency(rt.amount)}
-                      </span>
-                      <span className="text-muted-foreground">
-                        ≈ {formatCurrency(rt.monthlyEquivalent)}/mo
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="flex justify-between border-t border-border/40 pt-2 text-sm font-medium">
-                <span>Monthly Total from Recurring</span>
-                <span
-                  className={
-                    projection.recurringTransfersMonthlyTotal >= 0
-                      ? 'text-success'
-                      : 'text-destructive'
-                  }
-                >
-                  {formatCurrency(projection.recurringTransfersMonthlyTotal)}/mo
-                </span>
-              </div>
+          {/* Include Average Expenses Toggle */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <Label htmlFor="include-expenses" className="text-sm cursor-pointer">
+                Subtract Average Monthly Expenses
+              </Label>
+              <InfoTooltip
+                content={
+                  projection.calculationDescriptions?.averageMonthlyExpenses ||
+                  'Subtract your average monthly expenses from the projection to account for regular spending.'
+                }
+              />
             </div>
-          )}
+            <Switch
+              id="include-expenses"
+              checked={includeAverageExpenses}
+              onCheckedChange={onAverageExpensesToggle}
+            />
+          </div>
 
-          {projection.recurringTransfers?.length === 0 && (
-            <p className="mt-2 text-xs text-muted-foreground">
-              No active recurring transfers. Add recurring transfers to see how scheduled deposits
-              affect your projection.
-            </p>
+          {/* Recurring Transfers Summary */}
+          {includeRecurringTransfers &&
+            projection.recurringTransfers &&
+            projection.recurringTransfers.length > 0 && (
+              <div className="mt-4 space-y-2 border-t border-border/40 pt-4">
+                <div className="text-xs font-medium uppercase text-muted-foreground">
+                  Active Recurring Transfers ({projection.recurringTransfers.length})
+                </div>
+                <div className="max-h-24 overflow-y-auto space-y-1">
+                  {projection.recurringTransfers.map((rt) => (
+                    <div
+                      key={rt.id}
+                      className="flex items-center justify-between rounded bg-card/40 px-2 py-1 text-xs"
+                    >
+                      <div className="flex items-center gap-2">
+                        <CalendarClock className="h-3 w-3 text-muted-foreground" />
+                        <span>{rt.description || rt.assetName}</span>
+                        <span className="text-muted-foreground">({rt.frequency})</span>
+                      </div>
+                      <span className={rt.amount >= 0 ? 'text-success' : 'text-destructive'}>
+                        {formatCurrency(rt.monthlyEquivalent)}/mo
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+        </div>
+
+        {/* Custom Projection Items */}
+        <div className="rounded-lg border border-border/60 bg-card/60 p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium">Custom Projection Items</span>
+              <InfoTooltip
+                content={
+                  projection.calculationDescriptions?.customItemsTotal ||
+                  'Add custom items like major purchases (house, car) or expected income to see how they affect your projection.'
+                }
+              />
+            </div>
+          </div>
+
+          {/* Quick Add Buttons */}
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs"
+              onClick={() => addQuickItem('Home Down Payment', -50000)}
+            >
+              <Home className="h-3 w-3 mr-1" />
+              Home Down Payment
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs"
+              onClick={() => addQuickItem('Car Purchase', -30000)}
+            >
+              <Car className="h-3 w-3 mr-1" />
+              Car Purchase
+            </Button>
+          </div>
+
+          {/* Add Custom Item Form */}
+          <div className="grid gap-2 md:grid-cols-5">
+            <Input
+              placeholder="Description"
+              value={newItemDescription}
+              onChange={(e) => setNewItemDescription(e.target.value)}
+              className="border-border/60 bg-card/70 text-sm"
+            />
+            <div className="relative">
+              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                $
+              </span>
+              <Input
+                type="number"
+                placeholder="Amount"
+                value={newItemAmount}
+                onChange={(e) => setNewItemAmount(e.target.value)}
+                className="border-border/60 bg-card/70 text-sm pl-5"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                id="item-recurring"
+                checked={newItemIsRecurring}
+                onCheckedChange={setNewItemIsRecurring}
+              />
+              <Label htmlFor="item-recurring" className="text-xs cursor-pointer">
+                Recurring
+              </Label>
+            </div>
+            {newItemIsRecurring ? (
+              <Select value={newItemFrequency} onValueChange={setNewItemFrequency}>
+                <SelectTrigger className="border-border/60 bg-card/70 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Weekly">Weekly</SelectItem>
+                  <SelectItem value="Biweekly">Biweekly</SelectItem>
+                  <SelectItem value="Monthly">Monthly</SelectItem>
+                  <SelectItem value="Quarterly">Quarterly</SelectItem>
+                  <SelectItem value="Yearly">Yearly</SelectItem>
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input
+                type="date"
+                value={newItemDate}
+                onChange={(e) => setNewItemDate(e.target.value)}
+                className="border-border/60 bg-card/70 text-sm"
+              />
+            )}
+            <Button onClick={handleAddCustomItem} size="sm" className="bg-brand hover:bg-brand/90">
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Custom Items List */}
+          {customItems.length > 0 && (
+            <div className="space-y-1">
+              {customItems.map((item, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between rounded bg-card/40 px-2 py-1 text-xs"
+                >
+                  <div className="flex items-center gap-2">
+                    <span>{item.description}</span>
+                    {item.isRecurring ? (
+                      <span className="text-muted-foreground">({item.frequency})</span>
+                    ) : item.date ? (
+                      <span className="text-muted-foreground">
+                        ({new Date(item.date).toLocaleDateString()})
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">(one-time)</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={item.amount >= 0 ? 'text-success' : 'text-destructive'}>
+                      {formatCurrency(item.amount)}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0"
+                      onClick={() => handleRemoveCustomItem(index)}
+                    >
+                      <Trash2 className="h-3 w-3 text-destructive" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
 
         {/* Statistics Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-lg border border-border/60 bg-card/60 p-4">
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              Avg Monthly Expenses
-              <InfoTooltip
-                content={
-                  projection.calculationDescriptions?.averageMonthlyExpenses ||
-                  'Average of your monthly expenses over the last 12 months.'
-                }
-              />
-            </div>
-            <div className="mt-1 text-xl font-semibold text-destructive">
-              {formatCurrency(projection.averageMonthlyExpenses)}
+            <div className="text-sm text-muted-foreground">Current Net Worth</div>
+            <div className="mt-1 text-xl font-semibold">
+              {formatCurrency(projection.currentNetWorth)}
             </div>
           </div>
 
           <div className="rounded-lg border border-border/60 bg-card/60 p-4">
             <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              Avg Monthly Net Change
+              Recurring Transfers
               <InfoTooltip
-                content={
-                  projection.calculationDescriptions?.averageMonthlyNetChange ||
-                  'Average change in net worth each month based on historical data.'
-                }
+                content={projection.calculationDescriptions?.recurringTransfersMonthlyTotal || ''}
               />
             </div>
             <div
-              className={`mt-1 flex items-center gap-1 text-xl font-semibold ${
-                projection.averageMonthlyNetChange >= 0 ? 'text-success' : 'text-destructive'
+              className={`mt-1 text-xl font-semibold ${
+                projection.recurringTransfersMonthlyTotal >= 0 ? 'text-success' : 'text-destructive'
               }`}
             >
-              {projection.averageMonthlyNetChange >= 0 ? (
-                <TrendingUp className="h-4 w-4" />
-              ) : (
-                <TrendingDown className="h-4 w-4" />
-              )}
-              {formatCurrency(Math.abs(projection.averageMonthlyNetChange))}
-              {projection.averageMonthlyNetChange >= 0 ? '/mo' : '/mo loss'}
+              {formatCurrency(projection.recurringTransfersMonthlyTotal)}/mo
             </div>
           </div>
 
@@ -253,10 +426,7 @@ export function NetWorthProjectionComponent({
             <div className="flex items-center gap-1 text-sm text-muted-foreground">
               Projected Monthly Change
               <InfoTooltip
-                content={
-                  projection.calculationDescriptions?.projectedMonthlyChange ||
-                  'The monthly change used for projections, including recurring transfers if enabled.'
-                }
+                content={projection.calculationDescriptions?.projectedMonthlyChange || ''}
               />
             </div>
             <div
@@ -269,22 +439,23 @@ export function NetWorthProjectionComponent({
               ) : (
                 <TrendingDown className="h-4 w-4" />
               )}
-              {formatCurrency(Math.abs(projection.projectedMonthlyChange))}
-              /mo
+              {formatCurrency(Math.abs(projection.projectedMonthlyChange))}/mo
             </div>
-            {includeRecurringTransfers && projection.recurringTransfersMonthlyTotal !== 0 && (
-              <div className="mt-1 text-xs text-muted-foreground">
-                Includes {formatCurrency(projection.recurringTransfersMonthlyTotal)} from recurring
-              </div>
-            )}
           </div>
 
-          <div className="rounded-lg border border-border/60 bg-card/60 p-4">
-            <div className="text-sm text-muted-foreground">Current Net Worth</div>
-            <div className="mt-1 text-xl font-semibold">
-              {formatCurrency(projection.currentNetWorth)}
+          {includeAverageExpenses && (
+            <div className="rounded-lg border border-border/60 bg-card/60 p-4">
+              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                Avg Monthly Expenses
+                <InfoTooltip
+                  content={projection.calculationDescriptions?.averageMonthlyExpenses || ''}
+                />
+              </div>
+              <div className="mt-1 text-xl font-semibold text-destructive">
+                -{formatCurrency(projection.averageMonthlyExpenses)}/mo
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Goal Input */}
@@ -359,8 +530,8 @@ export function NetWorthProjectionComponent({
                 </div>
               ) : (
                 <div className="mt-2 text-sm text-destructive">
-                  ⚠️ Based on current trends, this goal may not be achievable. Consider reducing
-                  expenses or increasing income.
+                  ⚠️ Based on current projection, this goal may not be achievable. Add more
+                  recurring deposits or reduce expenses.
                 </div>
               )}
             </div>
@@ -391,7 +562,6 @@ export function NetWorthProjectionComponent({
             />
             <Legend wrapperStyle={{ color: '#cbd5f5' }} />
 
-            {/* Historical net worth (solid line) */}
             <Line
               type="monotone"
               dataKey="historical"
@@ -403,20 +573,18 @@ export function NetWorthProjectionComponent({
               connectNulls={false}
             />
 
-            {/* Projected net worth (dashed line) */}
             <Line
               type="monotone"
               dataKey="projected"
-              name={includeRecurringTransfers ? 'Projected (w/ Recurring)' : 'Projected'}
-              stroke={includeRecurringTransfers ? '#00C49F' : '#8884d8'}
+              name="Projected"
+              stroke="#00C49F"
               strokeWidth={3}
               strokeDasharray="8 4"
               dot={false}
-              activeDot={{ r: 6, fill: includeRecurringTransfers ? '#00C49F' : '#8884d8' }}
+              activeDot={{ r: 6, fill: '#00C49F' }}
               connectNulls={false}
             />
 
-            {/* Goal reference line */}
             {projection.goal && (
               <ReferenceLine
                 y={projection.goal.goalAmount}
@@ -434,26 +602,6 @@ export function NetWorthProjectionComponent({
           </LineChart>
         </ResponsiveContainer>
 
-        {/* Chart Legend */}
-        <div className="flex flex-wrap justify-center gap-6 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <div className="h-0.5 w-8 bg-[#8884d8]" />
-            <span>Historical</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div
-              className={`h-0.5 w-8 border-b-2 border-dashed ${includeRecurringTransfers ? 'border-[#00C49F]' : 'border-[#8884d8]'}`}
-            />
-            <span>{includeRecurringTransfers ? 'Projected (w/ Recurring)' : 'Projected'}</span>
-          </div>
-          {projection.goal && (
-            <div className="flex items-center gap-2">
-              <div className="h-0.5 w-8 border-b-2 border-dashed border-[#FFBB28]" />
-              <span>Goal</span>
-            </div>
-          )}
-        </div>
-
         {/* How It's Calculated Section */}
         <div className="rounded-lg border border-border/60 bg-card/60 p-4">
           <div className="flex items-center gap-2 text-sm font-medium">
@@ -462,7 +610,7 @@ export function NetWorthProjectionComponent({
           </div>
           <p className="mt-2 text-sm text-muted-foreground">
             {projection.calculationDescriptions?.projection ||
-              'The projection starts from your current net worth and adds the projected monthly change for each future month. This gives you an estimate of where your net worth will be over time based on your historical trends.'}
+              'The projection is calculated based on your recurring transfers and any custom items you add. Enable "Subtract Average Monthly Expenses" to account for your typical spending patterns.'}
           </p>
         </div>
       </CardContent>
