@@ -11,6 +11,7 @@ import {
   getTimeRangeLabel,
   type GroupBy,
   NetWorthCharts,
+  NetWorthProjectionComponent,
   NetWorthSummaryCards,
   type RecurringFormData,
   RecurringTransactionDialog,
@@ -36,6 +37,7 @@ import type {
   CreateAssetSnapshot,
   CreateRecurringTransaction,
   NetWorthComparison,
+  NetWorthProjection,
   NetWorthSummary,
   RecurringTransaction,
   UpdateAsset,
@@ -80,6 +82,11 @@ export default function NetWorthPage() {
   // Recurring transaction states
   const [recurringTransactions, setRecurringTransactions] = useState<RecurringTransaction[]>([]);
   const [isAddRecurringDialogOpen, setIsAddRecurringDialogOpen] = useState(false);
+
+  // Projection states
+  const [projection, setProjection] = useState<NetWorthProjection | null>(null);
+  const [projectionLoading, setProjectionLoading] = useState(true);
+  const [goalAmount, setGoalAmount] = useState<number | undefined>(undefined);
 
   // Asset history for individual account chart
   const [assetSnapshots, setAssetSnapshots] = useState<Map<number, AssetSnapshot[]>>(new Map());
@@ -165,9 +172,40 @@ export default function NetWorthPage() {
     }
   }, [authLoading, isAuthenticated, user, timeRange, groupBy, getDateRange, toast]);
 
+  const loadProjection = useCallback(async () => {
+    if (authLoading) return;
+    if (!isAuthenticated || !user) {
+      setProjectionLoading(false);
+      return;
+    }
+
+    try {
+      setProjectionLoading(true);
+      const projectionData = await netWorthApi.getProjection(user.id, goalAmount, 12);
+      setProjection(projectionData);
+    } catch (error) {
+      console.error('Error loading projection data:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to load projection data. Please try again.',
+      });
+    } finally {
+      setProjectionLoading(false);
+    }
+  }, [authLoading, isAuthenticated, user, goalAmount, toast]);
+
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    loadProjection();
+  }, [loadProjection]);
+
+  const handleGoalChange = useCallback((newGoal: number | undefined) => {
+    setGoalAmount(newGoal);
+  }, []);
 
   const getRandomUnusedColor = useCallback(() => {
     const usedColors = new Set(assets.map((a) => a.color?.toLowerCase()));
@@ -599,6 +637,14 @@ export default function NetWorthPage() {
           assets={assets}
           loading={loading}
           timeRangeLabel={getTimeRangeLabel(timeRange)}
+        />
+
+        {/* Net Worth Projection */}
+        <NetWorthProjectionComponent
+          projection={projection}
+          loading={projectionLoading}
+          onGoalChange={handleGoalChange}
+          currentGoal={goalAmount}
         />
 
         {/* Accounts Table */}

@@ -56,4 +56,14 @@ public class NetWorthController : ControllerBase
             groupBy);
         return Ok(comparison);
     }
+
+    [HttpGet("user/{userId}/projection")]
+    public async Task<ActionResult<NetWorthProjectionDto>> GetProjection(
+        int userId,
+        [FromQuery] decimal? goalAmount = null,
+        [FromQuery] int projectionMonths = 12)
+    {
+        var projection = await _netWorthService.GetProjectionAsync(userId, goalAmount, projectionMonths);
+        return Ok(projection);
+    }
 }

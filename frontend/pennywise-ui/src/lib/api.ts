@@ -555,6 +555,27 @@ export interface NetWorthComparison {
   expenseHistory: ExpenseHistoryPoint[];
 }
 
+export interface NetWorthProjectionPoint {
+  date: string;
+  projectedNetWorth: number;
+  isHistorical: boolean;
+}
+
+export interface NetWorthGoal {
+  goalAmount: number;
+  estimatedGoalDate?: string;
+  monthsToGoal?: number;
+  isAchievable: boolean;
+}
+
+export interface NetWorthProjection {
+  currentNetWorth: number;
+  averageMonthlyExpenses: number;
+  averageMonthlyNetChange: number;
+  projectedHistory: NetWorthProjectionPoint[];
+  goal?: NetWorthGoal;
+}
+
 // Asset Category API
 export const assetCategoryApi = {
   async getAll(): Promise<AssetCategory[]> {
@@ -759,6 +780,22 @@ export const netWorthApi = {
       credentials: 'include',
     });
     return handleResponse<NetWorthComparison>(response);
+  },
+
+  async getProjection(
+    userId: number,
+    goalAmount?: number,
+    projectionMonths: number = 12
+  ): Promise<NetWorthProjection> {
+    const params = new URLSearchParams();
+    if (goalAmount !== undefined) {
+      params.set('goalAmount', goalAmount.toString());
+    }
+    params.set('projectionMonths', projectionMonths.toString());
+    const response = await fetch(`${API_BASE_URL}/networth/user/${userId}/projection?${params}`, {
+      credentials: 'include',
+    });
+    return handleResponse<NetWorthProjection>(response);
   },
 };
 

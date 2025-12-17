@@ -77,3 +77,27 @@ public class ExpenseHistoryPointDto
     public DateTime Date { get; set; }
     public decimal TotalExpenses { get; set; }
 }
+
+public class NetWorthProjectionDto
+{
+    public decimal CurrentNetWorth { get; set; }
+    public decimal AverageMonthlyExpenses { get; set; }
+    public decimal AverageMonthlyNetChange { get; set; }
+    public List<NetWorthProjectionPointDto> ProjectedHistory { get; set; } = new();
+    public NetWorthGoalDto? Goal { get; set; }
+}
+
+public class NetWorthProjectionPointDto
+{
+    public DateTime Date { get; set; }
+    public decimal ProjectedNetWorth { get; set; }
+    public bool IsHistorical { get; set; }
+}
+
+public class NetWorthGoalDto
+{
+    public decimal GoalAmount { get; set; }
+    public DateTime? EstimatedGoalDate { get; set; }
+    public int? MonthsToGoal { get; set; }
+    public bool IsAchievable { get; set; }
+}

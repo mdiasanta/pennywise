@@ -191,6 +191,119 @@ public class NetWorthService : INetWorthService
         };
     }
 
+    public async Task<NetWorthProjectionDto> GetProjectionAsync(int userId, decimal? goalAmount = null, int projectionMonths = 12)
+    {
+        // Get historical data from the last 12 months
+        var endDate = DateTime.UtcNow;
+        var startDate = endDate.AddMonths(-12);
+        
+        var history = (await GetHistoryAsync(userId, startDate, endDate, "month")).ToList();
+        var expenses = await _expenseRepository.GetByDateRangeAsync(userId, startDate, endDate);
+        
+        // Calculate average monthly expenses
+        var monthlyExpenses = expenses
+            .GroupBy(e => new { e.Date.Year, e.Date.Month })
+            .Select(g => g.Sum(e => e.Amount))
+            .ToList();
+        
+        var averageMonthlyExpenses = monthlyExpenses.Count > 0 
+            ? monthlyExpenses.Average() 
+            : 0;
+        
+        // Calculate average monthly net change based on net worth history
+        var monthlyNetChanges = new List<decimal>();
+        for (int i = 1; i < history.Count; i++)
+        {
+            monthlyNetChanges.Add(history[i].NetWorth - history[i - 1].NetWorth);
+        }
+        
+        var averageMonthlyNetChange = monthlyNetChanges.Count > 0 
+            ? monthlyNetChanges.Average() 
+            : 0;
+        
+        // Get current net worth
+        var summary = await GetSummaryAsync(userId);
+        var currentNetWorth = summary.NetWorth;
+        
+        // Build projection points
+        var projectedHistory = new List<NetWorthProjectionPointDto>();
+        
+        // Add historical points (last 6 months)
+        var recentHistory = history.TakeLast(6);
+        foreach (var point in recentHistory)
+        {
+            projectedHistory.Add(new NetWorthProjectionPointDto
+            {
+                Date = point.Date,
+                ProjectedNetWorth = point.NetWorth,
+                IsHistorical = true
+            });
+        }
+        
+        // Add future projection points
+        var projectionStart = new DateTime(endDate.Year, endDate.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(1);
+        var projectedNetWorth = currentNetWorth;
+        
+        for (int i = 0; i < projectionMonths; i++)
+        {
+            projectedNetWorth += averageMonthlyNetChange;
+            projectedHistory.Add(new NetWorthProjectionPointDto
+            {
+                Date = projectionStart.AddMonths(i),
+                ProjectedNetWorth = projectedNetWorth,
+                IsHistorical = false
+            });
+        }
+        
+        // Calculate goal information if provided
+        NetWorthGoalDto? goalInfo = null;
+        if (goalAmount.HasValue)
+        {
+            var goal = goalAmount.Value;
+            var isAchievable = averageMonthlyNetChange > 0 || currentNetWorth >= goal;
+            DateTime? estimatedGoalDate = null;
+            int? monthsToGoal = null;
+            
+            if (currentNetWorth >= goal)
+            {
+                // Goal already achieved
+                estimatedGoalDate = DateTime.UtcNow;
+                monthsToGoal = 0;
+                isAchievable = true;
+            }
+            else if (averageMonthlyNetChange > 0)
+            {
+                // Calculate months to reach goal
+                var monthsNeeded = (int)Math.Ceiling((goal - currentNetWorth) / averageMonthlyNetChange);
+                monthsToGoal = monthsNeeded;
+                estimatedGoalDate = DateTime.UtcNow.AddMonths(monthsNeeded);
+                isAchievable = true;
+            }
+            else
+            {
+                // Net worth is declining, goal may not be achievable
+                isAchievable = false;
+            }
+            
+            goalInfo = new NetWorthGoalDto
+            {
+                GoalAmount = goal,
+                EstimatedGoalDate = estimatedGoalDate,
+                MonthsToGoal = monthsToGoal,
+                IsAchievable = isAchievable
+            };
+        }
+        
+        return new NetWorthProjectionDto
+        {
+            CurrentNetWorth = currentNetWorth,
+            AverageMonthlyExpenses = averageMonthlyExpenses,
+            AverageMonthlyNetChange = averageMonthlyNetChange,
+            ProjectedHistory = projectedHistory,
+            Goal = goalInfo
+        };
+    }
+
     private static IEnumerable<DateTime> GenerateDatePoints(DateTime startDate, DateTime endDate, string groupBy)
     {
         var dates = new List<DateTime>();
