@@ -45,7 +45,7 @@ public class NetWorthService : INetWorthService
             {
                 var latestSnapshot = asset.Snapshots?.OrderByDescending(s => s.Date).FirstOrDefault();
                 var balance = latestSnapshot?.Balance ?? 0;
-                
+
                 assetSummaries.Add(new AssetSummaryDto
                 {
                     AssetId = asset.Id,
@@ -77,13 +77,13 @@ public class NetWorthService : INetWorthService
         // Calculate change from last period (30 days ago)
         var previousDate = targetDate.AddDays(-30);
         var previousSnapshots = await _snapshotRepository.GetByUserAsync(userId, null, previousDate);
-        
+
         decimal previousNetWorth = 0;
         foreach (var asset in assets)
         {
             var assetSnapshots = previousSnapshots.Where(s => s.AssetId == asset.Id);
             var latestPreviousSnapshot = assetSnapshots.OrderByDescending(s => s.Date).FirstOrDefault();
-            
+
             if (latestPreviousSnapshot != null)
             {
                 var isLiability = asset.AssetCategory?.IsLiability ?? false;
@@ -111,9 +111,12 @@ public class NetWorthService : INetWorthService
 
     public async Task<IEnumerable<NetWorthHistoryPointDto>> GetHistoryAsync(int userId, DateTime startDate, DateTime endDate, string groupBy = "month")
     {
-        var snapshots = await _snapshotRepository.GetByUserAsync(userId, startDate, endDate);
+        // Fetch all snapshots up to endDate (no startDate filter) so we can find
+        // the most recent snapshot for any date in the range, even if the snapshot
+        // was created before the startDate
+        var snapshots = await _snapshotRepository.GetByUserAsync(userId, null, endDate);
         var assets = await _assetRepository.GetAllByUserAsync(userId);
-        
+
         var history = new List<NetWorthHistoryPointDto>();
         var dates = GenerateDatePoints(startDate, endDate, groupBy);
 
@@ -155,7 +158,7 @@ public class NetWorthService : INetWorthService
     public async Task<NetWorthComparisonDto> GetComparisonAsync(int userId, DateTime startDate, DateTime endDate, string groupBy = "month")
     {
         var netWorthHistory = (await GetHistoryAsync(userId, startDate, endDate, groupBy)).ToList();
-        
+
         // Get expense history
         var expenses = await _expenseRepository.GetByDateRangeAsync(userId, startDate, endDate);
         var expenseHistory = new List<ExpenseHistoryPointDto>();

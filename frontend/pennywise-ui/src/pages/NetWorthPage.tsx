@@ -32,7 +32,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Table,
   TableBody,
@@ -41,6 +40,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { useAssetCategories } from '@/hooks/use-asset-categories';
 import { useAuth } from '@/hooks/use-auth';
@@ -62,9 +62,9 @@ import {
   Minus,
   Pencil,
   Plus,
+  Trash2,
   TrendingDown,
   TrendingUp,
-  Trash2,
   Wallet,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
@@ -84,6 +84,30 @@ type GroupBy = 'day' | 'week' | 'month' | 'quarter' | 'year';
 
 // Maximum years of history to show for "All Time" view
 const ALL_TIME_LOOKBACK_YEARS = 5;
+
+// Palette of visually distinct, accessible colors for assets
+const ASSET_COLOR_PALETTE = [
+  '#4ECDC4', // Teal
+  '#FF6B6B', // Coral
+  '#45B7D1', // Sky Blue
+  '#96CEB4', // Sage Green
+  '#FFEAA7', // Pale Yellow
+  '#DDA0DD', // Plum
+  '#98D8C8', // Mint
+  '#F7DC6F', // Mustard
+  '#BB8FCE', // Lavender
+  '#85C1E9', // Light Blue
+  '#F8B500', // Golden Yellow
+  '#16A085', // Dark Teal
+  '#E74C3C', // Red
+  '#3498DB', // Blue
+  '#9B59B6', // Purple
+  '#1ABC9C', // Turquoise
+  '#F39C12', // Orange
+  '#2ECC71', // Green
+  '#E91E63', // Pink
+  '#00BCD4', // Cyan
+];
 
 export default function NetWorthPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
@@ -179,16 +203,29 @@ export default function NetWorthPage() {
     loadData();
   }, [loadData]);
 
-  const resetAssetForm = () => {
+  const getRandomUnusedColor = useCallback(() => {
+    const usedColors = new Set(assets.map((a) => a.color?.toLowerCase()));
+    const availableColors = ASSET_COLOR_PALETTE.filter(
+      (color) => !usedColors.has(color.toLowerCase())
+    );
+
+    if (availableColors.length > 0) {
+      return availableColors[Math.floor(Math.random() * availableColors.length)];
+    }
+    // If all palette colors are used, return a random one from the palette
+    return ASSET_COLOR_PALETTE[Math.floor(Math.random() * ASSET_COLOR_PALETTE.length)];
+  }, [assets]);
+
+  const resetAssetForm = useCallback(() => {
     setAssetFormData({
       name: '',
       description: '',
       categoryId: '',
-      color: '#4ECDC4',
+      color: getRandomUnusedColor(),
       initialBalance: '',
     });
     setEditingAsset(null);
-  };
+  }, [getRandomUnusedColor]);
 
   const resetBalanceForm = () => {
     setBalanceFormData({
@@ -820,7 +857,7 @@ export default function NetWorthPage() {
                             <SelectValue placeholder="Select a category" />
                           </SelectTrigger>
                           <SelectContent className="border-border/60 bg-card text-foreground">
-                            <SelectItem value="" disabled>
+                            <SelectItem value="__header_assets__" disabled>
                               -- Assets --
                             </SelectItem>
                             {assetCategories.map((cat) => (
@@ -828,7 +865,7 @@ export default function NetWorthPage() {
                                 {cat.name}
                               </SelectItem>
                             ))}
-                            <SelectItem value="" disabled>
+                            <SelectItem value="__header_liabilities__" disabled>
                               -- Liabilities --
                             </SelectItem>
                             {liabilityCategories.map((cat) => (
