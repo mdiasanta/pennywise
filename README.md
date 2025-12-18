@@ -168,10 +168,10 @@ To create a SQL backup of the PostgreSQL database:
 
 ```bash
 # Backup to a timestamped file
-docker compose exec postgres pg_dump -U pennywise pennywise > backup_$(date +%Y%m%d_%H%M%S).sql
+docker compose -f compose.yml exec postgres pg_dump -U pennywise pennywise > backup_$(date +%Y%m%d_%H%M%S).sql
 
 # Or backup to a specific filename
-docker compose exec postgres pg_dump -U pennywise pennywise > backup.sql
+docker compose -f compose.yml exec postgres pg_dump -U pennywise pennywise > backup.sql
 ```
 
 ### Restoring from Backup
@@ -179,12 +179,14 @@ docker compose exec postgres pg_dump -U pennywise pennywise > backup.sql
 To restore the database from a backup file:
 
 ```bash
-# First, you may want to drop and recreate the database
-docker compose exec -T postgres psql -U pennywise -c "DROP DATABASE IF EXISTS pennywise;"
-docker compose exec -T postgres psql -U pennywise -c "CREATE DATABASE pennywise;"
+# First, terminate active connections and drop/recreate the database
+# (Must connect to 'postgres' db, not the one being dropped)
+docker compose -f compose.yml exec -T postgres psql -U pennywise -d postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'pennywise' AND pid <> pg_backend_pid();"
+docker compose -f compose.yml exec -T postgres psql -U pennywise -d postgres -c "DROP DATABASE IF EXISTS pennywise;"
+docker compose -f compose.yml exec -T postgres psql -U pennywise -d postgres -c "CREATE DATABASE pennywise;"
 
 # Restore from backup file
-docker compose exec -T postgres psql -U pennywise pennywise < backup.sql
+docker compose -f compose.yml exec -T postgres psql -U pennywise pennywise < backup.sql
 ```
 
 ### Backup with Compression
@@ -193,20 +195,20 @@ For larger databases, use compressed backups:
 
 ```bash
 # Create compressed backup
-docker compose exec postgres pg_dump -U pennywise pennywise | gzip > backup_$(date +%Y%m%d_%H%M%S).sql.gz
+docker compose -f compose.yml exec postgres pg_dump -U pennywise pennywise | gzip > backup_$(date +%Y%m%d_%H%M%S).sql.gz
 
 # Restore from compressed backup
-gunzip -c backup.sql.gz | docker compose exec -T postgres psql -U pennywise pennywise
+gunzip -c backup.sql.gz | docker compose -f compose.yml exec -T postgres psql -U pennywise pennywise
 ```
 
 ## Stopping the Application
 
 ```bash
-docker-compose down
+docker compose -f compose.yml down
 ```
 
 To remove volumes as well:
 
 ```bash
-docker-compose down -v
+docker compose -f compose.yml down -v
 ```
