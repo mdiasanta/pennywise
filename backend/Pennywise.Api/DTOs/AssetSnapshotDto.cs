@@ -159,3 +159,44 @@ public class ProjectionCalculationDescriptionDto
     public string ProjectedMonthlyChange { get; set; } = string.Empty;
     public string Projection { get; set; } = string.Empty;
 }
+
+// Liability Payoff Estimator DTOs
+public class LiabilityPayoffEstimateDto
+{
+    public List<LiabilityPayoffItemDto> Liabilities { get; set; } = new();
+    public decimal TotalLiabilities { get; set; }
+    public decimal TotalMonthlyPayment { get; set; }
+    public DateTime? OverallPayoffDate { get; set; }
+    public int? MonthsToPayoff { get; set; }
+}
+
+public class LiabilityPayoffItemDto
+{
+    public int AssetId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Color { get; set; }
+    public decimal CurrentBalance { get; set; }
+    public decimal MonthlyPayment { get; set; }
+    public decimal? InterestRate { get; set; }
+    public DateTime? EstimatedPayoffDate { get; set; }
+    public int? MonthsToPayoff { get; set; }
+    public decimal TotalInterestPaid { get; set; }
+    public List<LiabilityPayoffPointDto> PayoffSchedule { get; set; } = new();
+    public bool HasRecurringPayment { get; set; }
+}
+
+public class LiabilityPayoffPointDto
+{
+    public DateTime Date { get; set; }
+    public decimal Balance { get; set; }
+    public decimal Payment { get; set; }
+    public decimal Interest { get; set; }
+    public decimal Principal { get; set; }
+}
+
+public class LiabilityPayoffSettingsDto
+{
+    public int AssetId { get; set; }
+    public decimal? MonthlyPayment { get; set; }
+    public decimal? InterestRate { get; set; }
+}

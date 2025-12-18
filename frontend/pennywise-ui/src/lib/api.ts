@@ -629,6 +629,43 @@ export interface NetWorthProjection {
   calculationDescriptions: ProjectionCalculationDescription;
 }
 
+// Liability Payoff Types
+export interface LiabilityPayoffEstimate {
+  liabilities: LiabilityPayoffItem[];
+  totalLiabilities: number;
+  totalMonthlyPayment: number;
+  overallPayoffDate?: string;
+  monthsToPayoff?: number;
+}
+
+export interface LiabilityPayoffItem {
+  assetId: number;
+  name: string;
+  color?: string;
+  currentBalance: number;
+  monthlyPayment: number;
+  interestRate?: number;
+  estimatedPayoffDate?: string;
+  monthsToPayoff?: number;
+  totalInterestPaid: number;
+  payoffSchedule: LiabilityPayoffPoint[];
+  hasRecurringPayment: boolean;
+}
+
+export interface LiabilityPayoffPoint {
+  date: string;
+  balance: number;
+  payment: number;
+  interest: number;
+  principal: number;
+}
+
+export interface LiabilityPayoffSettings {
+  assetId: number;
+  monthlyPayment?: number;
+  interestRate?: number;
+}
+
 // Asset Category API
 export const assetCategoryApi = {
   async getAll(): Promise<AssetCategory[]> {
@@ -876,6 +913,27 @@ export const netWorthApi = {
       credentials: 'include',
     });
     return handleResponse<NetWorthProjection>(response);
+  },
+
+  async getLiabilityPayoff(
+    userId: number,
+    settings?: LiabilityPayoffSettings[]
+  ): Promise<LiabilityPayoffEstimate> {
+    // Use POST if settings provided, GET otherwise
+    if (settings && settings.length > 0) {
+      const response = await fetch(`${API_BASE_URL}/networth/user/${userId}/liability-payoff`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings),
+        credentials: 'include',
+      });
+      return handleResponse<LiabilityPayoffEstimate>(response);
+    }
+
+    const response = await fetch(`${API_BASE_URL}/networth/user/${userId}/liability-payoff`, {
+      credentials: 'include',
+    });
+    return handleResponse<LiabilityPayoffEstimate>(response);
   },
 };
 

@@ -12,6 +12,7 @@ import {
   formatChartDate,
   getTimeRangeLabel,
   type GroupBy,
+  LiabilityPayoffEstimator,
   NetWorthCharts,
   NetWorthProjectionComponent,
   NetWorthSummaryCards,
@@ -40,6 +41,8 @@ import type {
   CreateAssetSnapshot,
   CreateRecurringTransaction,
   CustomProjectionItem,
+  LiabilityPayoffEstimate,
+  LiabilityPayoffSettings,
   NetWorthComparison,
   NetWorthProjection,
   NetWorthSummary,
@@ -101,6 +104,11 @@ export default function NetWorthPage() {
   const [includeAverageExpenses, setIncludeAverageExpenses] = useState(false);
   const [customProjectionItems, setCustomProjectionItems] = useState<CustomProjectionItem[]>([]);
   const [projectionYears, setProjectionYears] = useState(1);
+
+  // Liability payoff states
+  const [liabilityPayoff, setLiabilityPayoff] = useState<LiabilityPayoffEstimate | null>(null);
+  const [liabilityPayoffLoading, setLiabilityPayoffLoading] = useState(true);
+  const [liabilityPayoffSettings, setLiabilityPayoffSettings] = useState<LiabilityPayoffSettings[]>([]);
 
   // Asset history for individual account chart
   const [assetSnapshots, setAssetSnapshots] = useState<Map<number, AssetSnapshot[]>>(new Map());
@@ -226,6 +234,32 @@ export default function NetWorthPage() {
     toast,
   ]);
 
+  const loadLiabilityPayoff = useCallback(async () => {
+    if (authLoading) return;
+    if (!isAuthenticated || !user) {
+      setLiabilityPayoffLoading(false);
+      return;
+    }
+
+    try {
+      setLiabilityPayoffLoading(true);
+      const payoffData = await netWorthApi.getLiabilityPayoff(
+        user.id,
+        liabilityPayoffSettings.length > 0 ? liabilityPayoffSettings : undefined
+      );
+      setLiabilityPayoff(payoffData);
+    } catch (error) {
+      console.error('Error loading liability payoff data:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to load liability payoff data. Please try again.',
+      });
+    } finally {
+      setLiabilityPayoffLoading(false);
+    }
+  }, [authLoading, isAuthenticated, user, liabilityPayoffSettings, toast]);
+
   useEffect(() => {
     loadData();
   }, [loadData]);
@@ -233,6 +267,10 @@ export default function NetWorthPage() {
   useEffect(() => {
     loadProjection();
   }, [loadProjection]);
+
+  useEffect(() => {
+    loadLiabilityPayoff();
+  }, [loadLiabilityPayoff]);
 
   const handleGoalChange = useCallback((newGoal: number | undefined) => {
     setGoalAmount(newGoal);
@@ -252,6 +290,10 @@ export default function NetWorthPage() {
 
   const handleProjectionYearsChange = useCallback((years: number) => {
     setProjectionYears(years);
+  }, []);
+
+  const handleLiabilityPayoffSettingsChange = useCallback((settings: LiabilityPayoffSettings[]) => {
+    setLiabilityPayoffSettings(settings);
   }, []);
 
   const getRandomUnusedColor = useCallback(() => {
@@ -761,6 +803,14 @@ export default function NetWorthPage() {
           includeAverageExpenses={includeAverageExpenses}
           customItems={customProjectionItems}
           projectionYears={projectionYears}
+        />
+
+        {/* Liability Payoff Estimator */}
+        <LiabilityPayoffEstimator
+          estimate={liabilityPayoff}
+          loading={liabilityPayoffLoading}
+          onSettingsChange={handleLiabilityPayoffSettingsChange}
+          currentSettings={liabilityPayoffSettings}
         />
 
         {/* Accounts Table */}

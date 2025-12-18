@@ -2,6 +2,7 @@ export { AccountsTable } from './AccountsTable';
 export { AssetFormDialog, type AssetFormData } from './AssetFormDialog';
 export { BulkUpdateBalanceDialog, type BulkBalanceEntry, type BulkBalanceFormData } from './BulkUpdateBalanceDialog';
 export * from './constants';
+export { LiabilityPayoffEstimator } from './LiabilityPayoffEstimator';
 export { NetWorthCharts } from './NetWorthCharts';
 export { NetWorthProjectionComponent } from './NetWorthProjection';
 export { NetWorthSummaryCards } from './NetWorthSummaryCards';

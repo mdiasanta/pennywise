@@ -89,4 +89,20 @@ public class NetWorthController : ControllerBase
         var projection = await _netWorthService.GetProjectionAsync(userId, goalAmount, projectionMonths, includeRecurringTransfers, includeAverageExpenses, customItems);
         return Ok(projection);
     }
+
+    [HttpGet("user/{userId}/liability-payoff")]
+    public async Task<ActionResult<LiabilityPayoffEstimateDto>> GetLiabilityPayoff(int userId)
+    {
+        var estimate = await _netWorthService.GetLiabilityPayoffEstimateAsync(userId);
+        return Ok(estimate);
+    }
+
+    [HttpPost("user/{userId}/liability-payoff")]
+    public async Task<ActionResult<LiabilityPayoffEstimateDto>> GetLiabilityPayoffWithSettings(
+        int userId,
+        [FromBody] List<LiabilityPayoffSettingsDto>? settings = null)
+    {
+        var estimate = await _netWorthService.GetLiabilityPayoffEstimateAsync(userId, settings);
+        return Ok(estimate);
+    }
 }

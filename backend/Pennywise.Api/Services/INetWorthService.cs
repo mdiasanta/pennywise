@@ -14,4 +14,7 @@ public interface INetWorthService
         bool includeRecurringTransfers = true,
         bool includeAverageExpenses = false,
         List<CustomProjectionItemDto>? customItems = null);
+    Task<LiabilityPayoffEstimateDto> GetLiabilityPayoffEstimateAsync(
+        int userId,
+        List<LiabilityPayoffSettingsDto>? settings = null);
 }
