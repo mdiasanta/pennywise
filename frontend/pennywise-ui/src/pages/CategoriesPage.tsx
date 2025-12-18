@@ -370,7 +370,8 @@ export default function CategoriesPage() {
                 <p className="mt-2 text-sm">Create your first category to organize expenses.</p>
               </div>
             ) : (
-              <Table className="text-foreground">
+              <div className="overflow-x-auto">
+                <Table className="min-w-[600px] text-foreground">
                 <TableHeader className="[&_tr]:border-border/60">
                   <TableRow className="border-border/60">
                     <TableHead className="text-muted-foreground">Name</TableHead>
@@ -473,6 +474,7 @@ export default function CategoriesPage() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             )}
           </CardContent>
         </Card>

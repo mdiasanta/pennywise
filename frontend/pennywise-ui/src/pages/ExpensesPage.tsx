@@ -1060,7 +1060,8 @@ export default function ExpensesPage() {
                 </p>
               </div>
             ) : (
-              <Table className="text-foreground">
+              <div className="overflow-x-auto">
+                <Table className="min-w-[700px] text-foreground">
                 <TableHeader className="[&_tr]:border-border/60">
                   <TableRow className="border-border/60">
                     <TableHead className="text-muted-foreground">Date</TableHead>
@@ -1149,6 +1150,7 @@ export default function ExpensesPage() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             )}
           </CardContent>
         </Card>

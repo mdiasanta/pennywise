@@ -68,9 +68,9 @@ export function AppLayout({ children, title, description }: AppLayoutProps) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 z-50 h-full transform border-r border-border/60 bg-background/95 backdrop-blur transition-all duration-200 lg:translate-x-0 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } ${sidebarCollapsed ? 'lg:w-16' : 'lg:w-64'} w-64`}
+        className={`fixed top-0 z-50 h-full w-64 border-r border-border/60 bg-background/95 backdrop-blur transition-all duration-200 ${sidebarCollapsed ? 'lg:w-16' : 'lg:w-64'} ${
+          sidebarOpen ? 'left-0' : '-left-64 lg:left-0'
+        }`}
       >
         <div className="flex h-full flex-col">
           {/* Logo */}
@@ -186,12 +186,14 @@ export function AppLayout({ children, title, description }: AppLayoutProps) {
               >
                 <Menu className="h-5 w-5" />
               </Button>
-              <div>
-                <h1 className="text-lg font-semibold text-foreground">{title}</h1>
-                {description && <p className="text-sm text-muted-foreground">{description}</p>}
+              <div className="min-w-0 flex-1">
+                <h1 className="text-lg font-semibold text-foreground truncate">{title}</h1>
+                {description && (
+                  <p className="text-sm text-muted-foreground hidden sm:block">{description}</p>
+                )}
               </div>
             </div>
-            <div className="hidden lg:flex items-center gap-2">
+            <div className="flex items-center gap-2">
               <ThemeToggle />
               <UserMenu />
             </div>
