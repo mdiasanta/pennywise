@@ -3,6 +3,14 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 
+# Build arguments for Vite (must be present at build time)
+ARG VITE_GOOGLE_CLIENT_ID
+ARG VITE_API_URL
+
+# Make args available as env vars during build
+ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
+ENV VITE_API_URL=$VITE_API_URL
+
 # Copy package files
 COPY package*.json ./
 RUN npm ci
