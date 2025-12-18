@@ -461,7 +461,8 @@ export default function DashboardPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <Table className="text-foreground">
+              <div className="overflow-x-auto">
+                <Table className="min-w-[500px] text-foreground">
                 <TableHeader className="[&_tr]:border-border/60">
                   <TableRow className="border-border/60">
                     <TableHead className="text-muted-foreground">Date</TableHead>
@@ -501,6 +502,7 @@ export default function DashboardPage() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         )}

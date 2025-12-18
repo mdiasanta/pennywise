@@ -225,23 +225,23 @@ export default function HomePage() {
         </section>
 
         <section id="workflow" className="container mx-auto px-4 pb-20">
-          <div className="rounded-3xl border border-border/60 bg-gradient-to-r from-background via-card/70 to-card/50 p-8 shadow-2xl">
+          <div className="rounded-3xl border border-border/60 bg-gradient-to-r from-background via-card/70 to-card/50 p-4 sm:p-8 shadow-2xl">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
                 <p className="text-sm uppercase tracking-[0.2em] text-foreground/50">Flow</p>
-                <h2 className="text-3xl font-semibold text-foreground md:text-4xl">
+                <h2 className="text-2xl sm:text-3xl font-semibold text-foreground md:text-4xl">
                   From capture to clarity
                 </h2>
-                <p className="max-w-2xl text-muted-foreground">
+                <p className="max-w-2xl text-sm sm:text-base text-muted-foreground">
                   The Pennywise loop is built to keep you proactive—no dusty spreadsheets or
                   surprise bills.
                 </p>
               </div>
               <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand text-brand-foreground">
-                  <CircleDollarSign className="h-6 w-6" />
+                <div className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-2xl bg-brand text-brand-foreground">
+                  <CircleDollarSign className="h-5 w-5 sm:h-6 sm:w-6" />
                 </div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   Built for teams and households that want answers on demand.
                 </p>
               </div>
@@ -270,16 +270,16 @@ export default function HomePage() {
               <div className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-primary/50 to-transparent" />
               <div className="absolute inset-y-0 right-0 w-1/3 bg-gradient-to-l from-info/40 to-transparent" />
             </div>
-            <CardContent className="relative z-10 px-6 py-12 md:px-12">
-              <div className="grid items-center gap-10 md:grid-cols-[2fr,1fr]">
+            <CardContent className="relative z-10 px-4 py-8 sm:px-6 sm:py-12 md:px-12">
+              <div className="grid items-center gap-6 sm:gap-10 md:grid-cols-[2fr,1fr]">
                 <div className="space-y-4">
                   <p className="text-sm uppercase tracking-[0.2em] text-success-foreground">
                     Get started
                   </p>
-                  <h3 className="text-3xl font-semibold md:text-4xl">
+                  <h3 className="text-2xl sm:text-3xl font-semibold md:text-4xl">
                     Bring Pennywise into your week and stay two steps ahead.
                   </h3>
-                  <p className="text-lg text-muted-foreground">
+                  <p className="text-base sm:text-lg text-muted-foreground">
                     Sign in to access your dashboard, set up envelopes for the month, and watch
                     every transaction land exactly where it belongs.
                   </p>
@@ -287,7 +287,7 @@ export default function HomePage() {
                     <GoogleSignInButton />
                   </div>
                 </div>
-                <div className="rounded-3xl border border-border/60 bg-card/70 p-5 text-sm text-muted-foreground shadow-lg backdrop-blur">
+                <div className="rounded-3xl border border-border/60 bg-card/70 p-4 sm:p-5 text-sm text-muted-foreground shadow-lg backdrop-blur">
                   <div className="flex items-center justify-between">
                     <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
                       In sync

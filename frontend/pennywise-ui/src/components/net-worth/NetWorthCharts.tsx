@@ -81,32 +81,36 @@ export function NetWorthCharts({
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="networth" className="w-full">
-          <TabsList className="mb-4 bg-card/60 text-foreground">
-            <TabsTrigger
-              value="networth"
-              className="data-[state=active]:bg-brand data-[state=active]:text-brand-foreground"
-            >
-              Net Worth
-            </TabsTrigger>
-            <TabsTrigger
-              value="breakdown"
-              className="data-[state=active]:bg-brand data-[state=active]:text-brand-foreground"
-            >
-              Assets vs Liabilities
-            </TabsTrigger>
-            <TabsTrigger
-              value="accounts"
-              className="data-[state=active]:bg-brand data-[state=active]:text-brand-foreground"
-            >
-              Accounts
-            </TabsTrigger>
-            <TabsTrigger
-              value="comparison"
-              className="data-[state=active]:bg-brand data-[state=active]:text-brand-foreground"
-            >
-              vs Expenses
-            </TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto mb-4">
+            <TabsList className="bg-card/60 text-foreground inline-flex min-w-max">
+              <TabsTrigger
+                value="networth"
+                className="data-[state=active]:bg-brand data-[state=active]:text-brand-foreground text-xs sm:text-sm"
+              >
+                Net Worth
+              </TabsTrigger>
+              <TabsTrigger
+                value="breakdown"
+                className="data-[state=active]:bg-brand data-[state=active]:text-brand-foreground text-xs sm:text-sm"
+              >
+                <span className="hidden sm:inline">Assets vs Liabilities</span>
+                <span className="sm:hidden">Assets/Liab</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="accounts"
+                className="data-[state=active]:bg-brand data-[state=active]:text-brand-foreground text-xs sm:text-sm"
+              >
+                Accounts
+              </TabsTrigger>
+              <TabsTrigger
+                value="comparison"
+                className="data-[state=active]:bg-brand data-[state=active]:text-brand-foreground text-xs sm:text-sm"
+              >
+                <span className="hidden sm:inline">vs Expenses</span>
+                <span className="sm:hidden">Expenses</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="networth">
             <ResponsiveContainer width="100%" height={350}>
