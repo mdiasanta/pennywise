@@ -108,7 +108,9 @@ export default function NetWorthPage() {
   // Liability payoff states
   const [liabilityPayoff, setLiabilityPayoff] = useState<LiabilityPayoffEstimate | null>(null);
   const [liabilityPayoffLoading, setLiabilityPayoffLoading] = useState(true);
-  const [liabilityPayoffSettings, setLiabilityPayoffSettings] = useState<LiabilityPayoffSettings[]>([]);
+  const [liabilityPayoffSettings, setLiabilityPayoffSettings] = useState<LiabilityPayoffSettings[]>(
+    []
+  );
 
   // Asset history for individual account chart
   const [assetSnapshots, setAssetSnapshots] = useState<Map<number, AssetSnapshot[]>>(new Map());

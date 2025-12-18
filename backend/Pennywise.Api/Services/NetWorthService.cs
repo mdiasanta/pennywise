@@ -568,38 +568,38 @@ public class NetWorthService : INetWorthService
         List<LiabilityPayoffSettingsDto>? settings = null)
     {
         const int MaxPayoffMonths = 360; // 30 years max
-        
+
         var assets = await _assetRepository.GetAllByUserAsync(userId);
         var liabilities = assets.Where(a => a.AssetCategory?.IsLiability == true).ToList();
-        
+
         // Get recurring transactions for liabilities (payments)
         var recurringTransactions = (await _recurringTransactionRepository.GetByUserAsync(userId))
             .Where(rt => rt.IsActive && liabilities.Any(l => l.Id == rt.AssetId))
             .ToList();
-        
+
         var settingsDict = settings?.ToDictionary(s => s.AssetId) ?? new Dictionary<int, LiabilityPayoffSettingsDto>();
-        
+
         var liabilityItems = new List<LiabilityPayoffItemDto>();
         decimal totalLiabilities = 0;
         decimal totalMonthlyPayment = 0;
         DateTime? overallPayoffDate = null;
-        
+
         foreach (var liability in liabilities)
         {
             var latestSnapshot = liability.Snapshots?.OrderByDescending(s => s.Date).FirstOrDefault();
             var currentBalance = latestSnapshot?.Balance ?? 0;
-            
+
             if (currentBalance <= 0) continue; // Skip if paid off
-            
+
             totalLiabilities += currentBalance;
-            
+
             // Get settings for this liability
             settingsDict.TryGetValue(liability.Id, out var liabilitySettings);
-            
+
             // Calculate monthly payment from recurring transactions or settings
             decimal monthlyPayment = 0;
             var liabilityRecurring = recurringTransactions.Where(rt => rt.AssetId == liability.Id).ToList();
-            
+
             if (liabilitySettings?.MonthlyPayment.HasValue == true)
             {
                 monthlyPayment = liabilitySettings.MonthlyPayment.Value;
@@ -613,13 +613,13 @@ public class NetWorthService : INetWorthService
                     monthlyPayment += Math.Abs(CalculateMonthlyEquivalent(rt.Amount, rt.Frequency));
                 }
             }
-            
+
             totalMonthlyPayment += monthlyPayment;
-            
+
             // Interest rate (from settings, default to 0 if not provided)
             var annualInterestRate = liabilitySettings?.InterestRate ?? 0;
             var monthlyInterestRate = annualInterestRate / 100m / 12m;
-            
+
             // Calculate payoff schedule
             var payoffSchedule = new List<LiabilityPayoffPointDto>();
             var balance = currentBalance;
@@ -627,7 +627,7 @@ public class NetWorthService : INetWorthService
             var currentDate = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(1);
             DateTime? payoffDate = null;
             int monthsToPayoff = 0;
-            
+
             if (monthlyPayment > 0)
             {
                 for (int month = 0; month < MaxPayoffMonths && balance > 0; month++)
@@ -636,11 +636,11 @@ public class NetWorthService : INetWorthService
                     var interest = balance * monthlyInterestRate;
                     var payment = Math.Min(monthlyPayment, balance + interest);
                     var principal = payment - interest;
-                    
+
                     balance = Math.Max(0, balance - principal);
                     totalInterestPaid += interest;
                     monthsToPayoff = month + 1;
-                    
+
                     payoffSchedule.Add(new LiabilityPayoffPointDto
                     {
                         Date = monthDate,
@@ -649,7 +649,7 @@ public class NetWorthService : INetWorthService
                         Interest = interest,
                         Principal = principal
                     });
-                    
+
                     if (balance <= 0)
                     {
                         payoffDate = monthDate;
@@ -657,13 +657,13 @@ public class NetWorthService : INetWorthService
                     }
                 }
             }
-            
+
             // Track the latest payoff date across all liabilities
             if (payoffDate.HasValue && (!overallPayoffDate.HasValue || payoffDate.Value > overallPayoffDate.Value))
             {
                 overallPayoffDate = payoffDate;
             }
-            
+
             liabilityItems.Add(new LiabilityPayoffItemDto
             {
                 AssetId = liability.Id,
@@ -679,7 +679,7 @@ public class NetWorthService : INetWorthService
                 HasRecurringPayment = liabilityRecurring.Any()
             });
         }
-        
+
         // Calculate overall months to payoff
         int? overallMonthsToPayoff = null;
         if (overallPayoffDate.HasValue)
@@ -687,7 +687,7 @@ public class NetWorthService : INetWorthService
             var now = DateTime.UtcNow;
             overallMonthsToPayoff = ((overallPayoffDate.Value.Year - now.Year) * 12) + (overallPayoffDate.Value.Month - now.Month);
         }
-        
+
         return new LiabilityPayoffEstimateDto
         {
             Liabilities = liabilityItems,

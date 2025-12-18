@@ -116,10 +116,7 @@ export function BulkUpdateBalanceDialog({
 
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <Label
-                        htmlFor={`date-${index}`}
-                        className="text-sm text-muted-foreground"
-                      >
+                      <Label htmlFor={`date-${index}`} className="text-sm text-muted-foreground">
                         Date *
                       </Label>
                       <Input
@@ -133,10 +130,7 @@ export function BulkUpdateBalanceDialog({
                     </div>
 
                     <div className="space-y-2">
-                      <Label
-                        htmlFor={`balance-${index}`}
-                        className="text-sm text-muted-foreground"
-                      >
+                      <Label htmlFor={`balance-${index}`} className="text-sm text-muted-foreground">
                         Balance *
                       </Label>
                       <Input
@@ -153,10 +147,7 @@ export function BulkUpdateBalanceDialog({
                   </div>
 
                   <div className="space-y-2">
-                    <Label
-                      htmlFor={`notes-${index}`}
-                      className="text-sm text-muted-foreground"
-                    >
+                    <Label htmlFor={`notes-${index}`} className="text-sm text-muted-foreground">
                       Notes (optional)
                     </Label>
                     <Input
@@ -173,8 +164,8 @@ export function BulkUpdateBalanceDialog({
             </div>
 
             <p className="text-xs text-muted-foreground">
-              {formData.entries.length} {formData.entries.length === 1 ? 'entry' : 'entries'} will be
-              added. If a balance already exists for a date, it will be updated.
+              {formData.entries.length} {formData.entries.length === 1 ? 'entry' : 'entries'} will
+              be added. If a balance already exists for a date, it will be updated.
             </p>
           </div>
 

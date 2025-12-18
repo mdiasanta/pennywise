@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Tooltip as UITooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { TooltipContent, TooltipTrigger, Tooltip as UITooltip } from '@/components/ui/tooltip';
 import type { LiabilityPayoffEstimate, LiabilityPayoffSettings } from '@/lib/api';
 import {
   Calculator,
@@ -23,7 +23,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { formatCurrency, formatChartDate, type GroupBy } from './constants';
+import { formatChartDate, formatCurrency, type GroupBy } from './constants';
 
 interface LiabilityPayoffEstimatorProps {
   estimate: LiabilityPayoffEstimate | null;
@@ -55,7 +55,7 @@ function InfoTooltip({ content }: { content: string }) {
 function formatMonths(months: number): string {
   const years = Math.floor(months / 12);
   const remainingMonths = months % 12;
-  
+
   if (years === 0) {
     return `${remainingMonths} month${remainingMonths !== 1 ? 's' : ''}`;
   }
@@ -71,9 +71,15 @@ export function LiabilityPayoffEstimator({
   onSettingsChange,
   currentSettings: _currentSettings,
 }: LiabilityPayoffEstimatorProps) {
-  const [localSettings, setLocalSettings] = useState<Record<number, { monthlyPayment: string; interestRate: string }>>({});
+  const [localSettings, setLocalSettings] = useState<
+    Record<number, { monthlyPayment: string; interestRate: string }>
+  >({});
 
-  const handleSettingChange = (assetId: number, field: 'monthlyPayment' | 'interestRate', value: string) => {
+  const handleSettingChange = (
+    assetId: number,
+    field: 'monthlyPayment' | 'interestRate',
+    value: string
+  ) => {
     setLocalSettings((prev) => ({
       ...prev,
       [assetId]: {
@@ -84,11 +90,13 @@ export function LiabilityPayoffEstimator({
   };
 
   const handleApplySettings = () => {
-    const newSettings: LiabilityPayoffSettings[] = Object.entries(localSettings).map(([assetId, values]) => ({
-      assetId: parseInt(assetId, 10),
-      monthlyPayment: values.monthlyPayment ? parseFloat(values.monthlyPayment) : undefined,
-      interestRate: values.interestRate ? parseFloat(values.interestRate) : undefined,
-    }));
+    const newSettings: LiabilityPayoffSettings[] = Object.entries(localSettings).map(
+      ([assetId, values]) => ({
+        assetId: parseInt(assetId, 10),
+        monthlyPayment: values.monthlyPayment ? parseFloat(values.monthlyPayment) : undefined,
+        interestRate: values.interestRate ? parseFloat(values.interestRate) : undefined,
+      })
+    );
     onSettingsChange(newSettings);
   };
 
@@ -119,7 +127,8 @@ export function LiabilityPayoffEstimator({
             <CreditCard className="mx-auto h-12 w-12 opacity-50 mb-4" />
             <p>No liabilities found.</p>
             <p className="mt-2 text-sm">
-              Add liability accounts (like credit cards, loans, or mortgages) to see payoff estimates.
+              Add liability accounts (like credit cards, loans, or mortgages) to see payoff
+              estimates.
             </p>
           </div>
         </CardContent>
@@ -130,20 +139,20 @@ export function LiabilityPayoffEstimator({
   // Prepare chart data - combine all liability payoff schedules
   const chartData: { date: string; [key: string]: number | string }[] = [];
   const allDates = new Set<string>();
-  
+
   estimate.liabilities.forEach((liability) => {
     liability.payoffSchedule.forEach((point) => {
       allDates.add(point.date);
     });
   });
-  
+
   const sortedDates = Array.from(allDates).sort();
-  
+
   sortedDates.forEach((date) => {
     const dataPoint: { date: string; [key: string]: number | string } = {
       date: formatChartDate(date, 'month' as GroupBy),
     };
-    
+
     let totalBalance = 0;
     estimate.liabilities.forEach((liability) => {
       const point = liability.payoffSchedule.find((p) => p.date === date);
@@ -161,12 +170,21 @@ export function LiabilityPayoffEstimator({
       }
     });
     dataPoint['Total'] = totalBalance;
-    
+
     chartData.push(dataPoint);
   });
 
   // Generate colors for each liability
-  const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#F8B500', '#9B59B6'];
+  const colors = [
+    '#FF6B6B',
+    '#4ECDC4',
+    '#45B7D1',
+    '#96CEB4',
+    '#FFEAA7',
+    '#DDA0DD',
+    '#F8B500',
+    '#9B59B6',
+  ];
 
   return (
     <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
@@ -252,7 +270,7 @@ export function LiabilityPayoffEstimator({
                   formatter={(value: number) => formatCurrency(value)}
                 />
                 <Legend wrapperStyle={{ color: '#cbd5f5' }} />
-                
+
                 {estimate.liabilities.map((liability, index) => (
                   <Area
                     key={liability.assetId}
@@ -276,12 +294,7 @@ export function LiabilityPayoffEstimator({
               <h3 className="text-sm font-medium">Liability Details</h3>
               <InfoTooltip content="Customize monthly payment amounts and interest rates to see how they affect your payoff timeline. Leave blank to use detected recurring payments." />
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleApplySettings}
-              className="text-xs"
-            >
+            <Button variant="outline" size="sm" onClick={handleApplySettings} className="text-xs">
               Recalculate
             </Button>
           </div>
@@ -289,10 +302,11 @@ export function LiabilityPayoffEstimator({
           <div className="space-y-4">
             {estimate.liabilities.map((liability, index) => {
               const settings = localSettings[liability.assetId] || {
-                monthlyPayment: liability.monthlyPayment > 0 ? liability.monthlyPayment.toString() : '',
+                monthlyPayment:
+                  liability.monthlyPayment > 0 ? liability.monthlyPayment.toString() : '',
                 interestRate: liability.interestRate?.toString() || '',
               };
-              
+
               return (
                 <div
                   key={liability.assetId}
@@ -302,7 +316,9 @@ export function LiabilityPayoffEstimator({
                     <div className="flex items-center gap-2">
                       <div
                         className="h-3 w-3 rounded-full"
-                        style={{ backgroundColor: liability.color || colors[index % colors.length] }}
+                        style={{
+                          backgroundColor: liability.color || colors[index % colors.length],
+                        }}
                       />
                       <span className="font-medium">{liability.name}</span>
                       {liability.hasRecurringPayment && (
@@ -325,9 +341,13 @@ export function LiabilityPayoffEstimator({
                         </span>
                         <Input
                           type="number"
-                          placeholder={liability.monthlyPayment > 0 ? liability.monthlyPayment.toString() : '0'}
+                          placeholder={
+                            liability.monthlyPayment > 0 ? liability.monthlyPayment.toString() : '0'
+                          }
                           value={settings.monthlyPayment}
-                          onChange={(e) => handleSettingChange(liability.assetId, 'monthlyPayment', e.target.value)}
+                          onChange={(e) =>
+                            handleSettingChange(liability.assetId, 'monthlyPayment', e.target.value)
+                          }
                           className="h-8 border-border/60 bg-card/70 text-sm pl-5"
                         />
                       </div>
@@ -341,7 +361,9 @@ export function LiabilityPayoffEstimator({
                           step="0.1"
                           placeholder={liability.interestRate?.toString() || '0'}
                           value={settings.interestRate}
-                          onChange={(e) => handleSettingChange(liability.assetId, 'interestRate', e.target.value)}
+                          onChange={(e) =>
+                            handleSettingChange(liability.assetId, 'interestRate', e.target.value)
+                          }
                           className="h-8 border-border/60 bg-card/70 text-sm pr-6"
                         />
                         <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
@@ -359,8 +381,8 @@ export function LiabilityPayoffEstimator({
                               year: 'numeric',
                             })
                           : liability.monthlyPayment > 0
-                          ? 'Calculating...'
-                          : 'No payment set'}
+                            ? 'Calculating...'
+                            : 'No payment set'}
                       </div>
                     </div>
 
