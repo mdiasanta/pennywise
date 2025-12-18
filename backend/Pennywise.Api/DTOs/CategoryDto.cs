@@ -22,4 +22,5 @@ public class CategoryDto
     public string? Color { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+    public bool IsDefault { get; set; }
 }

@@ -89,7 +89,8 @@ public class CategoryService : ICategoryService
             Description = category.Description,
             Color = category.Color,
             CreatedAt = category.CreatedAt,
-            UpdatedAt = category.UpdatedAt
+            UpdatedAt = category.UpdatedAt,
+            IsDefault = category.UserId == null
         };
     }
 }

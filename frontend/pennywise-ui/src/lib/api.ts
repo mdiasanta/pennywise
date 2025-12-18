@@ -85,6 +85,7 @@ export interface Category {
   color?: string;
   createdAt: string;
   updatedAt: string;
+  isDefault: boolean;
 }
 
 export interface CreateCategory {

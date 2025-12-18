@@ -420,46 +420,53 @@ export default function CategoriesPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end space-x-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-foreground hover:bg-card/70"
-                            onClick={() => startEdit(category)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="text-destructive hover:bg-destructive/10"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent className="border-border/60 bg-card text-foreground">
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete category</AlertDialogTitle>
-                                <AlertDialogDescription className="text-muted-foreground">
-                                  This will remove the category from your workspace. Expenses
-                                  previously using it will lose the association.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel className="border-border/60 bg-card/80 text-foreground hover:bg-card/70">
-                                  Cancel
-                                </AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => void handleDelete(category)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                  disabled={deletingId === category.id}
+                          {!category.isDefault && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-foreground hover:bg-card/70"
+                              onClick={() => startEdit(category)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {!category.isDefault && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-destructive hover:bg-destructive/10"
                                 >
-                                  {deletingId === category.id ? 'Deleting...' : 'Delete'}
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent className="border-border/60 bg-card text-foreground">
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete category</AlertDialogTitle>
+                                  <AlertDialogDescription className="text-muted-foreground">
+                                    This will remove the category from your workspace. You cannot
+                                    delete a category that has expenses assigned to it.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel className="border-border/60 bg-card/80 text-foreground hover:bg-card/70">
+                                    Cancel
+                                  </AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => void handleDelete(category)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    disabled={deletingId === category.id}
+                                  >
+                                    {deletingId === category.id ? 'Deleting...' : 'Delete'}
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
+                          {category.isDefault && (
+                            <span className="text-xs text-muted-foreground italic">Default</span>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
