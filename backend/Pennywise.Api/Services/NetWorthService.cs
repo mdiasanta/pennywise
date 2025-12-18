@@ -253,7 +253,12 @@ public class NetWorthService : INetWorthService
         var recurringTransferSummaries = new List<RecurringTransferSummaryDto>();
         decimal recurringTransfersMonthlyTotal = 0;
 
-        foreach (var rt in recurringTransactions)
+        // Filter recurring transactions that are still active (no end date or end date in the future)
+        var activeRecurringTransactions = recurringTransactions
+            .Where(rt => !rt.EndDate.HasValue || rt.EndDate.Value > DateTime.UtcNow)
+            .ToList();
+
+        foreach (var rt in activeRecurringTransactions)
         {
             var monthlyEquivalent = CalculateMonthlyEquivalent(rt.Amount, rt.Frequency);
             recurringTransfersMonthlyTotal += monthlyEquivalent;
@@ -352,15 +357,37 @@ public class NetWorthService : INetWorthService
         {
             var currentMonth = projectionStart.AddMonths(i);
             var monthlyChange = projectedMonthlyChange;
+            
+            // Adjust for recurring transactions that end during this month
+            if (includeRecurringTransfers)
+            {
+                foreach (var rt in activeRecurringTransactions.Where(rt => rt.EndDate.HasValue))
+                {
+                    // If the recurring transaction ends before or during this month, subtract its contribution
+                    if (rt.EndDate!.Value.Year < currentMonth.Year || 
+                        (rt.EndDate.Value.Year == currentMonth.Year && rt.EndDate.Value.Month < currentMonth.Month))
+                    {
+                        monthlyChange -= CalculateMonthlyEquivalent(rt.Amount, rt.Frequency);
+                    }
+                }
+            }
 
-            // Add one-time custom items that fall in this month
+            // Add one-time custom items that fall in this month (or first month if no date specified)
             if (customItems != null)
             {
-                foreach (var item in customItems.Where(c => !c.IsRecurring && c.Date.HasValue))
+                foreach (var item in customItems.Where(c => !c.IsRecurring))
                 {
-                    if (item.Date is { } itemDate &&
-                        itemDate.Year == currentMonth.Year && itemDate.Month == currentMonth.Month)
+                    if (item.Date.HasValue)
                     {
+                        // Item has a specific date - apply in that month
+                        if (item.Date.Value.Year == currentMonth.Year && item.Date.Value.Month == currentMonth.Month)
+                        {
+                            monthlyChange += item.Amount;
+                        }
+                    }
+                    else if (i == 0)
+                    {
+                        // Item has no date - apply in the first projection month
                         monthlyChange += item.Amount;
                     }
                 }
@@ -376,6 +403,7 @@ public class NetWorthService : INetWorthService
         }
 
         // Calculate goal information if provided
+        // Use the projected history we just calculated to find when the goal is reached
         NetWorthGoalDto? goalInfo = null;
         if (goalAmount.HasValue)
         {
@@ -391,13 +419,35 @@ public class NetWorthService : INetWorthService
                 monthsToGoal = 0;
                 isAchievable = true;
             }
-            else if (projectedMonthlyChange > 0)
+            else
             {
-                // Calculate months to reach goal
-                var monthsNeeded = (int)Math.Ceiling((goal - currentNetWorth) / projectedMonthlyChange);
-                monthsToGoal = monthsNeeded;
-                estimatedGoalDate = DateTime.UtcNow.AddMonths(monthsNeeded);
-                isAchievable = true;
+                // Find the first projected month where we reach the goal
+                var projectedPoints = projectedHistory.Where(p => !p.IsHistorical).ToList();
+                for (int i = 0; i < projectedPoints.Count; i++)
+                {
+                    if (projectedPoints[i].ProjectedNetWorth >= goal)
+                    {
+                        monthsToGoal = i + 1;
+                        estimatedGoalDate = projectedPoints[i].Date;
+                        isAchievable = true;
+                        break;
+                    }
+                }
+                
+                // If goal not reached within projection period but trending positive, estimate when
+                if (!isAchievable && projectedMonthlyChange > 0)
+                {
+                    // Calculate from the end of projection period
+                    var lastProjectedPoint = projectedPoints.LastOrDefault();
+                    if (lastProjectedPoint != null)
+                    {
+                        var remainingToGoal = goal - lastProjectedPoint.ProjectedNetWorth;
+                        var additionalMonthsNeeded = (int)Math.Ceiling(remainingToGoal / projectedMonthlyChange);
+                        monthsToGoal = projectionMonths + additionalMonthsNeeded;
+                        estimatedGoalDate = lastProjectedPoint.Date.AddMonths(additionalMonthsNeeded);
+                        isAchievable = true;
+                    }
+                }
             }
 
             goalInfo = new NetWorthGoalDto
