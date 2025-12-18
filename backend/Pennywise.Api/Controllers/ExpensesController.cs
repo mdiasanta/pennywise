@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using ClosedXML.Excel;
@@ -29,6 +30,14 @@ public class ExpensesController : ControllerBase
         _expenseImportService = expenseImportService;
     }
 
+    private int? GetUserId()
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(userIdClaim, out var userId))
+            return userId;
+        return null;
+    }
+
     [HttpGet("user/{userId}")]
     public async Task<ActionResult<IEnumerable<ExpenseDto>>> GetExpenses(
         int userId,
@@ -47,12 +56,15 @@ public class ExpensesController : ControllerBase
     }
 
     [HttpGet("template")]
-    [AllowAnonymous]
     public async Task<IActionResult> GetTemplate([FromQuery] string format = "csv")
     {
+        var userId = GetUserId();
+        if (userId == null)
+            return Unauthorized();
+
         try
         {
-            var template = await _expenseImportService.GenerateTemplateAsync(format);
+            var template = await _expenseImportService.GenerateTemplateAsync(format, userId.Value);
             Response.Headers["Content-Disposition"] = $"attachment; filename=\"{template.FileName}\"";
             return File(template.Content, template.ContentType);
         }

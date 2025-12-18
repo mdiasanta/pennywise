@@ -47,6 +47,12 @@ public class PennywiseDbContext : DbContext
             entity.Property(e => e.Color).HasMaxLength(7);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
             entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            // UserId is optional - null means default/global category
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.Categories)
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         // Expense configuration

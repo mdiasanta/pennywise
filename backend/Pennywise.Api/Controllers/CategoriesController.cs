@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pennywise.Api.DTOs;
@@ -17,17 +18,33 @@ public class CategoriesController : ControllerBase
         _categoryService = categoryService;
     }
 
+    private int? GetUserId()
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(userIdClaim, out var userId))
+            return userId;
+        return null;
+    }
+
     [HttpGet]
     public async Task<ActionResult<IEnumerable<CategoryDto>>> GetCategories()
     {
-        var categories = await _categoryService.GetAllCategoriesAsync();
+        var userId = GetUserId();
+        if (userId == null)
+            return Unauthorized();
+
+        var categories = await _categoryService.GetAllCategoriesAsync(userId.Value);
         return Ok(categories);
     }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<CategoryDto>> GetCategory(int id)
     {
-        var category = await _categoryService.GetCategoryByIdAsync(id);
+        var userId = GetUserId();
+        if (userId == null)
+            return Unauthorized();
+
+        var category = await _categoryService.GetCategoryByIdAsync(id, userId.Value);
         if (category == null)
             return NotFound();
 
@@ -37,14 +54,22 @@ public class CategoriesController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<CategoryDto>> CreateCategory(CreateCategoryDto createDto)
     {
-        var category = await _categoryService.CreateCategoryAsync(createDto);
+        var userId = GetUserId();
+        if (userId == null)
+            return Unauthorized();
+
+        var category = await _categoryService.CreateCategoryAsync(createDto, userId.Value);
         return CreatedAtAction(nameof(GetCategory), new { id = category.Id }, category);
     }
 
     [HttpPut("{id}")]
     public async Task<ActionResult<CategoryDto>> UpdateCategory(int id, UpdateCategoryDto updateDto)
     {
-        var category = await _categoryService.UpdateCategoryAsync(id, updateDto);
+        var userId = GetUserId();
+        if (userId == null)
+            return Unauthorized();
+
+        var category = await _categoryService.UpdateCategoryAsync(id, updateDto, userId.Value);
         if (category == null)
             return NotFound();
 
@@ -54,9 +79,17 @@ public class CategoriesController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteCategory(int id)
     {
-        var result = await _categoryService.DeleteCategoryAsync(id);
-        if (!result)
-            return NotFound();
+        var userId = GetUserId();
+        if (userId == null)
+            return Unauthorized();
+
+        var (success, errorMessage) = await _categoryService.DeleteCategoryAsync(id, userId.Value);
+        if (!success)
+        {
+            if (errorMessage == "Category not found")
+                return NotFound();
+            return BadRequest(errorMessage);
+        }
 
         return NoContent();
     }

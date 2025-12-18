@@ -28,10 +28,10 @@ public class ExpenseImportService : IExpenseImportService
         _importAuditService = importAuditService;
     }
 
-    public async Task<(byte[] Content, string ContentType, string FileName)> GenerateTemplateAsync(string format)
+    public async Task<(byte[] Content, string ContentType, string FileName)> GenerateTemplateAsync(string format, int userId)
     {
         var normalized = NormalizeFormat(format);
-        var categories = (await _categoryRepository.GetAllAsync()).Select(c => c.Name).ToList();
+        var categories = (await _categoryRepository.GetAllAsync(userId)).Select(c => c.Name).ToList();
         var safeCategories = categories.Count == 0 ? new List<string> { "General" } : categories;
         var exampleCategory = safeCategories.First();
 
@@ -71,7 +71,7 @@ public class ExpenseImportService : IExpenseImportService
             ? ParseCsv(buffer)
             : ParseExcel(buffer);
 
-        var categories = (await _categoryRepository.GetAllAsync())
+        var categories = (await _categoryRepository.GetAllAsync(request.UserId))
             .ToDictionary(c => c.Name.Trim(), c => c, StringComparer.OrdinalIgnoreCase);
         if (categories.Count == 0)
         {
