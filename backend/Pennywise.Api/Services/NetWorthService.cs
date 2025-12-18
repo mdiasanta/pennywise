@@ -135,11 +135,16 @@ public class NetWorthService : INetWorthService
             decimal totalAssets = 0;
             decimal totalLiabilities = 0;
 
+            // For the current period, use the actual endDate (or period end, whichever is earlier)
+            // This ensures we include snapshots from the current incomplete period
+            var periodEnd = GetPeriodEnd(date, groupBy);
+            var effectiveEndDate = periodEnd > endDate ? endDate : periodEnd;
+
             foreach (var asset in assets)
             {
-                // Get the most recent snapshot for this asset up to this date
+                // Get the most recent snapshot for this asset up to the effective end date
                 var assetSnapshots = snapshots
-                    .Where(s => s.AssetId == asset.Id && s.Date <= date)
+                    .Where(s => s.AssetId == asset.Id && s.Date <= effectiveEndDate)
                     .OrderByDescending(s => s.Date)
                     .FirstOrDefault();
 
@@ -202,57 +207,57 @@ public class NetWorthService : INetWorthService
     }
 
     public async Task<NetWorthProjectionDto> GetProjectionAsync(
-        int userId, 
-        decimal? goalAmount = null, 
-        int projectionMonths = 12, 
+        int userId,
+        decimal? goalAmount = null,
+        int projectionMonths = 12,
         bool includeRecurringTransfers = true,
         bool includeAverageExpenses = false,
         List<CustomProjectionItemDto>? customItems = null)
     {
         // Validate projectionMonths
         projectionMonths = Math.Clamp(projectionMonths, 1, 120);
-        
+
         // Get historical data from the configured lookback period
         var endDate = DateTime.UtcNow;
         var startDate = endDate.AddMonths(-HistoricalLookbackMonths);
-        
+
         var history = (await GetHistoryAsync(userId, startDate, endDate, "month")).ToList();
         var expenses = await _expenseRepository.GetByDateRangeAsync(userId, startDate, endDate);
-        
+
         // Calculate average monthly expenses
         var monthlyExpenses = expenses
             .GroupBy(e => new { e.Date.Year, e.Date.Month })
             .Select(g => g.Sum(e => e.Amount))
             .ToList();
-        
-        var averageMonthlyExpenses = monthlyExpenses.Count > 0 
-            ? monthlyExpenses.Average() 
+
+        var averageMonthlyExpenses = monthlyExpenses.Count > 0
+            ? monthlyExpenses.Average()
             : 0;
-        
+
         // Calculate average monthly net change based on net worth history (for reference only)
         var monthlyNetChanges = new List<decimal>();
         for (int i = 1; i < history.Count; i++)
         {
             monthlyNetChanges.Add(history[i].NetWorth - history[i - 1].NetWorth);
         }
-        
-        var averageMonthlyNetChange = monthlyNetChanges.Count > 0 
-            ? monthlyNetChanges.Average() 
+
+        var averageMonthlyNetChange = monthlyNetChanges.Count > 0
+            ? monthlyNetChanges.Average()
             : 0;
-        
+
         // Get recurring transactions and calculate monthly equivalent
         var recurringTransactions = (await _recurringTransactionRepository.GetByUserAsync(userId))
             .Where(rt => rt.IsActive)
             .ToList();
-        
+
         var recurringTransferSummaries = new List<RecurringTransferSummaryDto>();
         decimal recurringTransfersMonthlyTotal = 0;
-        
+
         foreach (var rt in recurringTransactions)
         {
             var monthlyEquivalent = CalculateMonthlyEquivalent(rt.Amount, rt.Frequency);
             recurringTransfersMonthlyTotal += monthlyEquivalent;
-            
+
             recurringTransferSummaries.Add(new RecurringTransferSummaryDto
             {
                 Id = rt.Id,
@@ -263,11 +268,11 @@ public class NetWorthService : INetWorthService
                 MonthlyEquivalent = monthlyEquivalent
             });
         }
-        
+
         // Process custom items
         var processedCustomItems = new List<CustomProjectionItemDto>();
         decimal customItemsMonthlyTotal = 0;
-        
+
         if (customItems != null)
         {
             foreach (var item in customItems)
@@ -289,7 +294,7 @@ public class NetWorthService : INetWorthService
                     // One-time items spread across projection period
                     monthlyEquivalent = item.Amount / projectionMonths;
                 }
-                
+
                 customItemsMonthlyTotal += monthlyEquivalent;
                 processedCustomItems.Add(new CustomProjectionItemDto
                 {
@@ -302,29 +307,29 @@ public class NetWorthService : INetWorthService
                 });
             }
         }
-        
+
         // Get current net worth
         var summary = await GetSummaryAsync(userId);
         var currentNetWorth = summary.NetWorth;
-        
+
         // Calculate projected monthly change based on recurring transfers (not historical trends)
         decimal projectedMonthlyChange = 0;
-        
+
         if (includeRecurringTransfers)
         {
             projectedMonthlyChange += recurringTransfersMonthlyTotal;
         }
-        
+
         if (includeAverageExpenses)
         {
             projectedMonthlyChange -= averageMonthlyExpenses;
         }
-        
+
         projectedMonthlyChange += customItemsMonthlyTotal;
-        
+
         // Build projection points
         var projectedHistory = new List<NetWorthProjectionPointDto>();
-        
+
         // Add recent historical points for context in the chart
         var recentHistory = history.TakeLast(RecentHistoryMonthsToDisplay);
         foreach (var point in recentHistory)
@@ -336,29 +341,29 @@ public class NetWorthService : INetWorthService
                 IsHistorical = true
             });
         }
-        
+
         // Add future projection points
         var projectionStart = new DateTime(endDate.Year, endDate.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(1);
         var projectedNetWorth = currentNetWorth;
-        
+
         for (int i = 0; i < projectionMonths; i++)
         {
             var currentMonth = projectionStart.AddMonths(i);
             var monthlyChange = projectedMonthlyChange;
-            
+
             // Add one-time custom items that fall in this month
             if (customItems != null)
             {
                 foreach (var item in customItems.Where(c => !c.IsRecurring && c.Date.HasValue))
                 {
-                    if (item.Date is { } itemDate && 
+                    if (item.Date is { } itemDate &&
                         itemDate.Year == currentMonth.Year && itemDate.Month == currentMonth.Month)
                     {
                         monthlyChange += item.Amount;
                     }
                 }
             }
-            
+
             projectedNetWorth += monthlyChange;
             projectedHistory.Add(new NetWorthProjectionPointDto
             {
@@ -367,7 +372,7 @@ public class NetWorthService : INetWorthService
                 IsHistorical = false
             });
         }
-        
+
         // Calculate goal information if provided
         NetWorthGoalDto? goalInfo = null;
         if (goalAmount.HasValue)
@@ -376,7 +381,7 @@ public class NetWorthService : INetWorthService
             var isAchievable = false;
             DateTime? estimatedGoalDate = null;
             int? monthsToGoal = null;
-            
+
             if (currentNetWorth >= goal)
             {
                 // Goal already achieved
@@ -392,7 +397,7 @@ public class NetWorthService : INetWorthService
                 estimatedGoalDate = DateTime.UtcNow.AddMonths(monthsNeeded);
                 isAchievable = true;
             }
-            
+
             goalInfo = new NetWorthGoalDto
             {
                 GoalAmount = goal,
@@ -401,10 +406,10 @@ public class NetWorthService : INetWorthService
                 IsAchievable = isAchievable
             };
         }
-        
+
         // Build calculation descriptions
         var monthsUsed = monthlyExpenses.Count > 0 ? monthlyExpenses.Count : HistoricalLookbackMonths;
-        
+
         var projectionParts = new List<string>();
         if (includeRecurringTransfers)
             projectionParts.Add("recurring transfers");
@@ -412,13 +417,13 @@ public class NetWorthService : INetWorthService
             projectionParts.Add("average monthly expenses (subtracted)");
         if (customItems?.Count > 0)
             projectionParts.Add("custom projection items");
-        
+
         var calculationDescriptions = new ProjectionCalculationDescriptionDto
         {
             AverageMonthlyExpenses = $"Sum of all expenses over the last {monthsUsed} months, divided by {monthsUsed}. This represents your typical monthly spending. When enabled, this amount is subtracted from the projection.",
             AverageMonthlyNetChange = $"Historical reference: The average change in net worth between consecutive months. This shows your past trend but is not used in the projection calculation.",
             RecurringTransfersMonthlyTotal = $"Sum of all active recurring transfers converted to their monthly equivalent. Weekly × {WeeksPerMonth:F2}, Biweekly × {BiweeklyPerMonth:F2}, Monthly × 1, Quarterly ÷ 3, Yearly ÷ 12.",
-            CustomItemsTotal = customItems?.Count > 0 
+            CustomItemsTotal = customItems?.Count > 0
                 ? $"Sum of {customItems.Count} custom item(s). One-time items are applied in their specified month. Recurring custom items are converted to monthly equivalents."
                 : "No custom items added. Add custom items for major purchases like a house, car, or other planned expenses/income.",
             ProjectedMonthlyChange = projectionParts.Count > 0
@@ -426,7 +431,7 @@ public class NetWorthService : INetWorthService
                 : "No projection factors enabled. Enable recurring transfers or add custom items to see a projection.",
             Projection = $"Starting from your current net worth ({currentNetWorth:C0}), the projection adds the monthly change each month for {projectionMonths} months. One-time custom items are applied in their specified month."
         };
-        
+
         return new NetWorthProjectionDto
         {
             CurrentNetWorth = currentNetWorth,
@@ -444,7 +449,7 @@ public class NetWorthService : INetWorthService
             CalculationDescriptions = calculationDescriptions
         };
     }
-    
+
     private static decimal CalculateMonthlyEquivalent(decimal amount, RecurringFrequency frequency)
     {
         return frequency switch
