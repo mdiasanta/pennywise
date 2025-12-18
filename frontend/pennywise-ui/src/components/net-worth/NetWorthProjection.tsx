@@ -10,14 +10,14 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Tooltip as UITooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { TooltipContent, TooltipTrigger, Tooltip as UITooltip } from '@/components/ui/tooltip';
 import type { CustomProjectionItem, NetWorthProjection } from '@/lib/api';
 import {
   CalendarClock,
+  Car,
   DollarSign,
   HelpCircle,
   Home,
-  Car,
   Plus,
   RefreshCcw,
   Target,
@@ -37,7 +37,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { formatCurrency, formatChartDate, type GroupBy } from './constants';
+import { formatChartDate, formatCurrency, type GroupBy } from './constants';
 
 interface NetWorthProjectionProps {
   projection: NetWorthProjection | null;
@@ -95,10 +95,24 @@ export function NetWorthProjectionComponent({
   const [newItemIsRecurring, setNewItemIsRecurring] = useState(false);
   const [newItemFrequency, setNewItemFrequency] = useState('Monthly');
 
+  // Quick item form states
+  const [homeDownPaymentAmount, setHomeDownPaymentAmount] = useState('50000');
+  const [homeDownPaymentDate, setHomeDownPaymentDate] = useState('');
+  const [carPurchaseAmount, setCarPurchaseAmount] = useState('30000');
+  const [carPurchaseDate, setCarPurchaseDate] = useState('');
+
   // Sync goalInput when currentGoal changes
   useEffect(() => {
     setGoalInput(currentGoal?.toString() || '');
   }, [currentGoal]);
+
+  // Calculate minimum date (first day of next month)
+  const getMinDate = () => {
+    const today = new Date();
+    const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+    return nextMonth.toISOString().split('T')[0];
+  };
+  const minDate = getMinDate();
 
   const handleSetGoal = () => {
     const goalValue = parseFloat(goalInput);
@@ -115,6 +129,10 @@ export function NetWorthProjectionComponent({
   const handleAddCustomItem = () => {
     const amount = parseFloat(newItemAmount);
     if (newItemDescription && !Number.isNaN(amount)) {
+      // For non-recurring items with a date, validate it's at least next month
+      if (!newItemIsRecurring && newItemDate && newItemDate < minDate) {
+        return; // Don't add if date is before next month
+      }
       const newItem: CustomProjectionItem = {
         description: newItemDescription,
         amount: amount,
@@ -135,10 +153,15 @@ export function NetWorthProjectionComponent({
     onCustomItemsChange(updatedItems);
   };
 
-  const addQuickItem = (description: string, amount: number) => {
+  const addQuickItem = (description: string, amount: number, date?: string) => {
+    // Validate date is at least next month if provided
+    if (date && date < minDate) {
+      return;
+    }
     const newItem: CustomProjectionItem = {
       description,
       amount,
+      date: date || undefined,
       isRecurring: false,
     };
     onCustomItemsChange([...customItems, newItem]);
@@ -310,26 +333,91 @@ export function NetWorthProjectionComponent({
             </div>
           </div>
 
-          {/* Quick Add Buttons */}
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-xs"
-              onClick={() => addQuickItem('Home Down Payment', -50000)}
-            >
-              <Home className="h-3 w-3 mr-1" />
-              Home Down Payment
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-xs"
-              onClick={() => addQuickItem('Car Purchase', -30000)}
-            >
-              <Car className="h-3 w-3 mr-1" />
-              Car Purchase
-            </Button>
+          {/* Quick Add Items */}
+          <div className="space-y-3">
+            {/* Home Down Payment */}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1 min-w-[140px]">
+                <Home className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-xs font-medium">Home Down Payment</span>
+              </div>
+              <div className="relative">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                  $
+                </span>
+                <Input
+                  type="number"
+                  placeholder="Amount"
+                  value={homeDownPaymentAmount}
+                  onChange={(e) => setHomeDownPaymentAmount(e.target.value)}
+                  className="w-28 border-border/60 bg-card/70 text-sm pl-5 h-8"
+                />
+              </div>
+              <Input
+                type="date"
+                value={homeDownPaymentDate}
+                onChange={(e) => setHomeDownPaymentDate(e.target.value)}
+                min={minDate}
+                className="w-36 border-border/60 bg-card/70 text-sm h-8"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs h-8"
+                onClick={() => {
+                  const amount = parseFloat(homeDownPaymentAmount);
+                  if (!Number.isNaN(amount) && amount > 0 && homeDownPaymentDate) {
+                    addQuickItem('Home Down Payment', -amount, homeDownPaymentDate);
+                  }
+                }}
+                disabled={!homeDownPaymentAmount || !homeDownPaymentDate}
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                Add
+              </Button>
+            </div>
+
+            {/* Car Purchase */}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1 min-w-[140px]">
+                <Car className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-xs font-medium">Car Purchase</span>
+              </div>
+              <div className="relative">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                  $
+                </span>
+                <Input
+                  type="number"
+                  placeholder="Amount"
+                  value={carPurchaseAmount}
+                  onChange={(e) => setCarPurchaseAmount(e.target.value)}
+                  className="w-28 border-border/60 bg-card/70 text-sm pl-5 h-8"
+                />
+              </div>
+              <Input
+                type="date"
+                value={carPurchaseDate}
+                onChange={(e) => setCarPurchaseDate(e.target.value)}
+                min={minDate}
+                className="w-36 border-border/60 bg-card/70 text-sm h-8"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs h-8"
+                onClick={() => {
+                  const amount = parseFloat(carPurchaseAmount);
+                  if (!Number.isNaN(amount) && amount > 0 && carPurchaseDate) {
+                    addQuickItem('Car Purchase', -amount, carPurchaseDate);
+                  }
+                }}
+                disabled={!carPurchaseAmount || !carPurchaseDate}
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                Add
+              </Button>
+            </div>
           </div>
 
           {/* Add Custom Item Form */}
@@ -380,6 +468,7 @@ export function NetWorthProjectionComponent({
                 type="date"
                 value={newItemDate}
                 onChange={(e) => setNewItemDate(e.target.value)}
+                min={minDate}
                 className="border-border/60 bg-card/70 text-sm"
               />
             )}
