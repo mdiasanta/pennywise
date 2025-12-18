@@ -13,16 +13,20 @@ public class CategoryRepository : ICategoryRepository
         _context = context;
     }
 
-    public async Task<IEnumerable<Category>> GetAllAsync()
+    public async Task<IEnumerable<Category>> GetAllAsync(int userId)
     {
+        // Return categories that belong to the user OR are default (UserId is null)
         return await _context.Categories
+            .Where(c => c.UserId == userId || c.UserId == null)
             .OrderBy(c => c.Name)
             .ToListAsync();
     }
 
-    public async Task<Category?> GetByIdAsync(int id)
+    public async Task<Category?> GetByIdAsync(int id, int userId)
     {
-        return await _context.Categories.FindAsync(id);
+        // Return category if it belongs to the user OR is a default category
+        return await _context.Categories
+            .FirstOrDefaultAsync(c => c.Id == id && (c.UserId == userId || c.UserId == null));
     }
 
     public async Task<Category> CreateAsync(Category category)
@@ -34,9 +38,11 @@ public class CategoryRepository : ICategoryRepository
         return category;
     }
 
-    public async Task<Category?> UpdateAsync(Category category)
+    public async Task<Category?> UpdateAsync(Category category, int userId)
     {
-        var existing = await _context.Categories.FindAsync(category.Id);
+        // Only allow updating categories owned by the user (not default categories)
+        var existing = await _context.Categories
+            .FirstOrDefaultAsync(c => c.Id == category.Id && c.UserId == userId);
         if (existing == null)
             return null;
 
@@ -49,14 +55,21 @@ public class CategoryRepository : ICategoryRepository
         return existing;
     }
 
-    public async Task<bool> DeleteAsync(int id)
+    public async Task<bool> DeleteAsync(int id, int userId)
     {
-        var category = await _context.Categories.FindAsync(id);
+        // Only allow deleting categories owned by the user (not default categories)
+        var category = await _context.Categories
+            .FirstOrDefaultAsync(c => c.Id == id && c.UserId == userId);
         if (category == null)
             return false;
 
         _context.Categories.Remove(category);
         await _context.SaveChangesAsync();
         return true;
+    }
+
+    public async Task<bool> HasExpensesAsync(int categoryId)
+    {
+        return await _context.Expenses.AnyAsync(e => e.CategoryId == categoryId);
     }
 }

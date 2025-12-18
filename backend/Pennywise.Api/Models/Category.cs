@@ -9,6 +9,10 @@ public class Category
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
-    // Navigation property
+    // Foreign key - null means this is a default/global category
+    public int? UserId { get; set; }
+
+    // Navigation properties
+    public User? User { get; set; }
     public ICollection<Expense> Expenses { get; set; } = new List<Expense>();
 }

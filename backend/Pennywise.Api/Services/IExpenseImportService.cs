@@ -15,6 +15,6 @@ public class ExpenseImportRequest
 
 public interface IExpenseImportService
 {
-    Task<(byte[] Content, string ContentType, string FileName)> GenerateTemplateAsync(string format);
+    Task<(byte[] Content, string ContentType, string FileName)> GenerateTemplateAsync(string format, int userId);
     Task<ExpenseImportResponseDto> ImportAsync(ExpenseImportRequest request);
 }
