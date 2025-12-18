@@ -37,28 +37,41 @@ export const formatCurrency = (amount: number) => {
   }).format(amount);
 };
 
-// Format date for display
+// Format date for display (using UTC to prevent timezone shift)
 export const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString('en-US', {
+  return new Intl.DateTimeFormat('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
-  });
+    timeZone: 'UTC',
+  }).format(new Date(dateString));
 };
 
-// Format date for chart axis
+// Format date for chart axis (using UTC to prevent timezone shift)
 export const formatChartDate = (dateString: string, groupBy: GroupBy) => {
   const date = new Date(dateString);
   if (groupBy === 'day') {
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      timeZone: 'UTC',
+    }).format(date);
   }
   if (groupBy === 'week') {
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      timeZone: 'UTC',
+    }).format(date);
   }
   if (groupBy === 'year') {
-    return date.toLocaleDateString('en-US', { year: 'numeric' });
+    return new Intl.DateTimeFormat('en-US', { year: 'numeric', timeZone: 'UTC' }).format(date);
   }
-  return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    year: '2-digit',
+    timeZone: 'UTC',
+  }).format(date);
 };
 
 // Get human-readable time range label

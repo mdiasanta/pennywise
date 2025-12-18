@@ -166,11 +166,12 @@ export default function DashboardPage() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Intl.DateTimeFormat('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
-    });
+      timeZone: 'UTC',
+    }).format(new Date(dateString));
   };
 
   const getTimeRangeLabel = () => {

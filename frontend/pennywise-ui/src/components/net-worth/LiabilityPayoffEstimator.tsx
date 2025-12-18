@@ -227,10 +227,11 @@ export function LiabilityPayoffEstimator({
             </div>
             <div className="mt-1 text-xl font-semibold text-success">
               {estimate.overallPayoffDate
-                ? new Date(estimate.overallPayoffDate).toLocaleDateString('en-US', {
+                ? new Intl.DateTimeFormat('en-US', {
                     month: 'short',
                     year: 'numeric',
-                  })
+                    timeZone: 'UTC',
+                  }).format(new Date(estimate.overallPayoffDate))
                 : 'N/A'}
             </div>
           </div>
@@ -376,10 +377,11 @@ export function LiabilityPayoffEstimator({
                       <Label className="text-xs text-muted-foreground">Payoff Date</Label>
                       <div className="mt-1 h-8 flex items-center text-sm">
                         {liability.estimatedPayoffDate
-                          ? new Date(liability.estimatedPayoffDate).toLocaleDateString('en-US', {
+                          ? new Intl.DateTimeFormat('en-US', {
                               month: 'short',
                               year: 'numeric',
-                            })
+                              timeZone: 'UTC',
+                            }).format(new Date(liability.estimatedPayoffDate))
                           : liability.monthlyPayment > 0
                             ? 'Calculating...'
                             : 'No payment set'}

@@ -415,11 +415,12 @@ export default function ExpensesPage() {
     try {
       if (editingExpense) {
         // Update existing expense
+        // Append T00:00:00Z to treat the date as UTC midnight (prevents timezone shift)
         const updateData: UpdateExpense = {
           title: formData.title,
           description: formData.description || undefined,
           amount: parsedAmount,
-          date: new Date(formData.date).toISOString(),
+          date: `${formData.date}T00:00:00Z`,
           categoryId: parsedCategoryId,
         };
 
@@ -430,11 +431,12 @@ export default function ExpensesPage() {
         });
       } else {
         // Create new expense
+        // Append T00:00:00Z to treat the date as UTC midnight (prevents timezone shift)
         const createData: CreateExpense = {
           title: formData.title,
           description: formData.description || undefined,
           amount: parsedAmount,
-          date: new Date(formData.date).toISOString(),
+          date: `${formData.date}T00:00:00Z`,
           userId: user.id,
           categoryId: parsedCategoryId,
         };
@@ -461,11 +463,13 @@ export default function ExpensesPage() {
 
   const handleEdit = (expense: Expense) => {
     setEditingExpense(expense);
+    // Extract date portion directly from ISO string to avoid timezone shifts
+    const datePart = expense.date.split('T')[0];
     setFormData({
       title: expense.title,
       description: expense.description || '',
       amount: expense.amount.toString(),
-      date: new Date(expense.date).toISOString().split('T')[0],
+      date: datePart,
       categoryId: expense.categoryId.toString(),
     });
     setIsAddDialogOpen(true);
@@ -499,11 +503,14 @@ export default function ExpensesPage() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    // Parse as UTC to avoid timezone shift, then format
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
-    });
+      timeZone: 'UTC',
+    }).format(date);
   };
 
   const totalAmount = expenses.reduce((sum, expense) => sum + expense.amount, 0);

@@ -491,7 +491,11 @@ export function NetWorthProjectionComponent({
                       <span className="text-muted-foreground">({item.frequency})</span>
                     ) : item.date ? (
                       <span className="text-muted-foreground">
-                        ({new Date(item.date).toLocaleDateString()})
+                        (
+                        {new Intl.DateTimeFormat('en-US', { timeZone: 'UTC' }).format(
+                          new Date(item.date)
+                        )}
+                        )
                       </span>
                     ) : (
                       <span className="text-muted-foreground">(one-time)</span>
@@ -637,10 +641,11 @@ export function NetWorthProjectionComponent({
                         <>
                           {' '}
                           (
-                          {new Date(projection.goal.estimatedGoalDate).toLocaleDateString('en-US', {
+                          {new Intl.DateTimeFormat('en-US', {
                             month: 'short',
                             year: 'numeric',
-                          })}
+                            timeZone: 'UTC',
+                          }).format(new Date(projection.goal.estimatedGoalDate))}
                           )
                         </>
                       )}
