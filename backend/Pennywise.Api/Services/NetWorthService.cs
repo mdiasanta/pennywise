@@ -280,6 +280,7 @@ public class NetWorthService : INetWorthService
                 decimal monthlyEquivalent;
                 if (item.IsRecurring && !string.IsNullOrEmpty(item.Frequency))
                 {
+                    // Recurring custom items are added to the monthly total
                     if (Enum.TryParse<RecurringFrequency>(item.Frequency, true, out var freq))
                     {
                         monthlyEquivalent = CalculateMonthlyEquivalent(item.Amount, freq);
@@ -288,14 +289,15 @@ public class NetWorthService : INetWorthService
                     {
                         monthlyEquivalent = item.Amount; // Default to monthly
                     }
+                    customItemsMonthlyTotal += monthlyEquivalent;
                 }
                 else
                 {
-                    // One-time items spread across projection period
-                    monthlyEquivalent = item.Amount / projectionMonths;
+                    // One-time items are NOT added to monthly total - they're applied only in their specific month
+                    // (handled in the projection loop below)
+                    monthlyEquivalent = 0;
                 }
 
-                customItemsMonthlyTotal += monthlyEquivalent;
                 processedCustomItems.Add(new CustomProjectionItemDto
                 {
                     Description = item.Description,
