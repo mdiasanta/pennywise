@@ -80,23 +80,29 @@ export function ImportBalancesDialog({
     if (!selectedAsset) return;
 
     setDownloadingTemplate(true);
+    let url: string | null = null;
+    let a: HTMLAnchorElement | null = null;
     try {
       const { blob, filename } = await assetSnapshotApi.downloadTemplate(
         format,
         selectedAsset.id,
         userId
       );
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      url = URL.createObjectURL(blob);
+      a = document.createElement('a');
       a.href = url;
       a.download = filename;
       document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to download template');
     } finally {
+      if (a && document.body.contains(a)) {
+        document.body.removeChild(a);
+      }
+      if (url) {
+        URL.revokeObjectURL(url);
+      }
       setDownloadingTemplate(false);
     }
   };

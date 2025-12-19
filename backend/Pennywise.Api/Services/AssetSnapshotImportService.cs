@@ -77,6 +77,9 @@ public class AssetSnapshotImportService : IAssetSnapshotImportService
 
         var seenDates = new HashSet<DateTime>(existingByDate.Keys);
         var rows = new List<AssetSnapshotImportRowResultDto>();
+        
+        // Cache the strategy check outside the loop for better performance
+        var shouldUpdate = string.Equals(normalizedStrategy, "update", StringComparison.OrdinalIgnoreCase);
 
         int inserted = 0, updated = 0, skipped = 0, total = 0;
 
@@ -90,6 +93,7 @@ public class AssetSnapshotImportService : IAssetSnapshotImportService
                     Status = "error",
                     Message = $"Row limit exceeded. Maximum allowed rows is {MaxRows}."
                 });
+                total++;
                 break;
             }
 
@@ -110,7 +114,7 @@ public class AssetSnapshotImportService : IAssetSnapshotImportService
 
             if (seenDates.Contains(dateKey))
             {
-                if (normalizedStrategy == "update" && existingByDate.TryGetValue(dateKey, out var existingSnapshot))
+                if (shouldUpdate && existingByDate.TryGetValue(dateKey, out var existingSnapshot))
                 {
                     updated++;
                     rows.Add(new AssetSnapshotImportRowResultDto
