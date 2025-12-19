@@ -1062,94 +1062,94 @@ export default function ExpensesPage() {
             ) : (
               <div className="overflow-x-auto">
                 <Table className="min-w-[700px] text-foreground">
-                <TableHeader className="[&_tr]:border-border/60">
-                  <TableRow className="border-border/60">
-                    <TableHead className="text-muted-foreground">Date</TableHead>
-                    <TableHead className="text-muted-foreground">Title</TableHead>
-                    <TableHead className="text-muted-foreground">Category</TableHead>
-                    <TableHead className="text-muted-foreground">Description</TableHead>
-                    <TableHead className="text-right text-muted-foreground">Amount</TableHead>
-                    <TableHead className="text-right text-muted-foreground">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {expenses.map((expense) => (
-                    <TableRow key={expense.id} className="border-border/60 hover:bg-card/80">
-                      <TableCell className="font-medium text-foreground">
-                        {formatDate(expense.date)}
-                      </TableCell>
-                      <TableCell className="text-foreground">{expense.title}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="secondary"
-                          className="border-border/60 bg-card/70 text-foreground"
-                          style={
-                            expense.categoryColor
-                              ? {
-                                  backgroundColor: expense.categoryColor + '22',
-                                  color: expense.categoryColor,
-                                  borderColor: expense.categoryColor,
-                                }
-                              : undefined
-                          }
-                        >
-                          {expense.categoryName || 'Uncategorized'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="max-w-xs truncate text-muted-foreground">
-                        {expense.description || '-'}
-                      </TableCell>
-                      <TableCell className="text-right font-semibold text-foreground">
-                        {formatCurrency(expense.amount)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end space-x-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-foreground hover:bg-card/70"
-                            onClick={() => handleEdit(expense)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="text-destructive hover:bg-destructive/10"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent className="border-border/60 bg-card text-foreground">
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Expense</AlertDialogTitle>
-                                <AlertDialogDescription className="text-muted-foreground">
-                                  Are you sure you want to delete this expense? This action cannot
-                                  be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel className="border-border/60 bg-card/80 text-foreground hover:bg-card/70">
-                                  Cancel
-                                </AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleDelete(expense.id)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      </TableCell>
+                  <TableHeader className="[&_tr]:border-border/60">
+                    <TableRow className="border-border/60">
+                      <TableHead className="text-muted-foreground">Date</TableHead>
+                      <TableHead className="text-muted-foreground">Title</TableHead>
+                      <TableHead className="text-muted-foreground">Category</TableHead>
+                      <TableHead className="text-muted-foreground">Description</TableHead>
+                      <TableHead className="text-right text-muted-foreground">Amount</TableHead>
+                      <TableHead className="text-right text-muted-foreground">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {expenses.map((expense) => (
+                      <TableRow key={expense.id} className="border-border/60 hover:bg-card/80">
+                        <TableCell className="font-medium text-foreground">
+                          {formatDate(expense.date)}
+                        </TableCell>
+                        <TableCell className="text-foreground">{expense.title}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="secondary"
+                            className="border-border/60 bg-card/70 text-foreground"
+                            style={
+                              expense.categoryColor
+                                ? {
+                                    backgroundColor: expense.categoryColor + '22',
+                                    color: expense.categoryColor,
+                                    borderColor: expense.categoryColor,
+                                  }
+                                : undefined
+                            }
+                          >
+                            {expense.categoryName || 'Uncategorized'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="max-w-xs truncate text-muted-foreground">
+                          {expense.description || '-'}
+                        </TableCell>
+                        <TableCell className="text-right font-semibold text-foreground">
+                          {formatCurrency(expense.amount)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-foreground hover:bg-card/70"
+                              onClick={() => handleEdit(expense)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-destructive hover:bg-destructive/10"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent className="border-border/60 bg-card text-foreground">
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Expense</AlertDialogTitle>
+                                  <AlertDialogDescription className="text-muted-foreground">
+                                    Are you sure you want to delete this expense? This action cannot
+                                    be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel className="border-border/60 bg-card/80 text-foreground hover:bg-card/70">
+                                    Cancel
+                                  </AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDelete(expense.id)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
             )}
           </CardContent>
