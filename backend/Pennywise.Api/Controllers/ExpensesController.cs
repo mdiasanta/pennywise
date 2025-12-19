@@ -44,14 +44,26 @@ public class ExpensesController : ControllerBase
         [FromQuery] DateTime? startDate,
         [FromQuery] DateTime? endDate,
         [FromQuery] int? categoryId,
-        [FromQuery] string? search)
+        [FromQuery] string? search,
+        [FromQuery] string? tagIds)
     {
+        IEnumerable<int>? parsedTagIds = null;
+        if (!string.IsNullOrWhiteSpace(tagIds))
+        {
+            parsedTagIds = tagIds.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(id => int.TryParse(id.Trim(), out var parsed) ? parsed : (int?)null)
+                .Where(id => id.HasValue)
+                .Select(id => id!.Value)
+                .ToList();
+        }
+
         var expenses = await _expenseService.GetAllExpensesAsync(
             userId,
             startDate?.ToUtc(),
             endDate?.ToUtc(),
             categoryId,
-            search);
+            search,
+            parsedTagIds);
         return Ok(expenses);
     }
 

@@ -18,9 +18,10 @@ public class ExpenseService : IExpenseService
         DateTime? startDate = null,
         DateTime? endDate = null,
         int? categoryId = null,
-        string? search = null)
+        string? search = null,
+        IEnumerable<int>? tagIds = null)
     {
-        var expenses = await _expenseRepository.GetAllAsync(userId, startDate, endDate, categoryId, search);
+        var expenses = await _expenseRepository.GetAllAsync(userId, startDate, endDate, categoryId, search, tagIds);
         return expenses.Select(MapToDto);
     }
 
@@ -42,7 +43,7 @@ public class ExpenseService : IExpenseService
             CategoryId = createDto.CategoryId
         };
 
-        var created = await _expenseRepository.CreateAsync(expense);
+        var created = await _expenseRepository.CreateAsync(expense, createDto.TagIds);
         return MapToDto(created);
     }
 
@@ -63,7 +64,7 @@ public class ExpenseService : IExpenseService
         if (updateDto.CategoryId.HasValue)
             existing.CategoryId = updateDto.CategoryId.Value;
 
-        var updated = await _expenseRepository.UpdateAsync(existing);
+        var updated = await _expenseRepository.UpdateAsync(existing, updateDto.TagIds);
         return updated != null ? MapToDto(updated) : null;
     }
 
@@ -89,9 +90,10 @@ public class ExpenseService : IExpenseService
         DateTime? startDate = null,
         DateTime? endDate = null,
         int? categoryId = null,
-        string? search = null)
+        string? search = null,
+        IEnumerable<int>? tagIds = null)
     {
-        return _expenseRepository.StreamAllAsync(userId, startDate, endDate, categoryId, search);
+        return _expenseRepository.StreamAllAsync(userId, startDate, endDate, categoryId, search, tagIds);
     }
 
     private static ExpenseDto MapToDto(Expense expense)
@@ -108,7 +110,16 @@ public class ExpenseService : IExpenseService
             UserId = expense.UserId,
             CategoryId = expense.CategoryId,
             CategoryName = expense.Category?.Name,
-            CategoryColor = expense.Category?.Color
+            CategoryColor = expense.Category?.Color,
+            Tags = expense.ExpenseTags?.Select(et => new TagDto
+            {
+                Id = et.Tag.Id,
+                Name = et.Tag.Name,
+                Color = et.Tag.Color,
+                CreatedAt = et.Tag.CreatedAt,
+                UpdatedAt = et.Tag.UpdatedAt,
+                UserId = et.Tag.UserId
+            }).ToList() ?? new List<TagDto>()
         };
     }
 }

@@ -8,6 +8,7 @@ public class CreateExpenseDto
     public DateTime Date { get; set; }
     public int UserId { get; set; }
     public int CategoryId { get; set; }
+    public List<int>? TagIds { get; set; }
 }
 
 public class UpdateExpenseDto
@@ -17,6 +18,7 @@ public class UpdateExpenseDto
     public decimal? Amount { get; set; }
     public DateTime? Date { get; set; }
     public int? CategoryId { get; set; }
+    public List<int>? TagIds { get; set; }
 }
 
 public class ExpenseDto
@@ -32,4 +34,5 @@ public class ExpenseDto
     public int CategoryId { get; set; }
     public string? CategoryName { get; set; }
     public string? CategoryColor { get; set; }
+    public List<TagDto> Tags { get; set; } = new List<TagDto>();
 }

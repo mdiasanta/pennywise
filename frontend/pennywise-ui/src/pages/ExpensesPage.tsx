@@ -44,10 +44,11 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/hooks/use-auth';
 import { useCategories } from '@/hooks/use-categories';
+import { useTags } from '@/hooks/use-tags';
 import { useToast } from '@/hooks/use-toast';
 import type { CreateExpense, Expense, ExpenseImportResponse, UpdateExpense } from '@/lib/api';
 import { expenseApi } from '@/lib/api';
-import { CheckCircle2, Download, FileWarning, Pencil, Plus, Trash2, Upload } from 'lucide-react';
+import { CheckCircle2, Download, FileWarning, Pencil, Plus, Trash2, Upload, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 const US_TIMEZONES = [
@@ -74,6 +75,7 @@ export default function ExpensesPage() {
     endDate: '',
     categoryId: 'all',
     search: '',
+    tagIds: [] as number[],
   });
   const [exportFormat, setExportFormat] = useState<'csv' | 'xlsx'>('csv');
   const [exporting, setExporting] = useState(false);
@@ -89,6 +91,8 @@ export default function ExpensesPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { toast } = useToast();
   const { categories, isLoading: categoriesLoading, error: categoriesError } = useCategories();
+  const { tags, isLoading: tagsLoading, createTag } = useTags();
+  const [newTagName, setNewTagName] = useState('');
 
   // Form state
   const [formData, setFormData] = useState({
@@ -97,6 +101,7 @@ export default function ExpensesPage() {
     amount: '',
     date: new Date().toISOString().split('T')[0],
     categoryId: '',
+    tagIds: [] as number[],
   });
 
   const buildFilterPayload = useCallback(
@@ -106,6 +111,7 @@ export default function ExpensesPage() {
       categoryId:
         state.categoryId && state.categoryId !== 'all' ? parseInt(state.categoryId, 10) : undefined,
       search: state.search.trim() ? state.search.trim() : undefined,
+      tagIds: state.tagIds.length > 0 ? state.tagIds : undefined,
     }),
     [filters]
   );
@@ -159,8 +165,10 @@ export default function ExpensesPage() {
       amount: '',
       date: new Date().toISOString().split('T')[0],
       categoryId: '',
+      tagIds: [],
     });
     setEditingExpense(null);
+    setNewTagName('');
   };
 
   const handleApplyFilters = () => {
@@ -195,6 +203,7 @@ export default function ExpensesPage() {
       endDate: '',
       categoryId: 'all',
       search: '',
+      tagIds: [] as number[],
     };
     setFilters(cleared);
     loadData(cleared);
@@ -422,6 +431,7 @@ export default function ExpensesPage() {
           amount: parsedAmount,
           date: `${formData.date}T00:00:00Z`,
           categoryId: parsedCategoryId,
+          tagIds: formData.tagIds,
         };
 
         await expenseApi.update(editingExpense.id, user.id, updateData);
@@ -439,6 +449,7 @@ export default function ExpensesPage() {
           date: `${formData.date}T00:00:00Z`,
           userId: user.id,
           categoryId: parsedCategoryId,
+          tagIds: formData.tagIds,
         };
 
         await expenseApi.create(createData);
@@ -461,6 +472,25 @@ export default function ExpensesPage() {
     }
   };
 
+  const handleAddTag = async () => {
+    if (!newTagName.trim()) return;
+    try {
+      const newTag = await createTag({ name: newTagName.trim() });
+      setFormData((prev) => ({ ...prev, tagIds: [...prev.tagIds, newTag.id] }));
+      setNewTagName('');
+      toast({
+        title: 'Tag created',
+        description: `Tag "${newTag.name}" has been created and added.`,
+      });
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to create tag.',
+      });
+    }
+  };
+
   const handleEdit = (expense: Expense) => {
     setEditingExpense(expense);
     // Extract date portion directly from ISO string to avoid timezone shifts
@@ -471,6 +501,7 @@ export default function ExpensesPage() {
       amount: expense.amount.toString(),
       date: datePart,
       categoryId: expense.categoryId.toString(),
+      tagIds: expense.tags?.map((t) => t.id) ?? [],
     });
     setIsAddDialogOpen(true);
   };
@@ -686,6 +717,97 @@ export default function ExpensesPage() {
                       placeholder="Add any additional details..."
                       rows={3}
                     />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Tags</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {formData.tagIds.map((tagId) => {
+                        const tag = tags.find((t) => t.id === tagId);
+                        return tag ? (
+                          <Badge
+                            key={tagId}
+                            variant="secondary"
+                            className="border-border/60 bg-card/70 text-foreground"
+                            style={
+                              tag.color
+                                ? {
+                                    backgroundColor: tag.color + '22',
+                                    color: tag.color,
+                                    borderColor: tag.color,
+                                  }
+                                : undefined
+                            }
+                          >
+                            {tag.name}
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  tagIds: prev.tagIds.filter((id) => id !== tagId),
+                                }))
+                              }
+                              className="ml-1 hover:text-destructive"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ) : null;
+                      })}
+                    </div>
+                    <div className="flex gap-2">
+                      <Select
+                        value=""
+                        onValueChange={(value) => {
+                          const tagId = parseInt(value, 10);
+                          if (!formData.tagIds.includes(tagId)) {
+                            setFormData((prev) => ({
+                              ...prev,
+                              tagIds: [...prev.tagIds, tagId],
+                            }));
+                          }
+                        }}
+                        disabled={tagsLoading}
+                      >
+                        <SelectTrigger className="border-border/60 bg-card text-foreground">
+                          <SelectValue placeholder="Add existing tag..." />
+                        </SelectTrigger>
+                        <SelectContent className="border-border/60 bg-card text-foreground">
+                          {tags
+                            .filter((t) => !formData.tagIds.includes(t.id))
+                            .map((tag) => (
+                              <SelectItem key={tag.id} value={tag.id.toString()}>
+                                {tag.name}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Create new tag..."
+                        value={newTagName}
+                        onChange={(e) => setNewTagName(e.target.value)}
+                        className="border-border/60 bg-card text-foreground placeholder:text-muted-foreground"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            void handleAddTag();
+                          }
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => void handleAddTag()}
+                        disabled={!newTagName.trim()}
+                        className="border-border/60 bg-card/80 text-foreground hover:bg-card/70"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
 
@@ -1007,6 +1129,70 @@ export default function ExpensesPage() {
                   </Select>
                 </div>
               </div>
+              <div className="space-y-2">
+                <Label className="text-muted-foreground">Filter by tags</Label>
+                <div className="flex flex-wrap gap-2">
+                  {filters.tagIds.map((tagId) => {
+                    const tag = tags.find((t) => t.id === tagId);
+                    return tag ? (
+                      <Badge
+                        key={tagId}
+                        variant="secondary"
+                        className="border-border/60 bg-card/70 text-foreground"
+                        style={
+                          tag.color
+                            ? {
+                                backgroundColor: tag.color + '22',
+                                color: tag.color,
+                                borderColor: tag.color,
+                              }
+                            : undefined
+                        }
+                      >
+                        {tag.name}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setFilters((prev) => ({
+                              ...prev,
+                              tagIds: prev.tagIds.filter((id) => id !== tagId),
+                            }))
+                          }
+                          className="ml-1 hover:text-destructive"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ) : null;
+                  })}
+                  <Select
+                    value=""
+                    onValueChange={(value) => {
+                      const tagId = parseInt(value, 10);
+                      if (!filters.tagIds.includes(tagId)) {
+                        setFilters((prev) => ({
+                          ...prev,
+                          tagIds: [...prev.tagIds, tagId],
+                        }));
+                      }
+                    }}
+                    disabled={tagsLoading || tags.length === 0}
+                  >
+                    <SelectTrigger className="w-[180px] border-border/60 bg-card text-foreground">
+                      <SelectValue placeholder="Add tag filter..." />
+                    </SelectTrigger>
+                    <SelectContent className="border-border/60 bg-card text-foreground">
+                      {tags
+                        .filter((t) => !filters.tagIds.includes(t.id))
+                        .map((tag) => (
+                          <SelectItem key={tag.id} value={tag.id.toString()}>
+                            {tag.name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div className="flex flex-wrap gap-2">
                   <Button
@@ -1061,12 +1247,13 @@ export default function ExpensesPage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <Table className="min-w-[700px] text-foreground">
+                <Table className="min-w-[800px] text-foreground">
                   <TableHeader className="[&_tr]:border-border/60">
                     <TableRow className="border-border/60">
                       <TableHead className="text-muted-foreground">Date</TableHead>
                       <TableHead className="text-muted-foreground">Title</TableHead>
                       <TableHead className="text-muted-foreground">Category</TableHead>
+                      <TableHead className="text-muted-foreground">Tags</TableHead>
                       <TableHead className="text-muted-foreground">Description</TableHead>
                       <TableHead className="text-right text-muted-foreground">Amount</TableHead>
                       <TableHead className="text-right text-muted-foreground">Actions</TableHead>
@@ -1095,6 +1282,32 @@ export default function ExpensesPage() {
                           >
                             {expense.categoryName || 'Uncategorized'}
                           </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {expense.tags && expense.tags.length > 0 ? (
+                              expense.tags.map((tag) => (
+                                <Badge
+                                  key={tag.id}
+                                  variant="outline"
+                                  className="text-xs"
+                                  style={
+                                    tag.color
+                                      ? {
+                                          backgroundColor: tag.color + '22',
+                                          color: tag.color,
+                                          borderColor: tag.color,
+                                        }
+                                      : undefined
+                                  }
+                                >
+                                  {tag.name}
+                                </Badge>
+                              ))
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="max-w-xs truncate text-muted-foreground">
                           {expense.description || '-'}
