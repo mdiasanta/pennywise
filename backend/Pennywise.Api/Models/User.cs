@@ -14,4 +14,5 @@ public class User
     public ICollection<Expense> Expenses { get; set; } = new List<Expense>();
     public ICollection<Asset> Assets { get; set; } = new List<Asset>();
     public ICollection<Category> Categories { get; set; } = new List<Category>();
+    public ICollection<Tag> Tags { get; set; } = new List<Tag>();
 }

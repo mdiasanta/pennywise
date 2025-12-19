@@ -123,9 +123,7 @@ export function BalanceHistoryDialog({
           ) : snapshots.length === 0 ? (
             <div className="py-8 text-center text-muted-foreground">
               <p>No balance history found for this account.</p>
-              <p className="mt-2 text-sm">
-                Use "Update Balance" to add new balance entries.
-              </p>
+              <p className="mt-2 text-sm">Use "Update Balance" to add new balance entries.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -161,7 +159,9 @@ export function BalanceHistoryDialog({
                                 onChange={(e) => handleEditChange('balance', e.target.value)}
                               />
                               {editingSnapshot.error && (
-                                <span className="mt-1 text-xs text-destructive">{editingSnapshot.error}</span>
+                                <span className="mt-1 text-xs text-destructive">
+                                  {editingSnapshot.error}
+                                </span>
                               )}
                             </div>
                           </TableCell>

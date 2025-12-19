@@ -44,14 +44,26 @@ public class ExpensesController : ControllerBase
         [FromQuery] DateTime? startDate,
         [FromQuery] DateTime? endDate,
         [FromQuery] int? categoryId,
-        [FromQuery] string? search)
+        [FromQuery] string? search,
+        [FromQuery] string? tagIds)
     {
+        IEnumerable<int>? parsedTagIds = null;
+        if (!string.IsNullOrWhiteSpace(tagIds))
+        {
+            parsedTagIds = tagIds.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(id => int.TryParse(id.Trim(), out var parsed) ? parsed : (int?)null)
+                .Where(id => id.HasValue)
+                .Select(id => id!.Value)
+                .ToList();
+        }
+
         var expenses = await _expenseService.GetAllExpensesAsync(
             userId,
             startDate?.ToUtc(),
             endDate?.ToUtc(),
             categoryId,
-            search);
+            search,
+            parsedTagIds);
         return Ok(expenses);
     }
 
@@ -131,7 +143,8 @@ public class ExpensesController : ControllerBase
         [FromQuery] DateTime? startDate = null,
         [FromQuery] DateTime? endDate = null,
         [FromQuery] int? categoryId = null,
-        [FromQuery] string? search = null)
+        [FromQuery] string? search = null,
+        [FromQuery] string? tagIds = null)
     {
         try
         {
@@ -151,12 +164,23 @@ public class ExpensesController : ControllerBase
             var normalizedStart = startDate?.ToUtc();
             var normalizedEnd = endDate?.ToUtc();
 
+            IEnumerable<int>? parsedTagIds = null;
+            if (!string.IsNullOrWhiteSpace(tagIds))
+            {
+                parsedTagIds = tagIds.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(id => int.TryParse(id.Trim(), out var parsed) ? parsed : (int?)null)
+                    .Where(id => id.HasValue)
+                    .Select(id => id!.Value)
+                    .ToList();
+            }
+
             var filterParams = JsonSerializer.Serialize(new
             {
                 startDate = normalizedStart,
                 endDate = normalizedEnd,
                 categoryId,
-                search
+                search,
+                tagIds = parsedTagIds
             });
 
             var fileName = $"expenses-{DateTime.UtcNow:yyyyMMddHHmmss}.{normalizedFormat}";
@@ -165,12 +189,12 @@ public class ExpensesController : ControllerBase
             if (normalizedFormat == "csv")
             {
                 Response.ContentType = "text/csv";
-                await WriteCsvAsync(userId, normalizedStart, normalizedEnd, categoryId, search, filterParams);
+                await WriteCsvAsync(userId, normalizedStart, normalizedEnd, categoryId, search, parsedTagIds, filterParams);
             }
             else
             {
                 Response.ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-                await WriteExcelAsync(userId, normalizedStart, normalizedEnd, categoryId, search, filterParams);
+                await WriteExcelAsync(userId, normalizedStart, normalizedEnd, categoryId, search, parsedTagIds, filterParams);
             }
 
             return new EmptyResult();
@@ -252,6 +276,7 @@ public class ExpensesController : ControllerBase
         DateTime? endDate,
         int? categoryId,
         string? search,
+        IEnumerable<int>? tagIds,
         string filterParams)
     {
         // Use UTF-8 without BOM for better compatibility with spreadsheet tools.
@@ -260,7 +285,7 @@ public class ExpensesController : ControllerBase
         await writer.WriteLineAsync("Date,Title,Category,Description,Amount,CreatedAt,UpdatedAt,UserId");
 
         var rowCount = 0;
-        await foreach (var expense in _expenseService.StreamExpensesAsync(userId, startDate, endDate, categoryId, search))
+        await foreach (var expense in _expenseService.StreamExpensesAsync(userId, startDate, endDate, categoryId, search, tagIds))
         {
             var row = string.Join(",", new[]
             {
@@ -297,6 +322,7 @@ public class ExpensesController : ControllerBase
         DateTime? endDate,
         int? categoryId,
         string? search,
+        IEnumerable<int>? tagIds,
         string filterParams)
     {
         using var workbook = new XLWorkbook();
@@ -321,7 +347,7 @@ public class ExpensesController : ControllerBase
 
         var rowNumber = 2;
         var rowCount = 0;
-        await foreach (var expense in _expenseService.StreamExpensesAsync(userId, startDate, endDate, categoryId, search))
+        await foreach (var expense in _expenseService.StreamExpensesAsync(userId, startDate, endDate, categoryId, search, tagIds))
         {
             worksheet.Cell(rowNumber, 1).Value = expense.Date;
             worksheet.Cell(rowNumber, 2).Value = expense.Title;

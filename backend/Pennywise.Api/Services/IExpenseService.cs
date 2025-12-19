@@ -10,7 +10,8 @@ public interface IExpenseService
         DateTime? startDate = null,
         DateTime? endDate = null,
         int? categoryId = null,
-        string? search = null);
+        string? search = null,
+        IEnumerable<int>? tagIds = null);
     Task<ExpenseDto?> GetExpenseByIdAsync(int id, int userId);
     Task<ExpenseDto> CreateExpenseAsync(CreateExpenseDto createDto);
     Task<ExpenseDto?> UpdateExpenseAsync(int id, int userId, UpdateExpenseDto updateDto);
@@ -22,5 +23,6 @@ public interface IExpenseService
         DateTime? startDate = null,
         DateTime? endDate = null,
         int? categoryId = null,
-        string? search = null);
+        string? search = null,
+        IEnumerable<int>? tagIds = null);
 }

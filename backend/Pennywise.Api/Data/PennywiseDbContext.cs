@@ -13,6 +13,8 @@ public class PennywiseDbContext : DbContext
     public DbSet<User> Users { get; set; }
     public DbSet<Category> Categories { get; set; }
     public DbSet<Expense> Expenses { get; set; }
+    public DbSet<Tag> Tags { get; set; }
+    public DbSet<ExpenseTag> ExpenseTags { get; set; }
     public DbSet<ExportAudit> ExportAudits { get; set; }
     public DbSet<ImportAudit> ImportAudits { get; set; }
     public DbSet<AssetCategory> AssetCategories { get; set; }
@@ -76,6 +78,39 @@ public class PennywiseDbContext : DbContext
                 .WithMany(c => c.Expenses)
                 .HasForeignKey(e => e.CategoryId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Tag configuration
+        modelBuilder.Entity<Tag>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Color).HasMaxLength(7);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.Tags)
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => new { e.UserId, e.Name }).IsUnique();
+        });
+
+        // ExpenseTag (many-to-many join table) configuration
+        modelBuilder.Entity<ExpenseTag>(entity =>
+        {
+            entity.HasKey(et => new { et.ExpenseId, et.TagId });
+
+            entity.HasOne(et => et.Expense)
+                .WithMany(e => e.ExpenseTags)
+                .HasForeignKey(et => et.ExpenseId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(et => et.Tag)
+                .WithMany(t => t.ExpenseTags)
+                .HasForeignKey(et => et.TagId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         // Export audit configuration

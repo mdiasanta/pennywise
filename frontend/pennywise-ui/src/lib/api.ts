@@ -21,6 +21,25 @@ export interface UpdateUser {
   email?: string;
 }
 
+export interface Tag {
+  id: number;
+  name: string;
+  color?: string;
+  createdAt: string;
+  updatedAt: string;
+  userId: number;
+}
+
+export interface CreateTag {
+  name: string;
+  color?: string;
+}
+
+export interface UpdateTag {
+  name?: string;
+  color?: string;
+}
+
 export interface Expense {
   id: number;
   title: string;
@@ -33,6 +52,7 @@ export interface Expense {
   categoryId: number;
   categoryName?: string;
   categoryColor?: string;
+  tags: Tag[];
 }
 
 export interface CreateExpense {
@@ -42,6 +62,7 @@ export interface CreateExpense {
   date: string;
   userId: number;
   categoryId: number;
+  tagIds?: number[];
 }
 
 export interface UpdateExpense {
@@ -50,6 +71,7 @@ export interface UpdateExpense {
   amount?: number;
   date?: string;
   categoryId?: number;
+  tagIds?: number[];
 }
 
 export interface ExpenseFilters {
@@ -57,6 +79,7 @@ export interface ExpenseFilters {
   endDate?: string;
   categoryId?: number;
   search?: string;
+  tagIds?: number[];
 }
 
 export interface ExpenseImportRowResult {
@@ -210,6 +233,10 @@ export function buildExpenseQuery(filters?: ExpenseFilters): string {
   const searchValue = filters.search?.trim();
   if (searchValue) {
     params.set('search', searchValue);
+  }
+
+  if (filters.tagIds && filters.tagIds.length > 0) {
+    params.set('tagIds', filters.tagIds.join(','));
   }
 
   return params.toString();
@@ -1119,6 +1146,51 @@ export const recurringTransactionApi = {
 
   async delete(id: number, userId: number): Promise<void> {
     const response = await fetch(`${API_BASE_URL}/recurringtransactions/${id}/user/${userId}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+    return handleResponse<void>(response);
+  },
+};
+
+// Tag API
+export const tagApi = {
+  async getAll(userId: number): Promise<Tag[]> {
+    const response = await fetch(`${API_BASE_URL}/tags/user/${userId}`, {
+      credentials: 'include',
+    });
+    return handleResponse<Tag[]>(response);
+  },
+
+  async getById(id: number, userId: number): Promise<Tag> {
+    const response = await fetch(`${API_BASE_URL}/tags/${id}/user/${userId}`, {
+      credentials: 'include',
+    });
+    return handleResponse<Tag>(response);
+  },
+
+  async create(userId: number, tag: CreateTag): Promise<Tag> {
+    const response = await fetch(`${API_BASE_URL}/tags/user/${userId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(tag),
+      credentials: 'include',
+    });
+    return handleResponse<Tag>(response);
+  },
+
+  async update(id: number, userId: number, tag: UpdateTag): Promise<Tag> {
+    const response = await fetch(`${API_BASE_URL}/tags/${id}/user/${userId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(tag),
+      credentials: 'include',
+    });
+    return handleResponse<Tag>(response);
+  },
+
+  async delete(id: number, userId: number): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/tags/${id}/user/${userId}`, {
       method: 'DELETE',
       credentials: 'include',
     });

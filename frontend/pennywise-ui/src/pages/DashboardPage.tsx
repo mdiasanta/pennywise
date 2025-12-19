@@ -28,6 +28,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useAuth } from '@/hooks/use-auth';
+import { useTags } from '@/hooks/use-tags';
 import type { Expense, NetWorthSummary } from '@/lib/api';
 import { expenseApi, netWorthApi } from '@/lib/api';
 import {
@@ -36,8 +37,10 @@ import {
   Calendar,
   CreditCard,
   DollarSign,
+  Tag,
   TrendingDown,
   Wallet,
+  X,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -70,9 +73,11 @@ const COLORS = [
 
 export default function DashboardPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { tags, isLoading: tagsLoading } = useTags();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [netWorthSummary, setNetWorthSummary] = useState<NetWorthSummary | null>(null);
   const [timeRange, setTimeRange] = useState<TimeRange>('month');
+  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadData = useCallback(async () => {
@@ -122,7 +127,11 @@ export default function DashboardPage() {
       const { startDate, endDate } = getDateRange(timeRange);
 
       const [expensesData, summaryData] = await Promise.all([
-        expenseApi.getByDateRange(user.id, startDate, endDate),
+        expenseApi.getAll(user.id, {
+          startDate,
+          endDate,
+          tagIds: selectedTagIds.length > 0 ? selectedTagIds : undefined,
+        }),
         netWorthApi.getSummary(user.id),
       ]);
 
@@ -133,7 +142,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [timeRange, authLoading, isAuthenticated, user]);
+  }, [timeRange, selectedTagIds, authLoading, isAuthenticated, user]);
 
   useEffect(() => {
     loadData();
@@ -240,7 +249,7 @@ export default function DashboardPage() {
       description="Track velocity, catch outliers, and keep your envelopes healthy"
     >
       <div className="mx-auto max-w-7xl space-y-6">
-        {/* Time Range Selector */}
+        {/* Time Range and Tag Filter */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
             <span className="rounded-full bg-success px-3 py-1 font-medium text-success-foreground">
@@ -248,33 +257,111 @@ export default function DashboardPage() {
             </span>
             <span className="rounded-full bg-card/70 px-3 py-1">Audit-friendly exports</span>
           </div>
-          <div className="flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-muted-foreground" />
-            <Select value={timeRange} onValueChange={(value) => setTimeRange(value as TimeRange)}>
-              <SelectTrigger className="w-[200px] border-border/60 bg-card/70 text-foreground">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="border-border/60 bg-card text-foreground">
-                <SelectGroup>
-                  <SelectLabel className="text-muted-foreground">Relative</SelectLabel>
-                  <SelectItem value="day">Today</SelectItem>
-                  <SelectItem value="week">Last 7 Days</SelectItem>
-                  <SelectItem value="month">Last 30 Days</SelectItem>
-                  <SelectItem value="year">Last 12 Months</SelectItem>
-                </SelectGroup>
-                <Separator className="my-1" />
-                <SelectGroup>
-                  <SelectLabel className="text-muted-foreground">By Year</SelectLabel>
-                  {getAvailableYears().map((year) => (
-                    <SelectItem key={year} value={`year-${year}`}>
-                      {year}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Tag Filter */}
+            <div className="flex items-center gap-2">
+              <Tag className="h-5 w-5 text-muted-foreground" />
+              <Select
+                value=""
+                onValueChange={(value) => {
+                  const tagId = parseInt(value, 10);
+                  if (!selectedTagIds.includes(tagId)) {
+                    setSelectedTagIds((prev) => [...prev, tagId]);
+                  }
+                }}
+                disabled={tagsLoading || tags.length === 0}
+              >
+                <SelectTrigger className="w-[160px] border-border/60 bg-card/70 text-foreground">
+                  <SelectValue placeholder="Filter by tag..." />
+                </SelectTrigger>
+                <SelectContent className="border-border/60 bg-card text-foreground">
+                  {tags
+                    .filter((t) => !selectedTagIds.includes(t.id))
+                    .map((tag) => (
+                      <SelectItem key={tag.id} value={tag.id.toString()}>
+                        {tag.name}
+                      </SelectItem>
+                    ))}
+                  {tags.filter((t) => !selectedTagIds.includes(t.id)).length === 0 && (
+                    <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                      {tags.length === 0 ? 'No tags created yet' : 'All tags selected'}
+                    </div>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            {/* Time Range Selector */}
+            <div className="flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-muted-foreground" />
+              <Select value={timeRange} onValueChange={(value) => setTimeRange(value as TimeRange)}>
+                <SelectTrigger className="w-[200px] border-border/60 bg-card/70 text-foreground">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="border-border/60 bg-card text-foreground">
+                  <SelectGroup>
+                    <SelectLabel className="text-muted-foreground">Relative</SelectLabel>
+                    <SelectItem value="day">Today</SelectItem>
+                    <SelectItem value="week">Last 7 Days</SelectItem>
+                    <SelectItem value="month">Last 30 Days</SelectItem>
+                    <SelectItem value="year">Last 12 Months</SelectItem>
+                  </SelectGroup>
+                  <Separator className="my-1" />
+                  <SelectGroup>
+                    <SelectLabel className="text-muted-foreground">By Year</SelectLabel>
+                    {getAvailableYears().map((year) => (
+                      <SelectItem key={year} value={`year-${year}`}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
+
+        {/* Selected Tags Display */}
+        {selectedTagIds.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm text-muted-foreground">Filtering by tags:</span>
+            {selectedTagIds.map((tagId) => {
+              const tag = tags.find((t) => t.id === tagId);
+              return tag ? (
+                <Badge
+                  key={tagId}
+                  variant="secondary"
+                  className="border-border/60 bg-card/70 text-foreground"
+                  style={
+                    tag.color
+                      ? {
+                          backgroundColor: tag.color + '22',
+                          color: tag.color,
+                          borderColor: tag.color,
+                        }
+                      : undefined
+                  }
+                >
+                  {tag.name}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTagIds((prev) => prev.filter((id) => id !== tagId))}
+                    className="ml-1 hover:text-destructive"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ) : null;
+            })}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedTagIds([])}
+              className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+            >
+              Clear all
+            </Button>
+          </div>
+        )}
 
         {/* Summary Cards */}
         <div className="grid gap-4 md:grid-cols-4">
@@ -493,12 +580,13 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
-                <Table className="min-w-[500px] text-foreground">
+                <Table className="min-w-[600px] text-foreground">
                   <TableHeader className="[&_tr]:border-border/60">
                     <TableRow className="border-border/60">
                       <TableHead className="text-muted-foreground">Date</TableHead>
                       <TableHead className="text-muted-foreground">Title</TableHead>
                       <TableHead className="text-muted-foreground">Category</TableHead>
+                      <TableHead className="text-muted-foreground">Tags</TableHead>
                       <TableHead className="text-right text-muted-foreground">Amount</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -525,6 +613,32 @@ export default function DashboardPage() {
                           >
                             {expense.categoryName || 'Uncategorized'}
                           </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {expense.tags && expense.tags.length > 0 ? (
+                              expense.tags.map((tag) => (
+                                <Badge
+                                  key={tag.id}
+                                  variant="outline"
+                                  className="text-xs"
+                                  style={
+                                    tag.color
+                                      ? {
+                                          backgroundColor: tag.color + '22',
+                                          color: tag.color,
+                                          borderColor: tag.color,
+                                        }
+                                      : undefined
+                                  }
+                                >
+                                  {tag.name}
+                                </Badge>
+                              ))
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="text-right font-semibold text-foreground">
                           {formatCurrency(expense.amount)}

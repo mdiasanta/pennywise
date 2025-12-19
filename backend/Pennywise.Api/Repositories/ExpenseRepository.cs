@@ -18,9 +18,10 @@ public class ExpenseRepository : IExpenseRepository
         DateTime? startDate = null,
         DateTime? endDate = null,
         int? categoryId = null,
-        string? search = null)
+        string? search = null,
+        IEnumerable<int>? tagIds = null)
     {
-        return await BuildQuery(userId, startDate, endDate, categoryId, search).ToListAsync();
+        return await BuildQuery(userId, startDate, endDate, categoryId, search, tagIds).ToListAsync();
     }
 
     public IAsyncEnumerable<Expense> StreamAllAsync(
@@ -28,9 +29,10 @@ public class ExpenseRepository : IExpenseRepository
         DateTime? startDate = null,
         DateTime? endDate = null,
         int? categoryId = null,
-        string? search = null)
+        string? search = null,
+        IEnumerable<int>? tagIds = null)
     {
-        return BuildQuery(userId, startDate, endDate, categoryId, search).AsAsyncEnumerable();
+        return BuildQuery(userId, startDate, endDate, categoryId, search, tagIds).AsAsyncEnumerable();
     }
 
     public async Task<Expense?> GetByIdAsync(int id, int userId)
@@ -38,25 +40,49 @@ public class ExpenseRepository : IExpenseRepository
         return await _context.Expenses
             .AsNoTracking()
             .Include(e => e.Category)
+            .Include(e => e.ExpenseTags)
+                .ThenInclude(et => et.Tag)
             .FirstOrDefaultAsync(e => e.Id == id && e.UserId == userId);
     }
 
-    public async Task<Expense> CreateAsync(Expense expense)
+    public async Task<Expense> CreateAsync(Expense expense, IEnumerable<int>? tagIds = null)
     {
         expense.CreatedAt = DateTime.UtcNow;
         expense.UpdatedAt = DateTime.UtcNow;
         _context.Expenses.Add(expense);
         await _context.SaveChangesAsync();
-        
-        // Load the category for the created expense
+
+        // Add tags if provided
+        if (tagIds != null && tagIds.Any())
+        {
+            foreach (var tagId in tagIds)
+            {
+                _context.ExpenseTags.Add(new ExpenseTag
+                {
+                    ExpenseId = expense.Id,
+                    TagId = tagId
+                });
+            }
+            await _context.SaveChangesAsync();
+        }
+
+        // Load the category and tags for the created expense
         await _context.Entry(expense).Reference(e => e.Category).LoadAsync();
-        
+        await _context.Entry(expense).Collection(e => e.ExpenseTags).LoadAsync();
+        foreach (var et in expense.ExpenseTags)
+        {
+            await _context.Entry(et).Reference(e => e.Tag).LoadAsync();
+        }
+
         return expense;
     }
 
-    public async Task<Expense?> UpdateAsync(Expense expense)
+    public async Task<Expense?> UpdateAsync(Expense expense, IEnumerable<int>? tagIds = null)
     {
-        var existing = await _context.Expenses.FindAsync(expense.Id);
+        var existing = await _context.Expenses
+            .Include(e => e.ExpenseTags)
+            .FirstOrDefaultAsync(e => e.Id == expense.Id);
+
         if (existing == null)
             return null;
 
@@ -67,11 +93,33 @@ public class ExpenseRepository : IExpenseRepository
         existing.CategoryId = expense.CategoryId;
         existing.UpdatedAt = DateTime.UtcNow;
 
+        // Update tags if provided
+        if (tagIds != null)
+        {
+            // Remove existing tags
+            _context.ExpenseTags.RemoveRange(existing.ExpenseTags);
+
+            // Add new tags
+            foreach (var tagId in tagIds)
+            {
+                _context.ExpenseTags.Add(new ExpenseTag
+                {
+                    ExpenseId = existing.Id,
+                    TagId = tagId
+                });
+            }
+        }
+
         await _context.SaveChangesAsync();
-        
-        // Load the category for the updated expense
+
+        // Load the category and tags for the updated expense
         await _context.Entry(existing).Reference(e => e.Category).LoadAsync();
-        
+        await _context.Entry(existing).Collection(e => e.ExpenseTags).LoadAsync();
+        foreach (var et in existing.ExpenseTags)
+        {
+            await _context.Entry(et).Reference(e => e.Tag).LoadAsync();
+        }
+
         return existing;
     }
 
@@ -79,7 +127,7 @@ public class ExpenseRepository : IExpenseRepository
     {
         var expense = await _context.Expenses
             .FirstOrDefaultAsync(e => e.Id == id && e.UserId == userId);
-        
+
         if (expense == null)
             return false;
 
@@ -90,12 +138,12 @@ public class ExpenseRepository : IExpenseRepository
 
     public async Task<IEnumerable<Expense>> GetByDateRangeAsync(int userId, DateTime startDate, DateTime endDate)
     {
-        return await BuildQuery(userId, startDate, endDate, null, null).ToListAsync();
+        return await BuildQuery(userId, startDate, endDate, null, null, null).ToListAsync();
     }
 
     public async Task<IEnumerable<Expense>> GetByCategoryAsync(int userId, int categoryId)
     {
-        return await BuildQuery(userId, null, null, categoryId, null).ToListAsync();
+        return await BuildQuery(userId, null, null, categoryId, null, null).ToListAsync();
     }
 
     private IQueryable<Expense> BuildQuery(
@@ -103,11 +151,14 @@ public class ExpenseRepository : IExpenseRepository
         DateTime? startDate,
         DateTime? endDate,
         int? categoryId,
-        string? search)
+        string? search,
+        IEnumerable<int>? tagIds)
     {
         var query = _context.Expenses
             .AsNoTracking()
             .Include(e => e.Category)
+            .Include(e => e.ExpenseTags)
+                .ThenInclude(et => et.Tag)
             .Where(e => e.UserId == userId);
 
         if (startDate.HasValue)
@@ -134,6 +185,13 @@ public class ExpenseRepository : IExpenseRepository
                 (e.Description != null && EF.Functions.ILike(e.Description, pattern)));
         }
 
+        if (tagIds != null && tagIds.Any())
+        {
+            var tagIdList = tagIds.ToList();
+            query = query.Where(e => e.ExpenseTags.Any(et => tagIdList.Contains(et.TagId)));
+        }
+
         return query.OrderByDescending(e => e.Date);
     }
 }
+

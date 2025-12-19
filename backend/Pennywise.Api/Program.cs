@@ -28,6 +28,7 @@ builder.Services.AddScoped<IAssetCategoryRepository, AssetCategoryRepository>();
 builder.Services.AddScoped<IAssetRepository, AssetRepository>();
 builder.Services.AddScoped<IAssetSnapshotRepository, AssetSnapshotRepository>();
 builder.Services.AddScoped<IRecurringTransactionRepository, RecurringTransactionRepository>();
+builder.Services.AddScoped<ITagRepository, TagRepository>();
 
 // Register services
 builder.Services.AddScoped<IExpenseService, ExpenseService>();
@@ -43,6 +44,7 @@ builder.Services.AddScoped<IAssetSnapshotService, AssetSnapshotService>();
 builder.Services.AddScoped<IAssetSnapshotImportService, AssetSnapshotImportService>();
 builder.Services.AddScoped<INetWorthService, NetWorthService>();
 builder.Services.AddScoped<IRecurringTransactionService, RecurringTransactionService>();
+builder.Services.AddScoped<ITagService, TagService>();
 
 // Register background services
 builder.Services.AddHostedService<RecurringTransactionProcessor>();

@@ -432,8 +432,7 @@ export function ImportBalancesDialog({
               <Button
                 onClick={handleImport}
                 disabled={
-                  loading ||
-                  (previewResult?.inserted === 0 && previewResult?.updated === 0)
+                  loading || (previewResult?.inserted === 0 && previewResult?.updated === 0)
                 }
                 className="bg-primary text-primary-foreground hover:bg-primary/90"
               >
