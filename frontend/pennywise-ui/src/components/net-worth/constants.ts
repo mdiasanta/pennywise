@@ -1,9 +1,65 @@
 // Types for Net Worth page
-export type TimeRange = 'month' | 'quarter' | 'year' | 'all';
+// TimeRange can be a preset or a custom year (e.g., 'year-2024')
+export type TimeRange = 'month' | 'quarter' | 'year' | 'all' | `year-${number}`;
 export type GroupBy = 'day' | 'week' | 'month' | 'quarter' | 'year';
 
 // Maximum years of history to show for "All Time" view
 export const ALL_TIME_LOOKBACK_YEARS = 5;
+
+// Year filter prefix constant
+const YEAR_FILTER_PREFIX = 'year-';
+
+// Check if a time range is a specific year filter
+export const isYearFilter = (timeRange: string): boolean => {
+  return (
+    timeRange.startsWith(YEAR_FILTER_PREFIX) &&
+    !isNaN(parseInt(timeRange.slice(YEAR_FILTER_PREFIX.length)))
+  );
+};
+
+// Extract year from a year filter
+export const getYearFromFilter = (timeRange: string): number | null => {
+  if (isYearFilter(timeRange)) {
+    return parseInt(timeRange.slice(YEAR_FILTER_PREFIX.length));
+  }
+  return null;
+};
+
+// Generate available years for selection (from current year back to a specified number of years)
+export const getAvailableYears = (yearsBack: number = 10): number[] => {
+  const currentYear = new Date().getFullYear();
+  const years: number[] = [];
+  for (let i = 0; i <= yearsBack; i++) {
+    years.push(currentYear - i);
+  }
+  return years;
+};
+
+// Get date range for a specific year filter
+// Returns null if the time range is not a year filter
+export const getYearFilterDateRange = (
+  timeRange: string
+): { startDate: string; endDate: string } | null => {
+  if (!isYearFilter(timeRange)) {
+    return null;
+  }
+
+  const year = getYearFromFilter(timeRange);
+  if (!year) {
+    return null;
+  }
+
+  const startDate = new Date(year, 0, 1);
+  startDate.setHours(0, 0, 0, 0);
+
+  const endDate = new Date(year, 11, 31);
+  endDate.setHours(23, 59, 59, 999);
+
+  return {
+    startDate: startDate.toISOString(),
+    endDate: endDate.toISOString(),
+  };
+};
 
 // Palette of visually distinct, accessible colors for assets
 export const ASSET_COLOR_PALETTE = [
@@ -75,7 +131,11 @@ export const formatChartDate = (dateString: string, groupBy: GroupBy) => {
 };
 
 // Get human-readable time range label
-export const getTimeRangeLabel = (timeRange: TimeRange) => {
+export const getTimeRangeLabel = (timeRange: TimeRange): string => {
+  if (isYearFilter(timeRange)) {
+    const year = getYearFromFilter(timeRange);
+    return year?.toString() || 'Custom Year';
+  }
   switch (timeRange) {
     case 'month':
       return 'Last 30 Days';
@@ -85,5 +145,7 @@ export const getTimeRangeLabel = (timeRange: TimeRange) => {
       return 'Last 12 Months';
     case 'all':
       return 'All Time';
+    default:
+      return timeRange;
   }
 };

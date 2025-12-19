@@ -10,7 +10,9 @@ import {
   type BulkBalanceFormData,
   BulkUpdateBalanceDialog,
   formatChartDate,
+  getAvailableYears,
   getTimeRangeLabel,
+  getYearFilterDateRange,
   type GroupBy,
   LiabilityPayoffEstimator,
   NetWorthCharts,
@@ -26,10 +28,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 import { useAssetCategories } from '@/hooks/use-asset-categories';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
@@ -126,6 +131,12 @@ export default function NetWorthPage() {
   });
 
   const getDateRange = useCallback((range: TimeRange) => {
+    // Handle specific year filter (e.g., 'year-2024')
+    const yearRange = getYearFilterDateRange(range);
+    if (yearRange) {
+      return yearRange;
+    }
+
     const endDate = new Date();
     const startDate = new Date();
 
@@ -758,10 +769,22 @@ export default function NetWorthPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="border-border/60 bg-card text-foreground">
-                <SelectItem value="month">Last 30 Days</SelectItem>
-                <SelectItem value="quarter">Last 3 Months</SelectItem>
-                <SelectItem value="year">Last 12 Months</SelectItem>
-                <SelectItem value="all">All Time</SelectItem>
+                <SelectGroup>
+                  <SelectLabel className="text-muted-foreground">Relative</SelectLabel>
+                  <SelectItem value="month">Last 30 Days</SelectItem>
+                  <SelectItem value="quarter">Last 3 Months</SelectItem>
+                  <SelectItem value="year">Last 12 Months</SelectItem>
+                  <SelectItem value="all">All Time</SelectItem>
+                </SelectGroup>
+                <Separator className="my-1" />
+                <SelectGroup>
+                  <SelectLabel className="text-muted-foreground">By Year</SelectLabel>
+                  {getAvailableYears(10).map((year) => (
+                    <SelectItem key={year} value={`year-${year}`}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
               </SelectContent>
             </Select>
             <Select value={groupBy} onValueChange={(value) => setGroupBy(value as GroupBy)}>

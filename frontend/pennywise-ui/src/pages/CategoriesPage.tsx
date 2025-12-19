@@ -372,108 +372,108 @@ export default function CategoriesPage() {
             ) : (
               <div className="overflow-x-auto">
                 <Table className="min-w-[600px] text-foreground">
-                <TableHeader className="[&_tr]:border-border/60">
-                  <TableRow className="border-border/60">
-                    <TableHead className="text-muted-foreground">Name</TableHead>
-                    <TableHead className="text-muted-foreground">Description</TableHead>
-                    <TableHead className="text-muted-foreground">Color</TableHead>
-                    <TableHead className="text-muted-foreground">Updated</TableHead>
-                    <TableHead className="text-right text-muted-foreground">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {categories.map((category) => (
-                    <TableRow key={category.id} className="border-border/60 hover:bg-card/80">
-                      <TableCell className="font-semibold text-foreground">
-                        {category.name}
-                      </TableCell>
-                      <TableCell className="max-w-md truncate text-muted-foreground">
-                        {category.description || '—'}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <span
-                            className="h-6 w-6 rounded-full border border-border/60"
-                            style={{
-                              backgroundColor: category.color || DEFAULT_COLOR,
-                            }}
-                            aria-label="Category color"
-                          />
-                          <Badge
-                            variant="secondary"
-                            className="border-border/60 bg-card/70 text-foreground"
-                            style={
-                              category.color
-                                ? {
-                                    backgroundColor: category.color + '22',
-                                    color: category.color,
-                                    borderColor: category.color,
-                                  }
-                                : undefined
-                            }
-                          >
-                            {category.color || DEFAULT_COLOR}
-                          </Badge>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {new Date(category.updatedAt || category.createdAt).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end space-x-2">
-                          {!category.isDefault && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-foreground hover:bg-card/70"
-                              onClick={() => startEdit(category)}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          )}
-                          {!category.isDefault && (
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="text-destructive hover:bg-destructive/10"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent className="border-border/60 bg-card text-foreground">
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete category</AlertDialogTitle>
-                                  <AlertDialogDescription className="text-muted-foreground">
-                                    This will remove the category from your workspace. You cannot
-                                    delete a category that has expenses assigned to it.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel className="border-border/60 bg-card/80 text-foreground hover:bg-card/70">
-                                    Cancel
-                                  </AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => void handleDelete(category)}
-                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                    disabled={deletingId === category.id}
-                                  >
-                                    {deletingId === category.id ? 'Deleting...' : 'Delete'}
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          )}
-                          {category.isDefault && (
-                            <span className="text-xs text-muted-foreground italic">Default</span>
-                          )}
-                        </div>
-                      </TableCell>
+                  <TableHeader className="[&_tr]:border-border/60">
+                    <TableRow className="border-border/60">
+                      <TableHead className="text-muted-foreground">Name</TableHead>
+                      <TableHead className="text-muted-foreground">Description</TableHead>
+                      <TableHead className="text-muted-foreground">Color</TableHead>
+                      <TableHead className="text-muted-foreground">Updated</TableHead>
+                      <TableHead className="text-right text-muted-foreground">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {categories.map((category) => (
+                      <TableRow key={category.id} className="border-border/60 hover:bg-card/80">
+                        <TableCell className="font-semibold text-foreground">
+                          {category.name}
+                        </TableCell>
+                        <TableCell className="max-w-md truncate text-muted-foreground">
+                          {category.description || '—'}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <span
+                              className="h-6 w-6 rounded-full border border-border/60"
+                              style={{
+                                backgroundColor: category.color || DEFAULT_COLOR,
+                              }}
+                              aria-label="Category color"
+                            />
+                            <Badge
+                              variant="secondary"
+                              className="border-border/60 bg-card/70 text-foreground"
+                              style={
+                                category.color
+                                  ? {
+                                      backgroundColor: category.color + '22',
+                                      color: category.color,
+                                      borderColor: category.color,
+                                    }
+                                  : undefined
+                              }
+                            >
+                              {category.color || DEFAULT_COLOR}
+                            </Badge>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {new Date(category.updatedAt || category.createdAt).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end space-x-2">
+                            {!category.isDefault && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-foreground hover:bg-card/70"
+                                onClick={() => startEdit(category)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {!category.isDefault && (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="text-destructive hover:bg-destructive/10"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent className="border-border/60 bg-card text-foreground">
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete category</AlertDialogTitle>
+                                    <AlertDialogDescription className="text-muted-foreground">
+                                      This will remove the category from your workspace. You cannot
+                                      delete a category that has expenses assigned to it.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel className="border-border/60 bg-card/80 text-foreground hover:bg-card/70">
+                                      Cancel
+                                    </AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => void handleDelete(category)}
+                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                      disabled={deletingId === category.id}
+                                    >
+                                      {deletingId === category.id ? 'Deleting...' : 'Delete'}
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            )}
+                            {category.isDefault && (
+                              <span className="text-xs text-muted-foreground italic">Default</span>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
             )}
           </CardContent>

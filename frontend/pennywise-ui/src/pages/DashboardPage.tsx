@@ -1,15 +1,24 @@
 import { AppLayout } from '@/components/AppLayout';
 import { GoogleSignInButton } from '@/components/GoogleSignInButton';
+import {
+  getAvailableYears,
+  getYearFilterDateRange,
+  getYearFromFilter,
+  isYearFilter,
+} from '@/components/net-worth/constants';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 import {
   Table,
   TableBody,
@@ -46,7 +55,7 @@ import {
   YAxis,
 } from 'recharts';
 
-type TimeRange = 'day' | 'week' | 'month' | 'year';
+type TimeRange = 'day' | 'week' | 'month' | 'year' | `year-${number}`;
 
 const COLORS = [
   '#0088FE',
@@ -77,6 +86,12 @@ export default function DashboardPage() {
     }
 
     const getDateRange = (range: TimeRange) => {
+      // Handle specific year filter (e.g., 'year-2024')
+      const yearRange = getYearFilterDateRange(range);
+      if (yearRange) {
+        return yearRange;
+      }
+
       const endDate = new Date();
       const startDate = new Date();
 
@@ -175,6 +190,10 @@ export default function DashboardPage() {
   };
 
   const getTimeRangeLabel = () => {
+    if (isYearFilter(timeRange)) {
+      const year = getYearFromFilter(timeRange);
+      return year?.toString() || 'Custom Year';
+    }
     switch (timeRange) {
       case 'day':
         return 'Today';
@@ -236,10 +255,22 @@ export default function DashboardPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="border-border/60 bg-card text-foreground">
-                <SelectItem value="day">Today</SelectItem>
-                <SelectItem value="week">Last 7 Days</SelectItem>
-                <SelectItem value="month">Last 30 Days</SelectItem>
-                <SelectItem value="year">Last 12 Months</SelectItem>
+                <SelectGroup>
+                  <SelectLabel className="text-muted-foreground">Relative</SelectLabel>
+                  <SelectItem value="day">Today</SelectItem>
+                  <SelectItem value="week">Last 7 Days</SelectItem>
+                  <SelectItem value="month">Last 30 Days</SelectItem>
+                  <SelectItem value="year">Last 12 Months</SelectItem>
+                </SelectGroup>
+                <Separator className="my-1" />
+                <SelectGroup>
+                  <SelectLabel className="text-muted-foreground">By Year</SelectLabel>
+                  {getAvailableYears(10).map((year) => (
+                    <SelectItem key={year} value={`year-${year}`}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
               </SelectContent>
             </Select>
           </div>
@@ -463,45 +494,45 @@ export default function DashboardPage() {
             <CardContent>
               <div className="overflow-x-auto">
                 <Table className="min-w-[500px] text-foreground">
-                <TableHeader className="[&_tr]:border-border/60">
-                  <TableRow className="border-border/60">
-                    <TableHead className="text-muted-foreground">Date</TableHead>
-                    <TableHead className="text-muted-foreground">Title</TableHead>
-                    <TableHead className="text-muted-foreground">Category</TableHead>
-                    <TableHead className="text-right text-muted-foreground">Amount</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recentExpenses.map((expense) => (
-                    <TableRow key={expense.id} className="border-border/60 hover:bg-card/80">
-                      <TableCell className="font-medium text-foreground">
-                        {formatDate(expense.date)}
-                      </TableCell>
-                      <TableCell className="text-foreground">{expense.title}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="secondary"
-                          className="border-border/60 bg-card/70 text-foreground"
-                          style={
-                            expense.categoryColor
-                              ? {
-                                  backgroundColor: expense.categoryColor + '22',
-                                  color: expense.categoryColor,
-                                  borderColor: expense.categoryColor,
-                                }
-                              : undefined
-                          }
-                        >
-                          {expense.categoryName || 'Uncategorized'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right font-semibold text-foreground">
-                        {formatCurrency(expense.amount)}
-                      </TableCell>
+                  <TableHeader className="[&_tr]:border-border/60">
+                    <TableRow className="border-border/60">
+                      <TableHead className="text-muted-foreground">Date</TableHead>
+                      <TableHead className="text-muted-foreground">Title</TableHead>
+                      <TableHead className="text-muted-foreground">Category</TableHead>
+                      <TableHead className="text-right text-muted-foreground">Amount</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {recentExpenses.map((expense) => (
+                      <TableRow key={expense.id} className="border-border/60 hover:bg-card/80">
+                        <TableCell className="font-medium text-foreground">
+                          {formatDate(expense.date)}
+                        </TableCell>
+                        <TableCell className="text-foreground">{expense.title}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="secondary"
+                            className="border-border/60 bg-card/70 text-foreground"
+                            style={
+                              expense.categoryColor
+                                ? {
+                                    backgroundColor: expense.categoryColor + '22',
+                                    color: expense.categoryColor,
+                                    borderColor: expense.categoryColor,
+                                  }
+                                : undefined
+                            }
+                          >
+                            {expense.categoryName || 'Uncategorized'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right font-semibold text-foreground">
+                          {formatCurrency(expense.amount)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
             </CardContent>
           </Card>
