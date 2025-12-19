@@ -6,6 +6,9 @@ export type GroupBy = 'day' | 'week' | 'month' | 'quarter' | 'year';
 // Maximum years of history to show for "All Time" view
 export const ALL_TIME_LOOKBACK_YEARS = 5;
 
+// Default number of years to show in year picker dropdown
+export const YEAR_PICKER_YEARS_BACK = 10;
+
 // Year filter prefix constant
 const YEAR_FILTER_PREFIX = 'year-';
 
@@ -26,7 +29,7 @@ export const getYearFromFilter = (timeRange: string): number | null => {
 };
 
 // Generate available years for selection (from current year back to a specified number of years)
-export const getAvailableYears = (yearsBack: number = 10): number[] => {
+export const getAvailableYears = (yearsBack: number = YEAR_PICKER_YEARS_BACK): number[] => {
   const currentYear = new Date().getFullYear();
   const years: number[] = [];
   for (let i = 0; i <= yearsBack; i++) {

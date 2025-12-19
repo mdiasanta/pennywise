@@ -265,7 +265,7 @@ export default function DashboardPage() {
                 <Separator className="my-1" />
                 <SelectGroup>
                   <SelectLabel className="text-muted-foreground">By Year</SelectLabel>
-                  {getAvailableYears(10).map((year) => (
+                  {getAvailableYears().map((year) => (
                     <SelectItem key={year} value={`year-${year}`}>
                       {year}
                     </SelectItem>
