@@ -37,21 +37,35 @@ public class TagsController : ControllerBase
     [HttpPost("user/{userId}")]
     public async Task<ActionResult<TagDto>> CreateTag(int userId, CreateTagDto createDto)
     {
-        var tag = await _tagService.CreateAsync(userId, createDto);
-        return CreatedAtAction(
-            nameof(GetTag),
-            new { id = tag.Id, userId },
-            tag);
+        try
+        {
+            var tag = await _tagService.CreateAsync(userId, createDto);
+            return CreatedAtAction(
+                nameof(GetTag),
+                new { id = tag.Id, userId },
+                tag);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     [HttpPut("{id}/user/{userId}")]
     public async Task<ActionResult<TagDto>> UpdateTag(int id, int userId, UpdateTagDto updateDto)
     {
-        var tag = await _tagService.UpdateAsync(id, userId, updateDto);
-        if (tag == null)
-            return NotFound();
+        try
+        {
+            var tag = await _tagService.UpdateAsync(id, userId, updateDto);
+            if (tag == null)
+                return NotFound();
 
-        return Ok(tag);
+            return Ok(tag);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     [HttpDelete("{id}/user/{userId}")]

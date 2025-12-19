@@ -27,6 +27,13 @@ public class TagService : ITagService
 
     public async Task<TagDto> CreateAsync(int userId, CreateTagDto createDto)
     {
+        // Check for duplicate tag name for this user
+        var existingTag = await _tagRepository.GetByNameAsync(createDto.Name, userId);
+        if (existingTag != null)
+        {
+            throw new InvalidOperationException($"A tag with the name '{createDto.Name}' already exists.");
+        }
+
         var tag = new Tag
         {
             Name = createDto.Name,
@@ -43,6 +50,16 @@ public class TagService : ITagService
         var existing = await _tagRepository.GetByIdAsync(id, userId);
         if (existing == null)
             return null;
+
+        // Check for duplicate tag name if name is being changed
+        if (updateDto.Name != null && updateDto.Name != existing.Name)
+        {
+            var duplicateTag = await _tagRepository.GetByNameAsync(updateDto.Name, userId);
+            if (duplicateTag != null)
+            {
+                throw new InvalidOperationException($"A tag with the name '{updateDto.Name}' already exists.");
+            }
+        }
 
         var tag = new Tag
         {
