@@ -12,10 +12,14 @@ namespace Pennywise.Api.Controllers;
 public class AssetSnapshotsController : ControllerBase
 {
     private readonly IAssetSnapshotService _snapshotService;
+    private readonly IAssetSnapshotImportService _importService;
 
-    public AssetSnapshotsController(IAssetSnapshotService snapshotService)
+    public AssetSnapshotsController(
+        IAssetSnapshotService snapshotService,
+        IAssetSnapshotImportService importService)
     {
         _snapshotService = snapshotService;
+        _importService = importService;
     }
 
     [HttpGet("asset/{assetId}")]
@@ -49,6 +53,76 @@ public class AssetSnapshotsController : ControllerBase
             return NotFound();
 
         return Ok(snapshot);
+    }
+
+    [HttpGet("template")]
+    public async Task<IActionResult> GetTemplate([FromQuery] string format = "csv", [FromQuery] int assetId = 0, [FromQuery] int userId = 0)
+    {
+        try
+        {
+            var template = await _importService.GenerateTemplateAsync(format, assetId, userId);
+            Response.Headers["Content-Disposition"] = $"attachment; filename=\"{template.FileName}\"";
+            return File(template.Content, template.ContentType);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, "Failed to generate template.");
+        }
+    }
+
+    [HttpPost("import")]
+    [RequestFormLimits(MultipartBodyLengthLimit = 10 * 1024 * 1024)]
+    public async Task<ActionResult<AssetSnapshotImportResponseDto>> ImportBalances(
+        [FromForm] IFormFile file,
+        [FromForm] int assetId,
+        [FromForm] int userId,
+        [FromForm] string duplicateStrategy = "skip",
+        [FromForm] string? timezone = null,
+        [FromForm] bool dryRun = true)
+    {
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest("No file uploaded.");
+        }
+
+        if (assetId <= 0)
+        {
+            return BadRequest("Invalid asset ID.");
+        }
+
+        if (userId <= 0)
+        {
+            return BadRequest("Invalid user ID.");
+        }
+
+        try
+        {
+            await using var stream = file.OpenReadStream();
+            var result = await _importService.ImportAsync(new AssetSnapshotImportRequest
+            {
+                FileStream = stream,
+                FileName = file.FileName,
+                AssetId = assetId,
+                UserId = userId,
+                DuplicateStrategy = duplicateStrategy,
+                Timezone = timezone,
+                DryRun = dryRun
+            });
+
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, "Failed to import balances. Please try again.");
+        }
     }
 
     [HttpPost]

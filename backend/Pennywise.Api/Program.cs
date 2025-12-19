@@ -40,6 +40,7 @@ builder.Services.AddScoped<IExpenseImportService, ExpenseImportService>();
 builder.Services.AddScoped<IAssetCategoryService, AssetCategoryService>();
 builder.Services.AddScoped<IAssetService, AssetService>();
 builder.Services.AddScoped<IAssetSnapshotService, AssetSnapshotService>();
+builder.Services.AddScoped<IAssetSnapshotImportService, AssetSnapshotImportService>();
 builder.Services.AddScoped<INetWorthService, NetWorthService>();
 builder.Services.AddScoped<IRecurringTransactionService, RecurringTransactionService>();
 

@@ -7,6 +7,7 @@ export {
   type BulkBalanceFormData,
 } from './BulkUpdateBalanceDialog';
 export * from './constants';
+export { ImportBalancesDialog } from './ImportBalancesDialog';
 export { LiabilityPayoffEstimator } from './LiabilityPayoffEstimator';
 export { NetWorthCharts } from './NetWorthCharts';
 export { NetWorthProjectionComponent } from './NetWorthProjection';

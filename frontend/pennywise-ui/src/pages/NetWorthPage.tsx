@@ -15,6 +15,7 @@ import {
   getTimeRangeLabel,
   getYearFilterDateRange,
   type GroupBy,
+  ImportBalancesDialog,
   LiabilityPayoffEstimator,
   NetWorthCharts,
   NetWorthProjectionComponent,
@@ -75,10 +76,12 @@ export default function NetWorthPage() {
   const [isAddAssetDialogOpen, setIsAddAssetDialogOpen] = useState(false);
   const [isUpdateBalanceDialogOpen, setIsUpdateBalanceDialogOpen] = useState(false);
   const [isBulkUpdateBalanceDialogOpen, setIsBulkUpdateBalanceDialogOpen] = useState(false);
+  const [isImportBalancesDialogOpen, setIsImportBalancesDialogOpen] = useState(false);
   const [isBalanceHistoryDialogOpen, setIsBalanceHistoryDialogOpen] = useState(false);
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
   const [selectedAssetForUpdate, setSelectedAssetForUpdate] = useState<Asset | null>(null);
   const [selectedAssetForBulkUpdate, setSelectedAssetForBulkUpdate] = useState<Asset | null>(null);
+  const [selectedAssetForImport, setSelectedAssetForImport] = useState<Asset | null>(null);
   const [selectedAssetForHistory, setSelectedAssetForHistory] = useState<Asset | null>(null);
   const [historySnapshots, setHistorySnapshots] = useState<AssetSnapshot[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -654,6 +657,11 @@ export default function NetWorthPage() {
     setIsBulkUpdateBalanceDialogOpen(true);
   };
 
+  const handleOpenImportBalances = (asset: Asset) => {
+    setSelectedAssetForImport(asset);
+    setIsImportBalancesDialogOpen(true);
+  };
+
   const handleDeleteAsset = async (asset: Asset) => {
     if (!user) return;
 
@@ -921,6 +929,7 @@ export default function NetWorthPage() {
           onEditAccount={handleEditAsset}
           onUpdateBalance={handleOpenUpdateBalance}
           onBulkUpdateBalance={handleOpenBulkUpdateBalance}
+          onImportBalances={handleOpenImportBalances}
           onViewHistory={handleViewHistory}
           onDeleteAccount={handleDeleteAsset}
         />
@@ -1000,6 +1009,19 @@ export default function NetWorthPage() {
           loading={historyLoading}
           onUpdateSnapshot={handleUpdateSnapshot}
           onDeleteSnapshot={handleDeleteSnapshot}
+        />
+
+        <ImportBalancesDialog
+          open={isImportBalancesDialogOpen}
+          onOpenChange={(open) => {
+            setIsImportBalancesDialogOpen(open);
+            if (!open) {
+              setSelectedAssetForImport(null);
+            }
+          }}
+          selectedAsset={selectedAssetForImport}
+          userId={user?.id ?? 0}
+          onImportComplete={loadData}
         />
       </div>
     </AppLayout>

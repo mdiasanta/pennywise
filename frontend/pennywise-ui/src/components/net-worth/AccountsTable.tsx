@@ -21,7 +21,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import type { Asset } from '@/lib/api';
-import { Calendar, DollarSign, History, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Calendar, DollarSign, History, Pencil, Plus, Trash2, Upload } from 'lucide-react';
 import { formatCurrency, formatDate } from './constants';
 
 interface AccountsTableProps {
@@ -31,6 +31,7 @@ interface AccountsTableProps {
   onEditAccount: (asset: Asset) => void;
   onUpdateBalance: (asset: Asset) => void;
   onBulkUpdateBalance: (asset: Asset) => void;
+  onImportBalances: (asset: Asset) => void;
   onViewHistory: (asset: Asset) => void;
   onDeleteAccount: (asset: Asset) => void;
 }
@@ -42,6 +43,7 @@ export function AccountsTable({
   onEditAccount,
   onUpdateBalance,
   onBulkUpdateBalance,
+  onImportBalances,
   onViewHistory,
   onDeleteAccount,
 }: AccountsTableProps) {
@@ -144,6 +146,15 @@ export function AccountsTable({
                           title="Bulk Update Balances"
                         >
                           <Calendar className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-foreground hover:bg-card/70"
+                          onClick={() => onImportBalances(asset)}
+                          title="Import Balances from CSV/Excel"
+                        >
+                          <Upload className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
