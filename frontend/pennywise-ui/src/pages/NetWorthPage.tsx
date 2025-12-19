@@ -7,6 +7,7 @@ import {
   type AssetFormData,
   AssetFormDialog,
   type BalanceFormData,
+  BalanceHistoryDialog,
   type BulkBalanceFormData,
   BulkUpdateBalanceDialog,
   formatChartDate,
@@ -74,9 +75,13 @@ export default function NetWorthPage() {
   const [isAddAssetDialogOpen, setIsAddAssetDialogOpen] = useState(false);
   const [isUpdateBalanceDialogOpen, setIsUpdateBalanceDialogOpen] = useState(false);
   const [isBulkUpdateBalanceDialogOpen, setIsBulkUpdateBalanceDialogOpen] = useState(false);
+  const [isBalanceHistoryDialogOpen, setIsBalanceHistoryDialogOpen] = useState(false);
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
   const [selectedAssetForUpdate, setSelectedAssetForUpdate] = useState<Asset | null>(null);
   const [selectedAssetForBulkUpdate, setSelectedAssetForBulkUpdate] = useState<Asset | null>(null);
+  const [selectedAssetForHistory, setSelectedAssetForHistory] = useState<Asset | null>(null);
+  const [historySnapshots, setHistorySnapshots] = useState<AssetSnapshot[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   // Form states
   const [assetFormData, setAssetFormData] = useState<AssetFormData>({
@@ -679,6 +684,84 @@ export default function NetWorthPage() {
     setIsAddRecurringDialogOpen(true);
   };
 
+  const handleViewHistory = async (asset: Asset) => {
+    setSelectedAssetForHistory(asset);
+    setHistoryLoading(true);
+    setIsBalanceHistoryDialogOpen(true);
+
+    try {
+      // Load all snapshots for this asset (no date filter for full history)
+      const snapshots = await assetSnapshotApi.getByAsset(asset.id);
+      setHistorySnapshots(snapshots);
+    } catch (error) {
+      console.error('Error loading balance history:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to load balance history. Please try again.',
+      });
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const handleUpdateSnapshot = async (
+    id: number,
+    balance: number,
+    date: string,
+    notes: string | undefined
+  ) => {
+    try {
+      await assetSnapshotApi.update(id, { balance, date, notes });
+      toast({
+        title: 'Success',
+        description: 'Balance entry updated successfully.',
+      });
+
+      // Refresh the history snapshots
+      if (selectedAssetForHistory) {
+        const snapshots = await assetSnapshotApi.getByAsset(selectedAssetForHistory.id);
+        setHistorySnapshots(snapshots);
+      }
+
+      // Reload main data to update charts
+      loadData();
+    } catch (error) {
+      console.error('Error updating snapshot:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to update balance entry. Please try again.',
+      });
+    }
+  };
+
+  const handleDeleteSnapshot = async (id: number) => {
+    try {
+      await assetSnapshotApi.delete(id);
+      toast({
+        title: 'Success',
+        description: 'Balance entry deleted successfully.',
+      });
+
+      // Refresh the history snapshots
+      if (selectedAssetForHistory) {
+        const snapshots = await assetSnapshotApi.getByAsset(selectedAssetForHistory.id);
+        setHistorySnapshots(snapshots);
+      }
+
+      // Reload main data to update charts
+      loadData();
+    } catch (error) {
+      console.error('Error deleting snapshot:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to delete balance entry. Please try again.',
+      });
+    }
+  };
+
   // Derived data
   const assetCategories = categories.filter((c) => !c.isLiability);
   const liabilityCategories = categories.filter((c) => c.isLiability);
@@ -846,6 +929,7 @@ export default function NetWorthPage() {
           onEditAccount={handleEditAsset}
           onUpdateBalance={handleOpenUpdateBalance}
           onBulkUpdateBalance={handleOpenBulkUpdateBalance}
+          onViewHistory={handleViewHistory}
           onDeleteAccount={handleDeleteAsset}
         />
 
@@ -908,6 +992,22 @@ export default function NetWorthPage() {
           onFormDataChange={setRecurringFormData}
           onSubmit={handleSubmitRecurring}
           assets={assets}
+        />
+
+        <BalanceHistoryDialog
+          open={isBalanceHistoryDialogOpen}
+          onOpenChange={(open) => {
+            setIsBalanceHistoryDialogOpen(open);
+            if (!open) {
+              setSelectedAssetForHistory(null);
+              setHistorySnapshots([]);
+            }
+          }}
+          asset={selectedAssetForHistory}
+          snapshots={historySnapshots}
+          loading={historyLoading}
+          onUpdateSnapshot={handleUpdateSnapshot}
+          onDeleteSnapshot={handleDeleteSnapshot}
         />
       </div>
     </AppLayout>
