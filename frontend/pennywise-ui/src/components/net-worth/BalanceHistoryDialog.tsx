@@ -39,6 +39,7 @@ export interface EditingSnapshot {
   balance: string;
   date: string;
   notes: string;
+  error?: string;
 }
 
 interface BalanceHistoryDialogProps {
@@ -79,7 +80,10 @@ export function BalanceHistoryDialog({
     if (!editingSnapshot) return;
 
     const balance = parseFloat(editingSnapshot.balance);
-    if (isNaN(balance)) return;
+    if (isNaN(balance)) {
+      setEditingSnapshot({ ...editingSnapshot, error: 'Please enter a valid number' });
+      return;
+    }
 
     onUpdateSnapshot(
       editingSnapshot.id,
@@ -92,7 +96,7 @@ export function BalanceHistoryDialog({
 
   const handleEditChange = (field: keyof EditingSnapshot, value: string) => {
     if (!editingSnapshot) return;
-    setEditingSnapshot({ ...editingSnapshot, [field]: value });
+    setEditingSnapshot({ ...editingSnapshot, [field]: value, error: undefined });
   };
 
   // Reset editing state when dialog closes
@@ -148,13 +152,18 @@ export function BalanceHistoryDialog({
                             />
                           </TableCell>
                           <TableCell className="text-right">
-                            <Input
-                              type="number"
-                              step="0.01"
-                              className="w-32 border-border/60 bg-card text-right text-foreground"
-                              value={editingSnapshot.balance}
-                              onChange={(e) => handleEditChange('balance', e.target.value)}
-                            />
+                            <div className="flex flex-col items-end">
+                              <Input
+                                type="number"
+                                step="0.01"
+                                className={`w-32 border-border/60 bg-card text-right text-foreground ${editingSnapshot.error ? 'border-destructive' : ''}`}
+                                value={editingSnapshot.balance}
+                                onChange={(e) => handleEditChange('balance', e.target.value)}
+                              />
+                              {editingSnapshot.error && (
+                                <span className="mt-1 text-xs text-destructive">{editingSnapshot.error}</span>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell>
                             <Textarea

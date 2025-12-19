@@ -705,6 +705,14 @@ export default function NetWorthPage() {
     }
   };
 
+  const refreshHistorySnapshots = async () => {
+    if (selectedAssetForHistory) {
+      const snapshots = await assetSnapshotApi.getByAsset(selectedAssetForHistory.id);
+      setHistorySnapshots(snapshots);
+    }
+    loadData();
+  };
+
   const handleUpdateSnapshot = async (
     id: number,
     balance: number,
@@ -717,15 +725,7 @@ export default function NetWorthPage() {
         title: 'Success',
         description: 'Balance entry updated successfully.',
       });
-
-      // Refresh the history snapshots
-      if (selectedAssetForHistory) {
-        const snapshots = await assetSnapshotApi.getByAsset(selectedAssetForHistory.id);
-        setHistorySnapshots(snapshots);
-      }
-
-      // Reload main data to update charts
-      loadData();
+      await refreshHistorySnapshots();
     } catch (error) {
       console.error('Error updating snapshot:', error);
       toast({
@@ -743,15 +743,7 @@ export default function NetWorthPage() {
         title: 'Success',
         description: 'Balance entry deleted successfully.',
       });
-
-      // Refresh the history snapshots
-      if (selectedAssetForHistory) {
-        const snapshots = await assetSnapshotApi.getByAsset(selectedAssetForHistory.id);
-        setHistorySnapshots(snapshots);
-      }
-
-      // Reload main data to update charts
-      loadData();
+      await refreshHistorySnapshots();
     } catch (error) {
       console.error('Error deleting snapshot:', error);
       toast({
