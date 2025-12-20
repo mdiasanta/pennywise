@@ -21,7 +21,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -200,137 +199,128 @@ export default function CategoriesPage() {
               </div>
             )}
           </div>
-          <Dialog
-            open={isDialogOpen}
-            onOpenChange={(open) => {
-              setIsDialogOpen(open);
-              if (!open) resetForm();
-            }}
-          >
-            <DialogTrigger asChild>
-              <Button className="bg-primary text-primary-foreground shadow-lg shadow-primary/30 hover:-translate-y-0.5 hover:bg-primary/90">
-                <Plus className="mr-2 h-4 w-4" />
-                Add category
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="border-border/60 bg-card text-foreground">
-              <form onSubmit={handleSubmit}>
-                <DialogHeader>
-                  <DialogTitle>{activeCategory ? 'Edit category' : 'Add category'}</DialogTitle>
-                  <DialogDescription className="text-muted-foreground">
-                    {activeCategory
-                      ? 'Update this category to keep your expenses organized.'
-                      : 'Create a category with a clear name and color for quick recognition.'}
-                  </DialogDescription>
-                </DialogHeader>
+        </div>
 
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name" className="text-muted-foreground">
-                      Name *
-                    </Label>
-                    <Input
-                      id="name"
-                      value={formValues.name}
-                      onChange={(event) =>
-                        setFormValues((prev) => ({
-                          ...prev,
-                          name: event.target.value,
-                        }))
-                      }
-                      required
-                      className="border-border/60 bg-card text-foreground placeholder:text-muted-foreground"
-                      placeholder="e.g., Groceries"
-                    />
-                  </div>
+        <Dialog
+          open={isDialogOpen}
+          onOpenChange={(open) => {
+            setIsDialogOpen(open);
+            if (!open) resetForm();
+          }}
+        >
+          <DialogContent className="border-border/60 bg-card text-foreground">
+            <form onSubmit={handleSubmit}>
+              <DialogHeader>
+                <DialogTitle>{activeCategory ? 'Edit category' : 'Add category'}</DialogTitle>
+                <DialogDescription className="text-muted-foreground">
+                  {activeCategory
+                    ? 'Update this category to keep your expenses organized.'
+                    : 'Create a category with a clear name and color for quick recognition.'}
+                </DialogDescription>
+              </DialogHeader>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="color" className="text-muted-foreground">
-                      Color *
-                    </Label>
-                    <div className="flex items-center gap-3">
-                      <Input
-                        id="color"
-                        type="color"
-                        value={formValues.color}
-                        onChange={(event) =>
-                          setFormValues((prev) => ({
-                            ...prev,
-                            color: event.target.value,
-                          }))
-                        }
-                        className="h-10 w-16 cursor-pointer border-border/60 bg-card"
-                        required
-                      />
-                      <Input
-                        value={formValues.color}
-                        onChange={(event) =>
-                          setFormValues((prev) => ({
-                            ...prev,
-                            color: event.target.value,
-                          }))
-                        }
-                        pattern={COLOR_PATTERN.source}
-                        className="flex-1 border-border/60 bg-card text-foreground placeholder:text-muted-foreground"
-                        placeholder="#10b981"
-                      />
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Pick a color that will show up alongside expenses in this category.
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="description" className="text-muted-foreground">
-                      Description
-                    </Label>
-                    <Input
-                      id="description"
-                      value={formValues.description}
-                      onChange={(event) =>
-                        setFormValues((prev) => ({
-                          ...prev,
-                          description: event.target.value,
-                        }))
-                      }
-                      className="border-border/60 bg-card text-foreground placeholder:text-muted-foreground"
-                      placeholder="Add context or guidelines"
-                    />
-                  </div>
-
-                  {validationError ? (
-                    <p className="text-sm text-destructive">{validationError}</p>
-                  ) : null}
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="text-muted-foreground">
+                    Name *
+                  </Label>
+                  <Input
+                    id="name"
+                    value={formValues.name}
+                    onChange={(event) =>
+                      setFormValues((prev) => ({
+                        ...prev,
+                        name: event.target.value,
+                      }))
+                    }
+                    required
+                    className="border-border/60 bg-card text-foreground placeholder:text-muted-foreground"
+                    placeholder="e.g., Groceries"
+                  />
                 </div>
 
-                <DialogFooter>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="border-border/60 bg-card/80 text-foreground hover:bg-card/70"
-                    onClick={() => {
-                      setIsDialogOpen(false);
-                      resetForm();
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    className="bg-primary text-primary-foreground hover:bg-primary/90"
-                    disabled={isSaving}
-                  >
-                    {isSaving
-                      ? 'Saving...'
-                      : activeCategory
-                        ? 'Update category'
-                        : 'Create category'}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
+                <div className="space-y-2">
+                  <Label htmlFor="color" className="text-muted-foreground">
+                    Color *
+                  </Label>
+                  <div className="flex items-center gap-3">
+                    <Input
+                      id="color"
+                      type="color"
+                      value={formValues.color}
+                      onChange={(event) =>
+                        setFormValues((prev) => ({
+                          ...prev,
+                          color: event.target.value,
+                        }))
+                      }
+                      className="h-10 w-16 cursor-pointer border-border/60 bg-card"
+                      required
+                    />
+                    <Input
+                      value={formValues.color}
+                      onChange={(event) =>
+                        setFormValues((prev) => ({
+                          ...prev,
+                          color: event.target.value,
+                        }))
+                      }
+                      pattern={COLOR_PATTERN.source}
+                      className="flex-1 border-border/60 bg-card text-foreground placeholder:text-muted-foreground"
+                      placeholder="#10b981"
+                    />
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Pick a color that will show up alongside expenses in this category.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="description" className="text-muted-foreground">
+                    Description
+                  </Label>
+                  <Input
+                    id="description"
+                    value={formValues.description}
+                    onChange={(event) =>
+                      setFormValues((prev) => ({
+                        ...prev,
+                        description: event.target.value,
+                      }))
+                    }
+                    className="border-border/60 bg-card text-foreground placeholder:text-muted-foreground"
+                    placeholder="Add context or guidelines"
+                  />
+                </div>
+
+                {validationError ? (
+                  <p className="text-sm text-destructive">{validationError}</p>
+                ) : null}
+              </div>
+
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-border/60 bg-card/80 text-foreground hover:bg-card/70"
+                  onClick={() => {
+                    setIsDialogOpen(false);
+                    resetForm();
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  disabled={isSaving}
+                >
+                  {isSaving ? 'Saving...' : activeCategory ? 'Update category' : 'Create category'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
 
         <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
           <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">

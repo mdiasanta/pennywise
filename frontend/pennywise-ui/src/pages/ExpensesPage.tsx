@@ -22,7 +22,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -592,248 +591,242 @@ export default function ExpensesPage() {
               <p className="mt-1 text-xl font-semibold text-foreground">{categories.length}</p>
             </div>
           </div>
-          <Dialog
-            open={isAddDialogOpen}
-            onOpenChange={(open) => {
-              setIsAddDialogOpen(open);
-              if (!open) resetForm();
-            }}
-          >
-            <DialogTrigger asChild>
-              <Button className="bg-primary text-primary-foreground shadow-lg shadow-primary/30 hover:-translate-y-0.5 hover:bg-primary/90">
-                <Plus className="mr-2 h-4 w-4" />
-                Add expense
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="border-border/60 bg-card text-foreground">
-              <form onSubmit={handleSubmit}>
-                <DialogHeader>
-                  <DialogTitle>{editingExpense ? 'Edit Expense' : 'Add New Expense'}</DialogTitle>
-                  <DialogDescription className="text-muted-foreground">
-                    {editingExpense
-                      ? 'Update the expense details below.'
-                      : 'Fill in the details to create a new expense record.'}
-                  </DialogDescription>
-                </DialogHeader>
+        </div>
 
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="title" className="text-muted-foreground">
-                      Title *
-                    </Label>
-                    <Input
-                      id="title"
-                      className="border-border/60 bg-card text-foreground placeholder:text-muted-foreground"
-                      value={formData.title}
-                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                      required
-                      placeholder="e.g., Grocery shopping"
-                    />
-                  </div>
+        <Dialog
+          open={isAddDialogOpen}
+          onOpenChange={(open) => {
+            setIsAddDialogOpen(open);
+            if (!open) resetForm();
+          }}
+        >
+          <DialogContent className="border-border/60 bg-card text-foreground">
+            <form onSubmit={handleSubmit}>
+              <DialogHeader>
+                <DialogTitle>{editingExpense ? 'Edit Expense' : 'Add New Expense'}</DialogTitle>
+                <DialogDescription className="text-muted-foreground">
+                  {editingExpense
+                    ? 'Update the expense details below.'
+                    : 'Fill in the details to create a new expense record.'}
+                </DialogDescription>
+              </DialogHeader>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="amount" className="text-muted-foreground">
-                      Amount *
-                    </Label>
-                    <Input
-                      id="amount"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      className="border-border/60 bg-card text-foreground placeholder:text-muted-foreground"
-                      value={formData.amount}
-                      onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                      required
-                      placeholder="0.00"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="date" className="text-muted-foreground">
-                      Date *
-                    </Label>
-                    <Input
-                      id="date"
-                      type="date"
-                      className="border-border/60 bg-card text-foreground"
-                      value={formData.date}
-                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="category" className="text-muted-foreground">
-                      Category *
-                    </Label>
-                    <Select
-                      value={formData.categoryId}
-                      onValueChange={(value) => setFormData({ ...formData, categoryId: value })}
-                      required
-                      disabled={categoriesLoading || categories.length === 0}
-                    >
-                      <SelectTrigger className="border-border/60 bg-card text-foreground">
-                        <SelectValue placeholder="Select a category" />
-                      </SelectTrigger>
-                      <SelectContent className="border-border/60 bg-card text-foreground">
-                        {categories.map((category) => (
-                          <SelectItem key={category.id} value={category.id.toString()}>
-                            {category.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {categoriesLoading ? (
-                      <p className="text-sm text-muted-foreground">Loading categories...</p>
-                    ) : null}
-                    {categoriesError && !categoriesLoading ? (
-                      <p className="text-sm text-destructive">
-                        Unable to load categories. Try again or manage them from the Categories
-                        page.
-                      </p>
-                    ) : null}
-                    {!categoriesLoading && categories.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">
-                        No categories found. Create one from the Categories page to start tagging
-                        expenses.
-                      </p>
-                    ) : null}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="description" className="text-muted-foreground">
-                      Description
-                    </Label>
-                    <Textarea
-                      id="description"
-                      className="border-border/60 bg-card text-foreground placeholder:text-muted-foreground"
-                      value={formData.description}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          description: e.target.value,
-                        })
-                      }
-                      placeholder="Add any additional details..."
-                      rows={3}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-muted-foreground">Tags</Label>
-                    <div className="flex flex-wrap gap-2">
-                      {formData.tagIds.map((tagId) => {
-                        const tag = tags.find((t) => t.id === tagId);
-                        return tag ? (
-                          <Badge
-                            key={tagId}
-                            variant="secondary"
-                            className="border-border/60 bg-card/70 text-foreground"
-                            style={
-                              tag.color
-                                ? {
-                                    backgroundColor: tag.color + '22',
-                                    color: tag.color,
-                                    borderColor: tag.color,
-                                  }
-                                : undefined
-                            }
-                          >
-                            {tag.name}
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setFormData((prev) => ({
-                                  ...prev,
-                                  tagIds: prev.tagIds.filter((id) => id !== tagId),
-                                }))
-                              }
-                              className="ml-1 hover:text-destructive"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </Badge>
-                        ) : null;
-                      })}
-                    </div>
-                    <div className="flex gap-2">
-                      <Select
-                        value=""
-                        onValueChange={(value) => {
-                          const tagId = parseInt(value, 10);
-                          if (!formData.tagIds.includes(tagId)) {
-                            setFormData((prev) => ({
-                              ...prev,
-                              tagIds: [...prev.tagIds, tagId],
-                            }));
-                          }
-                        }}
-                        disabled={tagsLoading}
-                      >
-                        <SelectTrigger className="border-border/60 bg-card text-foreground">
-                          <SelectValue placeholder="Add existing tag..." />
-                        </SelectTrigger>
-                        <SelectContent className="border-border/60 bg-card text-foreground">
-                          {tags
-                            .filter((t) => !formData.tagIds.includes(t.id))
-                            .map((tag) => (
-                              <SelectItem key={tag.id} value={tag.id.toString()}>
-                                {tag.name}
-                              </SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="Create new tag..."
-                        value={newTagName}
-                        onChange={(e) => setNewTagName(e.target.value)}
-                        className="border-border/60 bg-card text-foreground placeholder:text-muted-foreground"
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            void handleAddTag();
-                          }
-                        }}
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => void handleAddTag()}
-                        disabled={!newTagName.trim()}
-                        className="border-border/60 bg-card/80 text-foreground hover:bg-card/70"
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="title" className="text-muted-foreground">
+                    Title *
+                  </Label>
+                  <Input
+                    id="title"
+                    className="border-border/60 bg-card text-foreground placeholder:text-muted-foreground"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    required
+                    placeholder="e.g., Grocery shopping"
+                  />
                 </div>
 
-                <DialogFooter>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="border-border/60 bg-card/80 text-foreground hover:bg-card/70"
-                    onClick={() => {
-                      setIsAddDialogOpen(false);
-                      resetForm();
-                    }}
+                <div className="space-y-2">
+                  <Label htmlFor="amount" className="text-muted-foreground">
+                    Amount *
+                  </Label>
+                  <Input
+                    id="amount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    className="border-border/60 bg-card text-foreground placeholder:text-muted-foreground"
+                    value={formData.amount}
+                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                    required
+                    placeholder="0.00"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="date" className="text-muted-foreground">
+                    Date *
+                  </Label>
+                  <Input
+                    id="date"
+                    type="date"
+                    className="border-border/60 bg-card text-foreground"
+                    value={formData.date}
+                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="category" className="text-muted-foreground">
+                    Category *
+                  </Label>
+                  <Select
+                    value={formData.categoryId}
+                    onValueChange={(value) => setFormData({ ...formData, categoryId: value })}
+                    required
+                    disabled={categoriesLoading || categories.length === 0}
                   >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    className="bg-primary text-primary-foreground hover:bg-primary/90"
-                  >
-                    {editingExpense ? 'Update' : 'Create'} Expense
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
+                    <SelectTrigger className="border-border/60 bg-card text-foreground">
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                    <SelectContent className="border-border/60 bg-card text-foreground">
+                      {categories.map((category) => (
+                        <SelectItem key={category.id} value={category.id.toString()}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {categoriesLoading ? (
+                    <p className="text-sm text-muted-foreground">Loading categories...</p>
+                  ) : null}
+                  {categoriesError && !categoriesLoading ? (
+                    <p className="text-sm text-destructive">
+                      Unable to load categories. Try again or manage them from the Categories page.
+                    </p>
+                  ) : null}
+                  {!categoriesLoading && categories.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      No categories found. Create one from the Categories page to start tagging
+                      expenses.
+                    </p>
+                  ) : null}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="description" className="text-muted-foreground">
+                    Description
+                  </Label>
+                  <Textarea
+                    id="description"
+                    className="border-border/60 bg-card text-foreground placeholder:text-muted-foreground"
+                    value={formData.description}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        description: e.target.value,
+                      })
+                    }
+                    placeholder="Add any additional details..."
+                    rows={3}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground">Tags</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.tagIds.map((tagId) => {
+                      const tag = tags.find((t) => t.id === tagId);
+                      return tag ? (
+                        <Badge
+                          key={tagId}
+                          variant="secondary"
+                          className="border-border/60 bg-card/70 text-foreground"
+                          style={
+                            tag.color
+                              ? {
+                                  backgroundColor: tag.color + '22',
+                                  color: tag.color,
+                                  borderColor: tag.color,
+                                }
+                              : undefined
+                          }
+                        >
+                          {tag.name}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setFormData((prev) => ({
+                                ...prev,
+                                tagIds: prev.tagIds.filter((id) => id !== tagId),
+                              }))
+                            }
+                            className="ml-1 hover:text-destructive"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ) : null;
+                    })}
+                  </div>
+                  <div className="flex gap-2">
+                    <Select
+                      value=""
+                      onValueChange={(value) => {
+                        const tagId = parseInt(value, 10);
+                        if (!formData.tagIds.includes(tagId)) {
+                          setFormData((prev) => ({
+                            ...prev,
+                            tagIds: [...prev.tagIds, tagId],
+                          }));
+                        }
+                      }}
+                      disabled={tagsLoading}
+                    >
+                      <SelectTrigger className="border-border/60 bg-card text-foreground">
+                        <SelectValue placeholder="Add existing tag..." />
+                      </SelectTrigger>
+                      <SelectContent className="border-border/60 bg-card text-foreground">
+                        {tags
+                          .filter((t) => !formData.tagIds.includes(t.id))
+                          .map((tag) => (
+                            <SelectItem key={tag.id} value={tag.id.toString()}>
+                              {tag.name}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Create new tag..."
+                      value={newTagName}
+                      onChange={(e) => setNewTagName(e.target.value)}
+                      className="border-border/60 bg-card text-foreground placeholder:text-muted-foreground"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          void handleAddTag();
+                        }
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => void handleAddTag()}
+                      disabled={!newTagName.trim()}
+                      className="border-border/60 bg-card/80 text-foreground hover:bg-card/70"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-border/60 bg-card/80 text-foreground hover:bg-card/70"
+                  onClick={() => {
+                    setIsAddDialogOpen(false);
+                    resetForm();
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  {editingExpense ? 'Update' : 'Create'} Expense
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
 
         <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
           <CardHeader>
@@ -1058,11 +1051,24 @@ export default function ExpensesPage() {
         </Card>
 
         <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
-          <CardHeader>
-            <CardTitle>All Expenses</CardTitle>
-            <CardDescription className="text-muted-foreground">
-              A complete list of all your expense records
-            </CardDescription>
+          <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle>All Expenses</CardTitle>
+              <CardDescription className="text-muted-foreground">
+                A complete list of all your expense records
+              </CardDescription>
+            </div>
+            <Button
+              size="sm"
+              className="bg-primary text-primary-foreground shadow-primary/30 hover:bg-primary/90"
+              onClick={() => {
+                resetForm();
+                setIsAddDialogOpen(true);
+              }}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              New expense
+            </Button>
           </CardHeader>
           <CardContent>
             <div className="mb-6 space-y-4 rounded-2xl border border-border/60 bg-card/60 p-4">

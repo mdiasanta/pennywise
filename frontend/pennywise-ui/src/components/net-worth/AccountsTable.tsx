@@ -73,19 +73,20 @@ export function AccountsTable({
   return (
     <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <CardTitle>Accounts</CardTitle>
             <CardDescription className="text-muted-foreground">
               Manage your assets and liabilities
             </CardDescription>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {onBulkImportBalances && (
               <Button
                 variant="outline"
                 onClick={onBulkImportBalances}
                 className="border-border/60 bg-card/80 text-foreground hover:bg-card/70"
+                size="sm"
               >
                 <Upload className="mr-2 h-4 w-4" />
                 Bulk Import
@@ -98,6 +99,7 @@ export function AccountsTable({
                     variant="outline"
                     className="border-border/60 bg-card/80 text-foreground hover:bg-card/70"
                     disabled={exporting}
+                    size="sm"
                   >
                     <Download className="mr-2 h-4 w-4" />
                     {exporting ? 'Exporting...' : 'Export All'}
@@ -122,6 +124,7 @@ export function AccountsTable({
             <Button
               onClick={onAddAccount}
               className="bg-primary text-primary-foreground shadow-lg shadow-primary/30 hover:-translate-y-0.5 hover:bg-primary/90"
+              size="sm"
             >
               <Plus className="mr-2 h-4 w-4" />
               Add Account
