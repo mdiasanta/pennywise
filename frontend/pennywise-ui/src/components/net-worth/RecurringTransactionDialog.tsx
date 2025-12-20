@@ -123,7 +123,9 @@ export function RecurringTransactionDialog({
                     max="100"
                     className="border-border/60 bg-card text-foreground placeholder:text-muted-foreground"
                     value={formData.interestRate}
-                    onChange={(e) => onFormDataChange({ ...formData, interestRate: e.target.value })}
+                    onChange={(e) =>
+                      onFormDataChange({ ...formData, interestRate: e.target.value })
+                    }
                     required
                     placeholder="e.g. 3.5"
                   />
