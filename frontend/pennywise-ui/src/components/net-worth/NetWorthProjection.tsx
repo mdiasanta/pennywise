@@ -38,7 +38,10 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { formatChartDate, formatCurrency, type GroupBy } from './constants';
+import { ASSET_COLOR_PALETTE, formatChartDate, formatCurrency, type GroupBy } from './constants';
+
+// Use Coral color from palette for hypothetical income line
+const HYPOTHETICAL_LINE_COLOR = ASSET_COLOR_PALETTE[1]; // Coral (#FF6B6B)
 
 interface NetWorthProjectionProps {
   projection: NetWorthProjection | null;
@@ -187,6 +190,9 @@ export function NetWorthProjectionComponent({
       return { chartData: [], hypotheticalGoalInfo: null };
     }
 
+    // Get projected points once for reuse
+    const projectedPoints = projection.projectedHistory.filter((p) => !p.isHistorical);
+
     // Transform data for chart
     const data = projection.projectedHistory.map((point) => {
       const baseData: {
@@ -203,11 +209,8 @@ export function NetWorthProjectionComponent({
 
       // Calculate hypothetical projection (adds extra monthly income to projected values)
       if (hasValidHypotheticalIncome && !point.isHistorical) {
-        // Find how many months this point is into the projection
-        const projectedPoints = projection.projectedHistory.filter((p) => !p.isHistorical);
-        const monthIndex = projectedPoints.findIndex(
-          (p) => p.date === point.date && p.projectedNetWorth === point.projectedNetWorth
-        );
+        // Find how many months this point is into the projection using date only
+        const monthIndex = projectedPoints.findIndex((p) => p.date === point.date);
         if (monthIndex >= 0) {
           // Calculate cumulative additional income at this point
           const additionalIncome = hypotheticalIncomeValue * (monthIndex + 1);
@@ -248,11 +251,11 @@ export function NetWorthProjectionComponent({
         // Find when hypothetical projection reaches the goal
         const hypotheticalPoints = data.filter((d) => d.hypothetical !== null);
         for (let i = 0; i < hypotheticalPoints.length; i++) {
-          if (hypotheticalPoints[i].hypothetical! >= currentGoal) {
+          const hypotheticalValue = hypotheticalPoints[i].hypothetical;
+          if (hypotheticalValue !== null && hypotheticalValue >= currentGoal) {
             hypotheticalGoal = {
               monthsToGoal: i + 1,
-              estimatedGoalDate: projection.projectedHistory.filter((p) => !p.isHistorical)[i]
-                ?.date,
+              estimatedGoalDate: projectedPoints[i]?.date ?? null,
               isAchievable: true,
             };
             break;
@@ -262,13 +265,12 @@ export function NetWorthProjectionComponent({
         // If not reached within projection period but trending positive, estimate
         if (!hypotheticalGoal && projection.projectedMonthlyChange + hypotheticalIncomeValue > 0) {
           const lastHypotheticalPoint = hypotheticalPoints[hypotheticalPoints.length - 1];
-          if (lastHypotheticalPoint?.hypothetical !== null) {
-            const remainingToGoal = currentGoal - lastHypotheticalPoint.hypothetical;
+          const lastHypotheticalValue = lastHypotheticalPoint?.hypothetical;
+          if (lastHypotheticalValue !== null && lastHypotheticalValue !== undefined) {
+            const remainingToGoal = currentGoal - lastHypotheticalValue;
             const monthlyChange = projection.projectedMonthlyChange + hypotheticalIncomeValue;
             const additionalMonthsNeeded = Math.ceil(remainingToGoal / monthlyChange);
-            const lastProjectedPoint = projection.projectedHistory
-              .filter((p) => !p.isHistorical)
-              .pop();
+            const lastProjectedPoint = projectedPoints[projectedPoints.length - 1];
             if (lastProjectedPoint) {
               const estimatedDate = new Date(lastProjectedPoint.date);
               estimatedDate.setMonth(estimatedDate.getMonth() + additionalMonthsNeeded);
@@ -832,7 +834,7 @@ export function NetWorthProjectionComponent({
                         hypotheticalGoalInfo.monthsToGoal === 0 ? (
                           <span className="text-success">Already achieved!</span>
                         ) : (
-                          <span className="text-[#FF6B6B]">
+                          <span style={{ color: HYPOTHETICAL_LINE_COLOR }}>
                             <span className="font-medium">
                               {hypotheticalGoalInfo.monthsToGoal}{' '}
                               {hypotheticalGoalInfo.monthsToGoal === 1 ? 'month' : 'months'}
@@ -944,11 +946,11 @@ export function NetWorthProjectionComponent({
                 type="monotone"
                 dataKey="hypothetical"
                 name="With New Income"
-                stroke="#FF6B6B"
+                stroke={HYPOTHETICAL_LINE_COLOR}
                 strokeWidth={3}
                 strokeDasharray="8 4"
                 dot={false}
-                activeDot={{ r: 6, fill: '#FF6B6B' }}
+                activeDot={{ r: 6, fill: HYPOTHETICAL_LINE_COLOR }}
                 connectNulls={false}
               />
             )}
