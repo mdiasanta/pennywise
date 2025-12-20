@@ -414,6 +414,14 @@ export const expenseApi = {
 
     return response.json() as Promise<ExpenseImportResponse>;
   },
+
+  async getEarliestDate(userId: number): Promise<string | null> {
+    const response = await fetch(`${API_BASE_URL}/expenses/user/${userId}/earliest-date`, {
+      credentials: 'include',
+    });
+    const date = await handleResponse<string | null>(response);
+    return date;
+  },
 };
 
 // Category API

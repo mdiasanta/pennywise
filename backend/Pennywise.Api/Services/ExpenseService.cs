@@ -96,6 +96,11 @@ public class ExpenseService : IExpenseService
         return _expenseRepository.StreamAllAsync(userId, startDate, endDate, categoryId, search, tagIds);
     }
 
+    public async Task<DateTime?> GetEarliestDateByUserAsync(int userId)
+    {
+        return await _expenseRepository.GetEarliestDateByUserAsync(userId);
+    }
+
     private static ExpenseDto MapToDto(Expense expense)
     {
         return new ExpenseDto

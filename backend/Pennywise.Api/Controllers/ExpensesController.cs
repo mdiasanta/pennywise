@@ -237,6 +237,13 @@ public class ExpensesController : ControllerBase
         return Ok(expenses);
     }
 
+    [HttpGet("user/{userId}/earliest-date")]
+    public async Task<ActionResult<DateTime?>> GetEarliestDate(int userId)
+    {
+        var date = await _expenseService.GetEarliestDateByUserAsync(userId);
+        return Ok(date);
+    }
+
     [HttpPost]
     public async Task<ActionResult<ExpenseDto>> CreateExpense(CreateExpenseDto createDto)
     {

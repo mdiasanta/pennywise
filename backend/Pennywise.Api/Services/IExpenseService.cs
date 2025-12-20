@@ -18,6 +18,7 @@ public interface IExpenseService
     Task<bool> DeleteExpenseAsync(int id, int userId);
     Task<IEnumerable<ExpenseDto>> GetExpensesByDateRangeAsync(int userId, DateTime startDate, DateTime endDate);
     Task<IEnumerable<ExpenseDto>> GetExpensesByCategoryAsync(int userId, int categoryId);
+    Task<DateTime?> GetEarliestDateByUserAsync(int userId);
     IAsyncEnumerable<Expense> StreamExpensesAsync(
         int userId,
         DateTime? startDate = null,

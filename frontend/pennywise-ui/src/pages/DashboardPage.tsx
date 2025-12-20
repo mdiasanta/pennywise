@@ -1,9 +1,14 @@
 import { AppLayout } from '@/components/AppLayout';
 import { GoogleSignInButton } from '@/components/GoogleSignInButton';
 import {
-  getAvailableYears,
+  getAvailableYearsFromDate,
+  getMonthName,
+  getMonthsForYear,
+  getMonthYearFilterDateRange,
+  getMonthYearFromFilter,
   getYearFilterDateRange,
   getYearFromFilter,
+  isMonthYearFilter,
   isYearFilter,
 } from '@/components/net-worth/constants';
 import { Badge } from '@/components/ui/badge';
@@ -57,8 +62,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-
-type TimeRange = 'day' | 'week' | 'month' | 'year' | `year-${number}`;
+type TimeRange = 'day' | 'week' | 'month' | 'year' | `year-${number}` | `month-${number}-${string}`;
 
 const COLORS = [
   '#0088FE',
@@ -79,6 +83,21 @@ export default function DashboardPage() {
   const [timeRange, setTimeRange] = useState<TimeRange>('month');
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
+  const [earliestDate, setEarliestDate] = useState<string | null>(null);
+
+  // Fetch earliest date for filtering
+  useEffect(() => {
+    const fetchEarliestDate = async () => {
+      if (authLoading || !isAuthenticated || !user) return;
+      try {
+        const date = await expenseApi.getEarliestDate(user.id);
+        setEarliestDate(date);
+      } catch (error) {
+        console.error('Error fetching earliest expense date:', error);
+      }
+    };
+    fetchEarliestDate();
+  }, [authLoading, isAuthenticated, user]);
 
   const loadData = useCallback(async () => {
     // Wait for auth to finish loading
@@ -91,6 +110,12 @@ export default function DashboardPage() {
     }
 
     const getDateRange = (range: TimeRange) => {
+      // Handle specific month-year filter (e.g., 'month-2024-01')
+      const monthYearRange = getMonthYearFilterDateRange(range);
+      if (monthYearRange) {
+        return monthYearRange;
+      }
+
       // Handle specific year filter (e.g., 'year-2024')
       const yearRange = getYearFilterDateRange(range);
       if (yearRange) {
@@ -199,6 +224,13 @@ export default function DashboardPage() {
   };
 
   const getTimeRangeLabel = () => {
+    if (isMonthYearFilter(timeRange)) {
+      const monthYear = getMonthYearFromFilter(timeRange);
+      if (monthYear) {
+        return `${getMonthName(monthYear.month)} ${monthYear.year}`;
+      }
+      return 'Custom Month';
+    }
     if (isYearFilter(timeRange)) {
       const year = getYearFromFilter(timeRange);
       return year?.toString() || 'Custom Year';
@@ -297,7 +329,7 @@ export default function DashboardPage() {
                 <SelectTrigger className="w-[200px] border-border/60 bg-card/70 text-foreground">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="border-border/60 bg-card text-foreground">
+                <SelectContent className="max-h-[400px] border-border/60 bg-card text-foreground">
                   <SelectGroup>
                     <SelectLabel className="text-muted-foreground">Relative</SelectLabel>
                     <SelectItem value="day">Today</SelectItem>
@@ -308,12 +340,23 @@ export default function DashboardPage() {
                   <Separator className="my-1" />
                   <SelectGroup>
                     <SelectLabel className="text-muted-foreground">By Year</SelectLabel>
-                    {getAvailableYears().map((year) => (
+                    {getAvailableYearsFromDate(earliestDate).map((year) => (
                       <SelectItem key={year} value={`year-${year}`}>
                         {year}
                       </SelectItem>
                     ))}
                   </SelectGroup>
+                  <Separator className="my-1" />
+                  {getAvailableYearsFromDate(earliestDate).map((year) => (
+                    <SelectGroup key={`month-group-${year}`}>
+                      <SelectLabel className="text-muted-foreground">{year} - By Month</SelectLabel>
+                      {getMonthsForYear(year).map((monthOption) => (
+                        <SelectItem key={monthOption.value} value={monthOption.value}>
+                          {monthOption.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

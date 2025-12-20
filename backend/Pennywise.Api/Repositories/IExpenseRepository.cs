@@ -24,4 +24,5 @@ public interface IExpenseRepository
     Task<bool> DeleteAsync(int id, int userId);
     Task<IEnumerable<Expense>> GetByDateRangeAsync(int userId, DateTime startDate, DateTime endDate);
     Task<IEnumerable<Expense>> GetByCategoryAsync(int userId, int categoryId);
+    Task<DateTime?> GetEarliestDateByUserAsync(int userId);
 }

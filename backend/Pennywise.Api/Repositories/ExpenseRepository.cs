@@ -146,6 +146,16 @@ public class ExpenseRepository : IExpenseRepository
         return await BuildQuery(userId, null, null, categoryId, null, null).ToListAsync();
     }
 
+    public async Task<DateTime?> GetEarliestDateByUserAsync(int userId)
+    {
+        return await _context.Expenses
+            .AsNoTracking()
+            .Where(e => e.UserId == userId)
+            .OrderBy(e => e.Date)
+            .Select(e => (DateTime?)e.Date)
+            .FirstOrDefaultAsync();
+    }
+
     private IQueryable<Expense> BuildQuery(
         int userId,
         DateTime? startDate,
