@@ -1,7 +1,11 @@
+using System.Globalization;
+using System.Text;
+using ClosedXML.Excel;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pennywise.Api.DTOs;
 using Pennywise.Api.Helpers;
+using Pennywise.Api.Repositories;
 using Pennywise.Api.Services;
 
 namespace Pennywise.Api.Controllers;
@@ -13,13 +17,16 @@ public class AssetSnapshotsController : ControllerBase
 {
     private readonly IAssetSnapshotService _snapshotService;
     private readonly IAssetSnapshotImportService _importService;
+    private readonly IAssetSnapshotRepository _snapshotRepository;
 
     public AssetSnapshotsController(
         IAssetSnapshotService snapshotService,
-        IAssetSnapshotImportService importService)
+        IAssetSnapshotImportService importService,
+        IAssetSnapshotRepository snapshotRepository)
     {
         _snapshotService = snapshotService;
         _importService = importService;
+        _snapshotRepository = snapshotRepository;
     }
 
     [HttpGet("asset/{assetId}")]
@@ -169,5 +176,135 @@ public class AssetSnapshotsController : ControllerBase
             return NotFound();
 
         return NoContent();
+    }
+
+    [HttpGet("export")]
+    public async Task<IActionResult> Export(
+        [FromQuery] int userId,
+        [FromQuery] int? assetId = null,
+        [FromQuery] string format = "csv",
+        [FromQuery] DateTime? startDate = null,
+        [FromQuery] DateTime? endDate = null)
+    {
+        try
+        {
+            if (userId <= 0)
+            {
+                return BadRequest("Invalid user ID.");
+            }
+
+            var normalizedFormat = string.IsNullOrWhiteSpace(format)
+                ? "csv"
+                : format.Trim().ToLowerInvariant();
+
+            if (normalizedFormat != "csv" && normalizedFormat != "xlsx")
+            {
+                return BadRequest("Unsupported format. Use csv or xlsx.");
+            }
+
+            var normalizedStart = startDate?.ToUtc();
+            var normalizedEnd = endDate?.ToUtc();
+
+            var filePrefix = assetId.HasValue ? $"account-{assetId}-balances" : "all-accounts-balances";
+            var fileName = $"{filePrefix}-{DateTime.UtcNow:yyyyMMddHHmmss}.{normalizedFormat}";
+            Response.Headers["Content-Disposition"] = $"attachment; filename=\"{fileName}\"";
+
+            if (normalizedFormat == "csv")
+            {
+                Response.ContentType = "text/csv";
+                await WriteCsvAsync(userId, assetId, normalizedStart, normalizedEnd);
+            }
+            else
+            {
+                Response.ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+                await WriteExcelAsync(userId, assetId, normalizedStart, normalizedEnd);
+            }
+
+            return new EmptyResult();
+        }
+        catch (Exception)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, "Failed to export balances. Please try again.");
+        }
+    }
+
+    private async Task WriteCsvAsync(int userId, int? assetId, DateTime? startDate, DateTime? endDate)
+    {
+        var encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+        await using var writer = new StreamWriter(Response.Body, encoding, leaveOpen: true);
+        await writer.WriteLineAsync("Date,Account,Category,Type,Balance,Notes,CreatedAt,UpdatedAt");
+
+        var snapshots = assetId.HasValue
+            ? _snapshotRepository.StreamByAssetAsync(assetId.Value, startDate, endDate)
+            : _snapshotRepository.StreamByUserAsync(userId, startDate, endDate);
+
+        await foreach (var snapshot in snapshots)
+        {
+            var assetType = snapshot.Asset?.AssetCategory?.IsLiability == true ? "Liability" : "Asset";
+            var row = string.Join(",", new[]
+            {
+                EscapeCsv(snapshot.Date.ToString("o", CultureInfo.InvariantCulture)),
+                EscapeCsv(snapshot.Asset?.Name ?? string.Empty),
+                EscapeCsv(snapshot.Asset?.AssetCategory?.Name ?? string.Empty),
+                EscapeCsv(assetType),
+                EscapeCsv(snapshot.Balance.ToString(CultureInfo.InvariantCulture)),
+                EscapeCsv(snapshot.Notes ?? string.Empty),
+                EscapeCsv(snapshot.CreatedAt.ToString("o", CultureInfo.InvariantCulture)),
+                EscapeCsv(snapshot.UpdatedAt.ToString("o", CultureInfo.InvariantCulture))
+            });
+
+            await writer.WriteLineAsync(row);
+        }
+
+        await writer.FlushAsync();
+    }
+
+    private async Task WriteExcelAsync(int userId, int? assetId, DateTime? startDate, DateTime? endDate)
+    {
+        using var workbook = new XLWorkbook();
+        var worksheet = workbook.Worksheets.Add("Balances");
+
+        var headers = new[] { "Date", "Account", "Category", "Type", "Balance", "Notes", "CreatedAt", "UpdatedAt" };
+        for (var i = 0; i < headers.Length; i++)
+        {
+            worksheet.Cell(1, i + 1).Value = headers[i];
+        }
+
+        var snapshots = assetId.HasValue
+            ? _snapshotRepository.StreamByAssetAsync(assetId.Value, startDate, endDate)
+            : _snapshotRepository.StreamByUserAsync(userId, startDate, endDate);
+
+        var rowNumber = 2;
+        await foreach (var snapshot in snapshots)
+        {
+            var assetType = snapshot.Asset?.AssetCategory?.IsLiability == true ? "Liability" : "Asset";
+            worksheet.Cell(rowNumber, 1).Value = snapshot.Date;
+            worksheet.Cell(rowNumber, 2).Value = snapshot.Asset?.Name ?? string.Empty;
+            worksheet.Cell(rowNumber, 3).Value = snapshot.Asset?.AssetCategory?.Name ?? string.Empty;
+            worksheet.Cell(rowNumber, 4).Value = assetType;
+            worksheet.Cell(rowNumber, 5).Value = snapshot.Balance;
+            worksheet.Cell(rowNumber, 6).Value = snapshot.Notes ?? string.Empty;
+            worksheet.Cell(rowNumber, 7).Value = snapshot.CreatedAt;
+            worksheet.Cell(rowNumber, 8).Value = snapshot.UpdatedAt;
+            rowNumber++;
+        }
+
+        worksheet.Columns().AdjustToContents();
+
+        await using var tempStream = new MemoryStream();
+        workbook.SaveAs(tempStream);
+        tempStream.Position = 0;
+        await tempStream.CopyToAsync(Response.Body);
+        await Response.Body.FlushAsync();
+    }
+
+    private static string EscapeCsv(string value)
+    {
+        var needsQuotes = value.Contains(',') || value.Contains('"') || value.Contains('\n') || value.Contains('\r');
+        if (needsQuotes)
+        {
+            return $"\"{value.Replace("\"", "\"\"")}\"";
+        }
+        return value;
     }
 }

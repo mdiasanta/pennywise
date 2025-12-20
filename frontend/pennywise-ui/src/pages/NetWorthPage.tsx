@@ -84,6 +84,7 @@ export default function NetWorthPage() {
   const [selectedAssetForHistory, setSelectedAssetForHistory] = useState<Asset | null>(null);
   const [historySnapshots, setHistorySnapshots] = useState<AssetSnapshot[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   // Form states
   const [assetFormData, setAssetFormData] = useState<AssetFormData>({
@@ -818,6 +819,72 @@ export default function NetWorthPage() {
     }
   };
 
+  const handleExportAccount = async (asset: Asset, format: 'csv' | 'xlsx') => {
+    if (!user?.id) return;
+
+    setExporting(true);
+    try {
+      const { blob, filename } = await assetSnapshotApi.export(user.id, format, {
+        assetId: asset.id,
+      });
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: 'Export complete',
+        description: `${asset.name} balances exported as ${format.toUpperCase()}.`,
+      });
+    } catch (error) {
+      console.error('Error exporting account:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Export failed',
+        description: 'Failed to export account balances. Please try again.',
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleExportAllAccounts = async (format: 'csv' | 'xlsx') => {
+    if (!user?.id) return;
+
+    setExporting(true);
+    try {
+      const { blob, filename } = await assetSnapshotApi.export(user.id, format);
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: 'Export complete',
+        description: `All account balances exported as ${format.toUpperCase()}.`,
+      });
+    } catch (error) {
+      console.error('Error exporting all accounts:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Export failed',
+        description: 'Failed to export account balances. Please try again.',
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
+
   // Derived data
   const assetCategories = categories.filter((c) => !c.isLiability);
   const liabilityCategories = categories.filter((c) => c.isLiability);
@@ -981,6 +1048,7 @@ export default function NetWorthPage() {
         <AccountsTable
           assets={assets}
           loading={loading}
+          exporting={exporting}
           onAddAccount={handleAddAccount}
           onEditAccount={handleEditAsset}
           onUpdateBalance={handleOpenUpdateBalance}
@@ -988,6 +1056,8 @@ export default function NetWorthPage() {
           onImportBalances={handleOpenImportBalances}
           onViewHistory={handleViewHistory}
           onDeleteAccount={handleDeleteAsset}
+          onExportAccount={handleExportAccount}
+          onExportAllAccounts={handleExportAllAccounts}
         />
 
         {/* Recurring Transactions Table */}

@@ -948,6 +948,50 @@ export const assetSnapshotApi = {
 
     return response.json() as Promise<AssetSnapshotImportResponse>;
   },
+
+  async export(
+    userId: number,
+    format: 'csv' | 'xlsx',
+    options?: {
+      assetId?: number;
+      startDate?: string;
+      endDate?: string;
+    }
+  ): Promise<{ blob: Blob; filename: string }> {
+    const params = new URLSearchParams({
+      userId: userId.toString(),
+      format,
+    });
+    if (options?.assetId) params.set('assetId', options.assetId.toString());
+    if (options?.startDate) params.set('startDate', options.startDate);
+    if (options?.endDate) params.set('endDate', options.endDate);
+
+    const accept =
+      format === 'xlsx'
+        ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        : 'text/csv';
+
+    const response = await fetch(`${API_BASE_URL}/assetsnapshots/export?${params}`, {
+      headers: { Accept: accept },
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(error || 'Failed to export balances');
+    }
+
+    const blob = await response.blob();
+    const disposition = response.headers.get('Content-Disposition') ?? '';
+    const match = disposition.match(
+      /filename\*=([^']+)''([^;]+)|filename="([^"]+)"|filename=([^;]+)/i
+    );
+    const filename = match?.[2]
+      ? decodeURIComponent(match[2])
+      : match?.[3] || match?.[4] || `balances.${format}`;
+
+    return { blob, filename };
+  },
 };
 
 // Net Worth API

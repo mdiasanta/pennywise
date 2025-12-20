@@ -148,4 +148,46 @@ public class AssetSnapshotRepository : IAssetSnapshotRepository
             .Select(s => (DateTime?)s.Date)
             .FirstOrDefaultAsync();
     }
+
+    public IAsyncEnumerable<AssetSnapshot> StreamByAssetAsync(int assetId, DateTime? startDate = null, DateTime? endDate = null)
+    {
+        var query = _context.AssetSnapshots
+            .AsNoTracking()
+            .Include(s => s.Asset)
+            .ThenInclude(a => a.AssetCategory)
+            .Where(s => s.AssetId == assetId);
+
+        if (startDate.HasValue)
+        {
+            query = query.Where(s => s.Date >= startDate.Value);
+        }
+
+        if (endDate.HasValue)
+        {
+            query = query.Where(s => s.Date <= endDate.Value);
+        }
+
+        return query.OrderByDescending(s => s.Date).AsAsyncEnumerable();
+    }
+
+    public IAsyncEnumerable<AssetSnapshot> StreamByUserAsync(int userId, DateTime? startDate = null, DateTime? endDate = null)
+    {
+        var query = _context.AssetSnapshots
+            .AsNoTracking()
+            .Include(s => s.Asset)
+            .ThenInclude(a => a.AssetCategory)
+            .Where(s => s.Asset.UserId == userId);
+
+        if (startDate.HasValue)
+        {
+            query = query.Where(s => s.Date >= startDate.Value);
+        }
+
+        if (endDate.HasValue)
+        {
+            query = query.Where(s => s.Date <= endDate.Value);
+        }
+
+        return query.OrderByDescending(s => s.Date).AsAsyncEnumerable();
+    }
 }

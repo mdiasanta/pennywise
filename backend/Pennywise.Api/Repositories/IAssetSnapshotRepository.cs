@@ -14,4 +14,6 @@ public interface IAssetSnapshotRepository
     Task<AssetSnapshot?> GetByAssetAndDateAsync(int assetId, DateTime date);
     Task<IEnumerable<AssetSnapshot>> GetByAssetAndDatesAsync(int assetId, IEnumerable<DateTime> dates);
     Task<DateTime?> GetEarliestDateByUserAsync(int userId);
+    IAsyncEnumerable<AssetSnapshot> StreamByAssetAsync(int assetId, DateTime? startDate = null, DateTime? endDate = null);
+    IAsyncEnumerable<AssetSnapshot> StreamByUserAsync(int userId, DateTime? startDate = null, DateTime? endDate = null);
 }

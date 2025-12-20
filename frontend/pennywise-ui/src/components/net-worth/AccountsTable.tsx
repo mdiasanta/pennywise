@@ -13,6 +13,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
   Table,
   TableBody,
   TableCell,
@@ -21,12 +27,22 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import type { Asset } from '@/lib/api';
-import { Calendar, DollarSign, History, Pencil, Plus, Trash2, Upload } from 'lucide-react';
+import {
+  Calendar,
+  DollarSign,
+  Download,
+  History,
+  Pencil,
+  Plus,
+  Trash2,
+  Upload,
+} from 'lucide-react';
 import { formatCurrency, formatDate } from './constants';
 
 interface AccountsTableProps {
   assets: Asset[];
   loading: boolean;
+  exporting?: boolean;
   onAddAccount: () => void;
   onEditAccount: (asset: Asset) => void;
   onUpdateBalance: (asset: Asset) => void;
@@ -34,11 +50,14 @@ interface AccountsTableProps {
   onImportBalances: (asset: Asset) => void;
   onViewHistory: (asset: Asset) => void;
   onDeleteAccount: (asset: Asset) => void;
+  onExportAccount?: (asset: Asset, format: 'csv' | 'xlsx') => void;
+  onExportAllAccounts?: (format: 'csv' | 'xlsx') => void;
 }
 
 export function AccountsTable({
   assets,
   loading,
+  exporting,
   onAddAccount,
   onEditAccount,
   onUpdateBalance,
@@ -46,6 +65,8 @@ export function AccountsTable({
   onImportBalances,
   onViewHistory,
   onDeleteAccount,
+  onExportAccount,
+  onExportAllAccounts,
 }: AccountsTableProps) {
   return (
     <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
@@ -57,13 +78,43 @@ export function AccountsTable({
               Manage your assets and liabilities
             </CardDescription>
           </div>
-          <Button
-            onClick={onAddAccount}
-            className="bg-primary text-primary-foreground shadow-lg shadow-primary/30 hover:-translate-y-0.5 hover:bg-primary/90"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Add Account
-          </Button>
+          <div className="flex items-center gap-2">
+            {onExportAllAccounts && assets.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="border-border/60 bg-card/80 text-foreground hover:bg-card/70"
+                    disabled={exporting}
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    {exporting ? 'Exporting...' : 'Export All'}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="border-border/60 bg-card text-foreground">
+                  <DropdownMenuItem
+                    onClick={() => onExportAllAccounts('csv')}
+                    className="cursor-pointer hover:bg-card/70"
+                  >
+                    Export as CSV
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => onExportAllAccounts('xlsx')}
+                    className="cursor-pointer hover:bg-card/70"
+                  >
+                    Export as Excel
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            <Button
+              onClick={onAddAccount}
+              className="bg-primary text-primary-foreground shadow-lg shadow-primary/30 hover:-translate-y-0.5 hover:bg-primary/90"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add Account
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -156,6 +207,35 @@ export function AccountsTable({
                         >
                           <Upload className="h-4 w-4" />
                         </Button>
+                        {onExportAccount && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-foreground hover:bg-card/70"
+                                title="Export Balances"
+                                disabled={exporting}
+                              >
+                                <Download className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="border-border/60 bg-card text-foreground">
+                              <DropdownMenuItem
+                                onClick={() => onExportAccount(asset, 'csv')}
+                                className="cursor-pointer hover:bg-card/70"
+                              >
+                                Export as CSV
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => onExportAccount(asset, 'xlsx')}
+                                className="cursor-pointer hover:bg-card/70"
+                              >
+                                Export as Excel
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                         <Button
                           variant="ghost"
                           size="icon"
