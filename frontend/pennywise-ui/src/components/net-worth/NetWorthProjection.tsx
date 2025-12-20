@@ -193,6 +193,12 @@ export function NetWorthProjectionComponent({
     // Get projected points once for reuse
     const projectedPoints = projection.projectedHistory.filter((p) => !p.isHistorical);
 
+    // Create a date-to-index map for O(1) lookup during hypothetical calculation
+    const projectedDateIndexMap = new Map<string, number>();
+    projectedPoints.forEach((p, index) => {
+      projectedDateIndexMap.set(p.date, index);
+    });
+
     // Transform data for chart
     const data = projection.projectedHistory.map((point) => {
       const baseData: {
@@ -209,9 +215,9 @@ export function NetWorthProjectionComponent({
 
       // Calculate hypothetical projection (adds extra monthly income to projected values)
       if (hasValidHypotheticalIncome && !point.isHistorical) {
-        // Find how many months this point is into the projection using date only
-        const monthIndex = projectedPoints.findIndex((p) => p.date === point.date);
-        if (monthIndex >= 0) {
+        // Use pre-computed date map for O(1) lookup instead of O(n) findIndex
+        const monthIndex = projectedDateIndexMap.get(point.date);
+        if (monthIndex !== undefined) {
           // Calculate cumulative additional income at this point
           const additionalIncome = hypotheticalIncomeValue * (monthIndex + 1);
           baseData.hypothetical = point.projectedNetWorth + additionalIncome;
@@ -263,13 +269,13 @@ export function NetWorthProjectionComponent({
         }
 
         // If not reached within projection period but trending positive, estimate
-        if (!hypotheticalGoal && projection.projectedMonthlyChange + hypotheticalIncomeValue > 0) {
+        const totalMonthlyChange = projection.projectedMonthlyChange + hypotheticalIncomeValue;
+        if (!hypotheticalGoal && totalMonthlyChange > 0) {
           const lastHypotheticalPoint = hypotheticalPoints[hypotheticalPoints.length - 1];
           const lastHypotheticalValue = lastHypotheticalPoint?.hypothetical;
           if (lastHypotheticalValue !== null && lastHypotheticalValue !== undefined) {
             const remainingToGoal = currentGoal - lastHypotheticalValue;
-            const monthlyChange = projection.projectedMonthlyChange + hypotheticalIncomeValue;
-            const additionalMonthsNeeded = Math.ceil(remainingToGoal / monthlyChange);
+            const additionalMonthsNeeded = Math.ceil(remainingToGoal / totalMonthlyChange);
             const lastProjectedPoint = projectedPoints[projectedPoints.length - 1];
             if (lastProjectedPoint) {
               const estimatedDate = new Date(lastProjectedPoint.date);
@@ -872,11 +878,14 @@ export function NetWorthProjectionComponent({
                         hypotheticalMonths > 0
                       ) {
                         const monthsSaved = currentMonths - hypotheticalMonths;
-                        return (
-                          <div className="mt-1 text-xs text-success">
-                            ⚡ Saves {monthsSaved} {monthsSaved === 1 ? 'month' : 'months'}!
-                          </div>
-                        );
+                        // Only show savings message if it actually saves time
+                        if (monthsSaved > 0) {
+                          return (
+                            <div className="mt-1 text-xs text-success">
+                              ⚡ Saves {monthsSaved} {monthsSaved === 1 ? 'month' : 'months'}!
+                            </div>
+                          );
+                        }
                       }
                       return null;
                     })()}
