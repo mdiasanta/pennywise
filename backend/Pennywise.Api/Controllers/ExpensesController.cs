@@ -282,11 +282,15 @@ public class ExpensesController : ControllerBase
         // Use UTF-8 without BOM for better compatibility with spreadsheet tools.
         var encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
         await using var writer = new StreamWriter(Response.Body, encoding, leaveOpen: true);
-        await writer.WriteLineAsync("Date,Title,Category,Description,Amount,CreatedAt,UpdatedAt,UserId");
+        await writer.WriteLineAsync("Date,Title,Category,Description,Amount,Tags,CreatedAt,UpdatedAt,UserId");
 
         var rowCount = 0;
         await foreach (var expense in _expenseService.StreamExpensesAsync(userId, startDate, endDate, categoryId, search, tagIds))
         {
+            var tagsValue = expense.ExpenseTags != null && expense.ExpenseTags.Any()
+                ? string.Join(";", expense.ExpenseTags.Select(et => et.Tag.Name))
+                : string.Empty;
+
             var row = string.Join(",", new[]
             {
                 EscapeCsv(expense.Date.ToString("o", CultureInfo.InvariantCulture)),
@@ -294,6 +298,7 @@ public class ExpensesController : ControllerBase
                 EscapeCsv(expense.Category?.Name ?? string.Empty),
                 EscapeCsv(expense.Description ?? string.Empty),
                 EscapeCsv(expense.Amount.ToString(CultureInfo.InvariantCulture)),
+                EscapeCsv(tagsValue),
                 EscapeCsv(expense.CreatedAt.ToString("o", CultureInfo.InvariantCulture)),
                 EscapeCsv(expense.UpdatedAt.ToString("o", CultureInfo.InvariantCulture)),
                 EscapeCsv(expense.UserId.ToString(CultureInfo.InvariantCulture))
@@ -335,6 +340,7 @@ public class ExpensesController : ControllerBase
             "Category",
             "Description",
             "Amount",
+            "Tags",
             "CreatedAt",
             "UpdatedAt",
             "UserId"
@@ -349,14 +355,19 @@ public class ExpensesController : ControllerBase
         var rowCount = 0;
         await foreach (var expense in _expenseService.StreamExpensesAsync(userId, startDate, endDate, categoryId, search, tagIds))
         {
+            var tagsValue = expense.ExpenseTags != null && expense.ExpenseTags.Any()
+                ? string.Join(";", expense.ExpenseTags.Select(et => et.Tag.Name))
+                : string.Empty;
+
             worksheet.Cell(rowNumber, 1).Value = expense.Date;
             worksheet.Cell(rowNumber, 2).Value = expense.Title;
             worksheet.Cell(rowNumber, 3).Value = expense.Category?.Name ?? string.Empty;
             worksheet.Cell(rowNumber, 4).Value = expense.Description ?? string.Empty;
             worksheet.Cell(rowNumber, 5).Value = expense.Amount;
-            worksheet.Cell(rowNumber, 6).Value = expense.CreatedAt;
-            worksheet.Cell(rowNumber, 7).Value = expense.UpdatedAt;
-            worksheet.Cell(rowNumber, 8).Value = expense.UserId;
+            worksheet.Cell(rowNumber, 6).Value = tagsValue;
+            worksheet.Cell(rowNumber, 7).Value = expense.CreatedAt;
+            worksheet.Cell(rowNumber, 8).Value = expense.UpdatedAt;
+            worksheet.Cell(rowNumber, 9).Value = expense.UserId;
             rowNumber++;
             rowCount++;
         }
