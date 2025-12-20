@@ -13,6 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { TooltipContent, TooltipTrigger, Tooltip as UITooltip } from '@/components/ui/tooltip';
 import type { CustomProjectionItem, NetWorthProjection } from '@/lib/api';
 import {
+  Briefcase,
   CalendarClock,
   Car,
   DollarSign,
@@ -25,7 +26,7 @@ import {
   TrendingDown,
   TrendingUp,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   CartesianGrid,
   Legend,
@@ -101,6 +102,10 @@ export function NetWorthProjectionComponent({
   const [carPurchaseAmount, setCarPurchaseAmount] = useState('30000');
   const [carPurchaseDate, setCarPurchaseDate] = useState('');
 
+  // Hypothetical income comparison states
+  const [hypotheticalIncomeEnabled, setHypotheticalIncomeEnabled] = useState(false);
+  const [hypotheticalMonthlyIncome, setHypotheticalMonthlyIncome] = useState('');
+
   // Sync goalInput when currentGoal changes
   useEffect(() => {
     setGoalInput(currentGoal?.toString() || '');
@@ -167,6 +172,128 @@ export function NetWorthProjectionComponent({
     onCustomItemsChange([...customItems, newItem]);
   };
 
+  // Parse hypothetical monthly income
+  const hypotheticalIncomeValue = parseFloat(hypotheticalMonthlyIncome);
+  const hasValidHypotheticalIncome =
+    hypotheticalIncomeEnabled &&
+    !Number.isNaN(hypotheticalIncomeValue) &&
+    hypotheticalIncomeValue > 0;
+
+  // Calculate hypothetical projection and goal data using useMemo
+  // This must be called before any early returns to follow Rules of Hooks
+  const { chartData, hypotheticalGoalInfo } = useMemo(() => {
+    // Return empty data if projection is null (will be handled by early return)
+    if (!projection) {
+      return { chartData: [], hypotheticalGoalInfo: null };
+    }
+
+    // Transform data for chart
+    const data = projection.projectedHistory.map((point) => {
+      const baseData: {
+        date: string;
+        historical: number | null;
+        projected: number | null;
+        hypothetical: number | null;
+      } = {
+        date: formatChartDate(point.date, 'month' as GroupBy),
+        historical: point.isHistorical ? point.projectedNetWorth : null,
+        projected: !point.isHistorical ? point.projectedNetWorth : null,
+        hypothetical: null,
+      };
+
+      // Calculate hypothetical projection (adds extra monthly income to projected values)
+      if (hasValidHypotheticalIncome && !point.isHistorical) {
+        // Find how many months this point is into the projection
+        const projectedPoints = projection.projectedHistory.filter((p) => !p.isHistorical);
+        const monthIndex = projectedPoints.findIndex(
+          (p) => p.date === point.date && p.projectedNetWorth === point.projectedNetWorth
+        );
+        if (monthIndex >= 0) {
+          // Calculate cumulative additional income at this point
+          const additionalIncome = hypotheticalIncomeValue * (monthIndex + 1);
+          baseData.hypothetical = point.projectedNetWorth + additionalIncome;
+        }
+      }
+
+      return baseData;
+    });
+
+    // Add line continuity between historical and projected
+    const firstProjectedIndex = data.findIndex((d) => d.projected !== null);
+    if (firstProjectedIndex > 0) {
+      const lastHistoricalValue = data[firstProjectedIndex - 1].historical;
+      data[firstProjectedIndex - 1].projected = lastHistoricalValue;
+      if (hasValidHypotheticalIncome) {
+        data[firstProjectedIndex - 1].hypothetical = lastHistoricalValue;
+      }
+    }
+
+    // Calculate hypothetical goal achievement
+    let hypotheticalGoal: {
+      monthsToGoal: number | null;
+      estimatedGoalDate: string | null;
+      isAchievable: boolean;
+    } | null = null;
+
+    if (hasValidHypotheticalIncome && currentGoal) {
+      const currentNetWorth = projection.currentNetWorth;
+
+      if (currentNetWorth >= currentGoal) {
+        hypotheticalGoal = {
+          monthsToGoal: 0,
+          estimatedGoalDate: new Date().toISOString(),
+          isAchievable: true,
+        };
+      } else {
+        // Find when hypothetical projection reaches the goal
+        const hypotheticalPoints = data.filter((d) => d.hypothetical !== null);
+        for (let i = 0; i < hypotheticalPoints.length; i++) {
+          if (hypotheticalPoints[i].hypothetical! >= currentGoal) {
+            hypotheticalGoal = {
+              monthsToGoal: i + 1,
+              estimatedGoalDate: projection.projectedHistory.filter((p) => !p.isHistorical)[i]
+                ?.date,
+              isAchievable: true,
+            };
+            break;
+          }
+        }
+
+        // If not reached within projection period but trending positive, estimate
+        if (!hypotheticalGoal && projection.projectedMonthlyChange + hypotheticalIncomeValue > 0) {
+          const lastHypotheticalPoint = hypotheticalPoints[hypotheticalPoints.length - 1];
+          if (lastHypotheticalPoint?.hypothetical !== null) {
+            const remainingToGoal = currentGoal - lastHypotheticalPoint.hypothetical;
+            const monthlyChange = projection.projectedMonthlyChange + hypotheticalIncomeValue;
+            const additionalMonthsNeeded = Math.ceil(remainingToGoal / monthlyChange);
+            const lastProjectedPoint = projection.projectedHistory
+              .filter((p) => !p.isHistorical)
+              .pop();
+            if (lastProjectedPoint) {
+              const estimatedDate = new Date(lastProjectedPoint.date);
+              estimatedDate.setMonth(estimatedDate.getMonth() + additionalMonthsNeeded);
+              hypotheticalGoal = {
+                monthsToGoal: hypotheticalPoints.length + additionalMonthsNeeded,
+                estimatedGoalDate: estimatedDate.toISOString(),
+                isAchievable: true,
+              };
+            }
+          }
+        }
+
+        if (!hypotheticalGoal) {
+          hypotheticalGoal = {
+            monthsToGoal: null,
+            estimatedGoalDate: null,
+            isAchievable: false,
+          };
+        }
+      }
+    }
+
+    return { chartData: data, hypotheticalGoalInfo: hypotheticalGoal };
+  }, [projection, hasValidHypotheticalIncome, hypotheticalIncomeValue, currentGoal]);
+
   if (loading) {
     return (
       <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
@@ -190,20 +317,6 @@ export function NetWorthProjectionComponent({
         </CardContent>
       </Card>
     );
-  }
-
-  // Transform data for chart
-  const chartData = projection.projectedHistory.map((point) => ({
-    date: formatChartDate(point.date, 'month' as GroupBy),
-    historical: point.isHistorical ? point.projectedNetWorth : null,
-    projected: !point.isHistorical ? point.projectedNetWorth : null,
-  }));
-
-  // Add line continuity between historical and projected
-  const firstProjectedIndex = chartData.findIndex((d) => d.projected !== null);
-  if (firstProjectedIndex > 0) {
-    const lastHistoricalValue = chartData[firstProjectedIndex - 1].historical;
-    chartData[firstProjectedIndex - 1].projected = lastHistoricalValue;
   }
 
   return (
@@ -317,6 +430,56 @@ export function NetWorthProjectionComponent({
                 </div>
               </div>
             )}
+        </div>
+
+        {/* Hypothetical Income Comparison */}
+        <div className="rounded-lg border border-border/60 bg-card/60 p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Briefcase className="h-4 w-4 text-muted-foreground" />
+              <Label htmlFor="hypothetical-income-toggle" className="text-sm cursor-pointer">
+                Compare with New Income
+              </Label>
+              <InfoTooltip content="See how a new job or additional income would affect your net worth projection. Enter the additional monthly income to see a comparison line on the chart." />
+            </div>
+            <Switch
+              id="hypothetical-income-toggle"
+              checked={hypotheticalIncomeEnabled}
+              onCheckedChange={setHypotheticalIncomeEnabled}
+            />
+          </div>
+
+          {hypotheticalIncomeEnabled && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="hypothetical-income" className="text-sm min-w-fit">
+                  Additional Monthly Income
+                </Label>
+                <div className="relative flex-1 max-w-48">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                    $
+                  </span>
+                  <Input
+                    id="hypothetical-income"
+                    type="number"
+                    placeholder="e.g., 1000"
+                    value={hypotheticalMonthlyIncome}
+                    onChange={(e) => setHypotheticalMonthlyIncome(e.target.value)}
+                    className="border-border/60 bg-card/70 pl-7"
+                  />
+                </div>
+              </div>
+              {hasValidHypotheticalIncome && (
+                <div className="text-xs text-muted-foreground">
+                  This will add{' '}
+                  <span className="font-medium text-success">
+                    {formatCurrency(hypotheticalIncomeValue)}/month
+                  </span>{' '}
+                  to your projection, shown as a separate line on the chart below.
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Custom Projection Items */}
@@ -615,49 +778,116 @@ export function NetWorthProjectionComponent({
 
           {/* Goal Status */}
           {projection.goal && (
-            <div className="mt-4 rounded-lg border border-border/40 bg-card/40 p-3">
-              <div className="flex items-center gap-2">
-                <Target
-                  className={`h-4 w-4 ${projection.goal.isAchievable ? 'text-success' : 'text-destructive'}`}
-                />
-                <span className="font-medium">
-                  Goal: {formatCurrency(projection.goal.goalAmount)}
-                </span>
-              </div>
-              {projection.goal.isAchievable ? (
-                <div className="mt-2 text-sm text-muted-foreground">
-                  {projection.goal.monthsToGoal === 0 ? (
-                    <span className="text-success">
-                      🎉 Congratulations! You&apos;ve reached your goal!
-                    </span>
-                  ) : (
-                    <>
-                      Estimated to reach goal in{' '}
-                      <span className="font-medium text-foreground">
-                        {projection.goal.monthsToGoal}{' '}
-                        {projection.goal.monthsToGoal === 1 ? 'month' : 'months'}
+            <div className="mt-4 space-y-3">
+              {/* Current Projection Goal Status */}
+              <div className="rounded-lg border border-border/40 bg-card/40 p-3">
+                <div className="flex items-center gap-2">
+                  <Target
+                    className={`h-4 w-4 ${projection.goal.isAchievable ? 'text-success' : 'text-destructive'}`}
+                  />
+                  <span className="font-medium">
+                    Goal: {formatCurrency(projection.goal.goalAmount)}
+                  </span>
+                </div>
+                <div className="mt-2 text-sm">
+                  <span className="text-muted-foreground">Current Projection: </span>
+                  {projection.goal.isAchievable ? (
+                    projection.goal.monthsToGoal === 0 ? (
+                      <span className="text-success">
+                        🎉 Congratulations! You&apos;ve reached your goal!
                       </span>
-                      {projection.goal.estimatedGoalDate && (
-                        <>
-                          {' '}
-                          (
-                          {new Intl.DateTimeFormat('en-US', {
-                            month: 'short',
-                            year: 'numeric',
-                            timeZone: 'UTC',
-                          }).format(new Date(projection.goal.estimatedGoalDate))}
-                          )
-                        </>
-                      )}
-                    </>
+                    ) : (
+                      <span className="text-foreground">
+                        <span className="font-medium">
+                          {projection.goal.monthsToGoal}{' '}
+                          {projection.goal.monthsToGoal === 1 ? 'month' : 'months'}
+                        </span>
+                        {projection.goal.estimatedGoalDate && (
+                          <>
+                            {' '}
+                            (
+                            {new Intl.DateTimeFormat('en-US', {
+                              month: 'short',
+                              year: 'numeric',
+                              timeZone: 'UTC',
+                            }).format(new Date(projection.goal.estimatedGoalDate))}
+                            )
+                          </>
+                        )}
+                      </span>
+                    )
+                  ) : (
+                    <span className="text-destructive">Not achievable with current trajectory</span>
                   )}
                 </div>
-              ) : (
-                <div className="mt-2 text-sm text-destructive">
-                  ⚠️ Based on current projection, this goal may not be achievable. Add more
-                  recurring deposits or reduce expenses.
-                </div>
-              )}
+
+                {/* Hypothetical Goal Comparison */}
+                {hasValidHypotheticalIncome && hypotheticalGoalInfo && (
+                  <div className="mt-2 pt-2 border-t border-border/40">
+                    <div className="text-sm">
+                      <span className="text-muted-foreground">
+                        With +{formatCurrency(hypotheticalIncomeValue)}/mo:{' '}
+                      </span>
+                      {hypotheticalGoalInfo.isAchievable ? (
+                        hypotheticalGoalInfo.monthsToGoal === 0 ? (
+                          <span className="text-success">Already achieved!</span>
+                        ) : (
+                          <span className="text-[#FF6B6B]">
+                            <span className="font-medium">
+                              {hypotheticalGoalInfo.monthsToGoal}{' '}
+                              {hypotheticalGoalInfo.monthsToGoal === 1 ? 'month' : 'months'}
+                            </span>
+                            {hypotheticalGoalInfo.estimatedGoalDate && (
+                              <>
+                                {' '}
+                                (
+                                {new Intl.DateTimeFormat('en-US', {
+                                  month: 'short',
+                                  year: 'numeric',
+                                  timeZone: 'UTC',
+                                }).format(new Date(hypotheticalGoalInfo.estimatedGoalDate))}
+                                )
+                              </>
+                            )}
+                          </span>
+                        )
+                      ) : (
+                        <span className="text-destructive">Still not achievable</span>
+                      )}
+                    </div>
+
+                    {/* Show time savings */}
+                    {(() => {
+                      const currentMonths = projection.goal.monthsToGoal;
+                      const hypotheticalMonths = hypotheticalGoalInfo.monthsToGoal;
+                      if (
+                        projection.goal.isAchievable &&
+                        hypotheticalGoalInfo.isAchievable &&
+                        currentMonths !== null &&
+                        currentMonths !== undefined &&
+                        currentMonths > 0 &&
+                        hypotheticalMonths !== null &&
+                        hypotheticalMonths > 0
+                      ) {
+                        const monthsSaved = currentMonths - hypotheticalMonths;
+                        return (
+                          <div className="mt-1 text-xs text-success">
+                            ⚡ Saves {monthsSaved} {monthsSaved === 1 ? 'month' : 'months'}!
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+
+                    {/* Show if hypothetical makes goal achievable */}
+                    {!projection.goal.isAchievable && hypotheticalGoalInfo.isAchievable && (
+                      <div className="mt-1 text-xs text-success">
+                        ✨ This income would make your goal achievable!
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -708,6 +938,20 @@ export function NetWorthProjectionComponent({
               activeDot={{ r: 6, fill: '#00C49F' }}
               connectNulls={false}
             />
+
+            {hasValidHypotheticalIncome && (
+              <Line
+                type="monotone"
+                dataKey="hypothetical"
+                name="With New Income"
+                stroke="#FF6B6B"
+                strokeWidth={3}
+                strokeDasharray="8 4"
+                dot={false}
+                activeDot={{ r: 6, fill: '#FF6B6B' }}
+                connectNulls={false}
+              />
+            )}
 
             {projection.goal && (
               <ReferenceLine
