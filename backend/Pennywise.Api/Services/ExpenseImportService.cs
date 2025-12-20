@@ -16,15 +16,18 @@ public class ExpenseImportService : IExpenseImportService
 
     private readonly IExpenseRepository _expenseRepository;
     private readonly ICategoryRepository _categoryRepository;
+    private readonly ITagRepository _tagRepository;
     private readonly IImportAuditService _importAuditService;
 
     public ExpenseImportService(
         IExpenseRepository expenseRepository,
         ICategoryRepository categoryRepository,
+        ITagRepository tagRepository,
         IImportAuditService importAuditService)
     {
         _expenseRepository = expenseRepository;
         _categoryRepository = categoryRepository;
+        _tagRepository = tagRepository;
         _importAuditService = importAuditService;
     }
 
@@ -78,6 +81,10 @@ public class ExpenseImportService : IExpenseImportService
             throw new InvalidOperationException("No categories exist. Create at least one category before importing.");
         }
 
+        // Load existing tags for the user (for tag name to ID resolution)
+        var existingTags = (await _tagRepository.GetAllByUserAsync(request.UserId))
+            .ToDictionary(t => t.Name.Trim(), t => t, StringComparer.OrdinalIgnoreCase);
+
         var existingExpenses = await _expenseRepository.GetAllAsync(request.UserId);
         var existingKeys = new Dictionary<string, Expense>();
         foreach (var expense in existingExpenses)
@@ -128,12 +135,16 @@ public class ExpenseImportService : IExpenseImportService
                 if (normalizedStrategy == "update" && existingKeys.TryGetValue(key, out var existingExpense))
                 {
                     updated++;
+
+                    // Resolve tag IDs for update
+                    var updateTagIds = await ResolveTagIds(validation.TagNames, request.UserId, existingTags, request.DryRun);
+
                     rows.Add(new ExpenseImportRowResultDto
                     {
                         RowNumber = parsedRow.RowNumber,
                         Status = "updated",
                         Message = request.DryRun
-                            ? "Would update existing expense"
+                            ? $"Would update existing expense{(validation.TagNames.Count > 0 ? $" with tags: {string.Join(", ", validation.TagNames)}" : "")}"
                             : "Updated existing expense"
                     });
 
@@ -144,7 +155,7 @@ public class ExpenseImportService : IExpenseImportService
                         existingExpense.Amount = validation.Amount;
                         existingExpense.Date = validation.DateUtc;
                         existingExpense.CategoryId = validation.Category!.Id;
-                        await _expenseRepository.UpdateAsync(existingExpense);
+                        await _expenseRepository.UpdateAsync(existingExpense, updateTagIds);
                     }
                 }
                 else
@@ -162,12 +173,17 @@ public class ExpenseImportService : IExpenseImportService
                 continue;
             }
 
+            // Resolve tag IDs for new expense
+            var tagIds = await ResolveTagIds(validation.TagNames, request.UserId, existingTags, request.DryRun);
+
             inserted++;
             rows.Add(new ExpenseImportRowResultDto
             {
                 RowNumber = parsedRow.RowNumber,
                 Status = request.DryRun ? "valid" : "inserted",
-                Message = request.DryRun ? "Valid row" : "Inserted"
+                Message = request.DryRun
+                    ? $"Valid row{(validation.TagNames.Count > 0 ? $" with tags: {string.Join(", ", validation.TagNames)}" : "")}"
+                    : "Inserted"
             });
 
             if (!request.DryRun)
@@ -181,7 +197,7 @@ public class ExpenseImportService : IExpenseImportService
                     UserId = request.UserId,
                     CategoryId = validation.Category!.Id
                 };
-                await _expenseRepository.CreateAsync(expense);
+                await _expenseRepository.CreateAsync(expense, tagIds);
             }
 
             seenKeys.Add(key);
@@ -261,11 +277,11 @@ public class ExpenseImportService : IExpenseImportService
     private static string BuildCsvTemplate(string exampleCategory)
     {
         var builder = new StringBuilder();
-        builder.AppendLine("Date,Amount,Category,Description,Notes");
+        builder.AppendLine("Date,Amount,Category,Description,Notes,Tags");
         builder.AppendLine(
-            $"{DateTime.UtcNow:yyyy-MM-dd},42.50,\"{exampleCategory}\",\"Grocery run\",\"Weekly produce\"");
+            $"{DateTime.UtcNow:yyyy-MM-dd},42.50,\"{exampleCategory}\",\"Grocery run\",\"Weekly produce\",\"food;essential\"");
         builder.AppendLine(
-            $"{DateTime.UtcNow.AddDays(-2):yyyy-MM-dd},18.00,\"{exampleCategory}\",\"Coffee with team\",\"\"");
+            $"{DateTime.UtcNow.AddDays(-2):yyyy-MM-dd},18.00,\"{exampleCategory}\",\"Coffee with team\",\"\",\"work\"");
         return builder.ToString();
     }
 
@@ -280,7 +296,8 @@ public class ExpenseImportService : IExpenseImportService
             "Amount",
             "Category",
             "Description",
-            "Notes"
+            "Notes",
+            "Tags"
         };
 
         for (var i = 0; i < headers.Length; i++)
@@ -293,10 +310,13 @@ public class ExpenseImportService : IExpenseImportService
         sheet.Cell(2, 3).Value = exampleCategory;
         sheet.Cell(2, 4).Value = "Grocery run";
         sheet.Cell(2, 5).Value = "Weekly produce";
+        sheet.Cell(2, 6).Value = "food;essential";
         sheet.Cell(3, 1).Value = DateTime.UtcNow.AddDays(-2).Date;
         sheet.Cell(3, 2).Value = 18.00;
         sheet.Cell(3, 3).Value = exampleCategory;
         sheet.Cell(3, 4).Value = "Coffee with team";
+        sheet.Cell(3, 5).Value = "";
+        sheet.Cell(3, 6).Value = "work";
 
         var categoriesSheet = workbook.Worksheets.Add("Categories");
         categoriesSheet.Cell(1, 1).Value = "Name";
@@ -314,8 +334,9 @@ public class ExpenseImportService : IExpenseImportService
         var instructions = workbook.Worksheets.Add("Instructions");
         instructions.Cell(1, 1).Value = "Expense Import Template";
         instructions.Cell(2, 1).Value = "Required columns: Date (yyyy-MM-dd), Amount (> 0), Category (must match existing), Description.";
-        instructions.Cell(3, 1).Value = "Optional columns: Notes.";
+        instructions.Cell(3, 1).Value = "Optional columns: Notes, Tags (semicolon-separated, e.g., 'food;essential').";
         instructions.Cell(4, 1).Value = "Use Categories sheet dropdown for valid categories.";
+        instructions.Cell(5, 1).Value = "Tags will be automatically created if they don't exist.";
 
         using var ms = new MemoryStream();
         workbook.SaveAs(ms);
@@ -430,7 +451,7 @@ public class ExpenseImportService : IExpenseImportService
         return result.Select(value => value.Replace("\"\"", "\"").Trim()).ToList();
     }
 
-    private static (DateTime DateUtc, decimal Amount, Category? Category, string Title, string? Notes, string? Error) ValidateRow(
+    private static (DateTime DateUtc, decimal Amount, Category? Category, string Title, string? Notes, List<string> TagNames, string? Error) ValidateRow(
         ParsedRow row,
         Dictionary<string, Category> categories,
         TimeZoneInfo? timeZone)
@@ -450,12 +471,12 @@ public class ExpenseImportService : IExpenseImportService
 
         if (missingFields.Count > 0)
         {
-            return (default, default, null, string.Empty, null, $"Missing required fields: {string.Join(", ", missingFields)}");
+            return (default, default, null, string.Empty, null, new List<string>(), $"Missing required fields: {string.Join(", ", missingFields)}");
         }
 
         if (!DateTime.TryParse(dateValue, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate))
         {
-            return (default, default, null, string.Empty, null, "Invalid date format. Use yyyy-MM-dd.");
+            return (default, default, null, string.Empty, null, new List<string>(), "Invalid date format. Use yyyy-MM-dd.");
         }
 
         var normalizedDate = DateTime.SpecifyKind(parsedDate, DateTimeKind.Unspecified);
@@ -465,16 +486,90 @@ public class ExpenseImportService : IExpenseImportService
 
         if (!decimal.TryParse(amountValue, NumberStyles.Number, CultureInfo.InvariantCulture, out var amount) || amount <= 0)
         {
-            return (default, default, null, string.Empty, null, "Amount must be a positive number.");
+            return (default, default, null, string.Empty, null, new List<string>(), "Amount must be a positive number.");
         }
 
         if (!categories.TryGetValue(categoryValue.Trim(), out var category) || category == null)
         {
-            return (default, default, null, string.Empty, null, $"Category '{categoryValue}' does not exist. Please use an existing category.");
+            return (default, default, null, string.Empty, null, new List<string>(), $"Category '{categoryValue}' does not exist. Please use an existing category.");
         }
 
         var notes = row.Values.TryGetValue("Notes", out var noteVal) ? noteVal : null;
-        return (dateUtc, decimal.Round(amount, 2), category, title.Trim(), string.IsNullOrWhiteSpace(notes) ? null : notes.Trim(), null);
+
+        // Parse tags - support semicolon or comma separation
+        var tagNames = new List<string>();
+        if (row.Values.TryGetValue("Tags", out var tagsValue) && !string.IsNullOrWhiteSpace(tagsValue))
+        {
+            var separators = new[] { ';', ',' };
+            tagNames = tagsValue
+                .Split(separators, StringSplitOptions.RemoveEmptyEntries)
+                .Select(t => t.Trim())
+                .Where(t => !string.IsNullOrWhiteSpace(t))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        return (dateUtc, decimal.Round(amount, 2), category, title.Trim(), string.IsNullOrWhiteSpace(notes) ? null : notes.Trim(), tagNames, null);
+    }
+
+    /// <summary>
+    /// Resolves tag names to tag IDs, creating new tags if they don't exist.
+    /// </summary>
+    private async Task<List<int>> ResolveTagIds(
+        List<string> tagNames,
+        int userId,
+        Dictionary<string, Tag> existingTags,
+        bool dryRun)
+    {
+        if (tagNames.Count == 0)
+            return new List<int>();
+
+        var tagIds = new List<int>();
+
+        foreach (var tagName in tagNames)
+        {
+            if (existingTags.TryGetValue(tagName, out var existingTag))
+            {
+                tagIds.Add(existingTag.Id);
+            }
+            else if (!dryRun)
+            {
+                // Create a new tag
+                var newTag = new Tag
+                {
+                    Name = tagName,
+                    UserId = userId,
+                    Color = GenerateTagColor(tagName),
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+                var createdTag = await _tagRepository.CreateAsync(newTag);
+                existingTags[tagName] = createdTag; // Add to cache for subsequent rows
+                tagIds.Add(createdTag.Id);
+            }
+            // For dry run, we don't create tags but we also don't add fake IDs
+        }
+
+        return tagIds;
+    }
+
+    /// <summary>
+    /// Generate a consistent color for a tag based on its name.
+    /// </summary>
+    private static string GenerateTagColor(string tagName)
+    {
+        // Generate a hex color based on the hash of the tag name for consistency
+        var hash = Math.Abs(tagName.ToLowerInvariant().GetHashCode());
+        var r = (hash & 0xFF0000) >> 16;
+        var g = (hash & 0x00FF00) >> 8;
+        var b = hash & 0x0000FF;
+
+        // Ensure colors are not too dark or too light
+        r = Math.Clamp(r, 50, 200);
+        g = Math.Clamp(g, 50, 200);
+        b = Math.Clamp(b, 50, 200);
+
+        return $"#{r:X2}{g:X2}{b:X2}";
     }
 
     private sealed record ParsedRow(int RowNumber, Dictionary<string, string> Values);
