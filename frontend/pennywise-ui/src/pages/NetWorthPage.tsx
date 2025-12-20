@@ -138,6 +138,9 @@ export default function NetWorthPage() {
     dayOfMonth: '1',
     startDate: new Date().toISOString().split('T')[0],
     endDate: '',
+    interestRate: '',
+    isCompounding: true,
+    isInterestBased: false,
   });
 
   const getDateRange = useCallback(
@@ -397,6 +400,9 @@ export default function NetWorthPage() {
       dayOfMonth: '1',
       startDate: new Date().toISOString().split('T')[0],
       endDate: '',
+      interestRate: '',
+      isCompounding: true,
+      isInterestBased: false,
     });
   };
 
@@ -415,24 +421,43 @@ export default function NetWorthPage() {
       return;
     }
 
-    const parsedAmount = parseFloat(recurringFormData.amount);
-    if (Number.isNaN(parsedAmount)) {
-      toast({
-        variant: 'destructive',
-        title: 'Invalid amount',
-        description: 'Please enter a valid amount.',
-      });
-      return;
+    // Validate based on whether it's interest-based or fixed amount
+    if (recurringFormData.isInterestBased) {
+      const parsedRate = parseFloat(recurringFormData.interestRate);
+      if (Number.isNaN(parsedRate) || parsedRate <= 0 || parsedRate > 100) {
+        toast({
+          variant: 'destructive',
+          title: 'Invalid interest rate',
+          description: 'Please enter a valid interest rate between 0 and 100%.',
+        });
+        return;
+      }
+    } else {
+      const parsedAmount = parseFloat(recurringFormData.amount);
+      if (Number.isNaN(parsedAmount)) {
+        toast({
+          variant: 'destructive',
+          title: 'Invalid amount',
+          description: 'Please enter a valid amount.',
+        });
+        return;
+      }
     }
 
     try {
       const createData: CreateRecurringTransaction = {
         assetId: parsedAssetId,
-        amount: parsedAmount,
+        amount: recurringFormData.isInterestBased ? 0 : parseFloat(recurringFormData.amount),
         description: recurringFormData.description,
         frequency: recurringFormData.frequency,
         startDate: new Date(recurringFormData.startDate).toISOString(),
       };
+
+      // Add interest rate fields if interest-based
+      if (recurringFormData.isInterestBased) {
+        createData.interestRate = parseFloat(recurringFormData.interestRate);
+        createData.isCompounding = recurringFormData.isCompounding;
+      }
 
       if (recurringFormData.frequency === 'Weekly' || recurringFormData.frequency === 'Biweekly') {
         createData.dayOfWeek = recurringFormData.dayOfWeek;

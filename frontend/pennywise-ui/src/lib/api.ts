@@ -1076,6 +1076,8 @@ export interface RecurringTransaction {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  interestRate?: number; // Annual rate as percentage (e.g., 3.5 for 3.5%)
+  isCompounding: boolean; // True = APY, False = APR
 }
 
 export interface CreateRecurringTransaction {
@@ -1087,6 +1089,8 @@ export interface CreateRecurringTransaction {
   dayOfMonth?: number;
   startDate: string;
   endDate?: string;
+  interestRate?: number; // Annual rate as percentage (e.g., 3.5 for 3.5%)
+  isCompounding?: boolean; // True = APY, False = APR
 }
 
 export interface UpdateRecurringTransaction {
@@ -1098,6 +1102,8 @@ export interface UpdateRecurringTransaction {
   startDate?: string;
   endDate?: string;
   isActive?: boolean;
+  interestRate?: number; // Annual rate as percentage (e.g., 3.5 for 3.5%)
+  isCompounding?: boolean; // True = APY, False = APR
 }
 
 // Recurring Transaction API

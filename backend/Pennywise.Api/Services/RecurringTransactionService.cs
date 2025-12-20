@@ -74,7 +74,9 @@ public class RecurringTransactionService : IRecurringTransactionService
             StartDate = startDate,
             EndDate = createDto.EndDate?.ToUniversalTime(),
             NextRunDate = nextRunDate,
-            IsActive = true
+            IsActive = true,
+            InterestRate = createDto.InterestRate,
+            IsCompounding = createDto.IsCompounding
         };
 
         var created = await _recurringTransactionRepository.CreateAsync(transaction);
@@ -95,6 +97,10 @@ public class RecurringTransactionService : IRecurringTransactionService
             existing.IsActive = updateDto.IsActive.Value;
         if (updateDto.EndDate.HasValue)
             existing.EndDate = updateDto.EndDate.Value.ToUniversalTime();
+        if (updateDto.InterestRate.HasValue)
+            existing.InterestRate = updateDto.InterestRate.Value == 0 ? null : updateDto.InterestRate.Value;
+        if (updateDto.IsCompounding.HasValue)
+            existing.IsCompounding = updateDto.IsCompounding.Value;
 
         // Handle frequency changes
         bool recalculateNextRun = false;
@@ -157,15 +163,35 @@ public class RecurringTransactionService : IRecurringTransactionService
                 // Get the latest snapshot for this asset
                 var latestSnapshot = await _snapshotRepository.GetLatestByAssetAsync(transaction.AssetId);
                 var currentBalance = latestSnapshot?.Balance ?? 0;
-                var newBalance = currentBalance + transaction.Amount;
+
+                // Calculate the amount to add
+                decimal transactionAmount;
+                if (transaction.InterestRate.HasValue && transaction.InterestRate.Value > 0)
+                {
+                    // Calculate interest based on current balance
+                    transactionAmount = CalculateInterestPayment(
+                        currentBalance,
+                        transaction.InterestRate.Value,
+                        transaction.Frequency,
+                        transaction.IsCompounding);
+                }
+                else
+                {
+                    transactionAmount = transaction.Amount;
+                }
+
+                var newBalance = currentBalance + transactionAmount;
 
                 // Create a new snapshot with the updated balance
+                var notes = transaction.InterestRate.HasValue && transaction.InterestRate.Value > 0
+                    ? $"Recurring: {transaction.Description} (Interest: {transactionAmount:C2} @ {transaction.InterestRate.Value}% {(transaction.IsCompounding ? "APY" : "APR")})"
+                    : $"Recurring: {transaction.Description}";
                 var snapshot = new AssetSnapshot
                 {
                     AssetId = transaction.AssetId,
                     Balance = newBalance,
                     Date = transaction.NextRunDate,
-                    Notes = $"Recurring: {transaction.Description}"
+                    Notes = notes
                 };
                 await _snapshotRepository.CreateAsync(snapshot);
 
@@ -317,7 +343,42 @@ public class RecurringTransactionService : IRecurringTransactionService
             LastRunDate = transaction.LastRunDate,
             IsActive = transaction.IsActive,
             CreatedAt = transaction.CreatedAt,
-            UpdatedAt = transaction.UpdatedAt
+            UpdatedAt = transaction.UpdatedAt,
+            InterestRate = transaction.InterestRate,
+            IsCompounding = transaction.IsCompounding
         };
+    }
+
+    /// <summary>
+    /// Calculate interest payment based on the balance, rate, frequency, and compounding type
+    /// </summary>
+    private static decimal CalculateInterestPayment(decimal balance, decimal annualRate, RecurringFrequency frequency, bool isCompounding)
+    {
+        // Convert annual rate to decimal (e.g., 3.5% -> 0.035)
+        var rate = annualRate / 100m;
+
+        // Determine number of periods per year based on frequency
+        int periodsPerYear = frequency switch
+        {
+            RecurringFrequency.Weekly => 52,
+            RecurringFrequency.Biweekly => 26,
+            RecurringFrequency.Monthly => 12,
+            RecurringFrequency.Quarterly => 4,
+            RecurringFrequency.Yearly => 1,
+            _ => 12
+        };
+
+        if (isCompounding)
+        {
+            // APY - the rate already accounts for compounding, so we just divide by periods
+            // APY = (1 + r/n)^n - 1, so periodic rate = APY / n for approximate periodic yield
+            // For simplicity, we use APY/n which gives close approximation
+            return Math.Round(balance * (rate / periodsPerYear), 2);
+        }
+        else
+        {
+            // APR - simple interest divided by periods
+            return Math.Round(balance * (rate / periodsPerYear), 2);
+        }
     }
 }

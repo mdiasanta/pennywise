@@ -17,6 +17,11 @@ public class RecurringTransaction
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
+    // APR/APY for interest-based recurring transactions (e.g., high yield savings)
+    // When set, Amount is ignored and interest is calculated based on latest asset balance
+    public decimal? InterestRate { get; set; } // Annual rate as percentage (e.g., 3.5 for 3.5%)
+    public bool IsCompounding { get; set; } = false; // True = APY (compounding), False = APR (simple)
+
     // Navigation properties
     public virtual Asset Asset { get; set; } = null!;
 }

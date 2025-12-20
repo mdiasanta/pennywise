@@ -138,6 +138,9 @@ public class RecurringTransferSummaryDto
     public decimal Amount { get; set; }
     public string Frequency { get; set; } = string.Empty;
     public decimal MonthlyEquivalent { get; set; }
+    public decimal? InterestRate { get; set; } // Annual rate as percentage
+    public bool IsCompounding { get; set; } // True = APY, False = APR
+    public bool IsInterestBased { get; set; } // True if this is interest-based (uses asset balance)
 }
 
 public class CustomProjectionItemDto

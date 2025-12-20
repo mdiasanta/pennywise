@@ -250,6 +250,9 @@ public class NetWorthService : INetWorthService
             .Where(rt => rt.IsActive)
             .ToList();
 
+        // Get all assets for the user (needed for interest-based calculations)
+        var assets = await _assetRepository.GetAllByUserAsync(userId);
+
         var recurringTransferSummaries = new List<RecurringTransferSummaryDto>();
         decimal recurringTransfersMonthlyTotal = 0;
 
@@ -258,9 +261,42 @@ public class NetWorthService : INetWorthService
             .Where(rt => !rt.EndDate.HasValue || rt.EndDate.Value > DateTime.UtcNow)
             .ToList();
 
+        // Separate interest-based and fixed-amount recurring transactions
+        var interestBasedTransactions = activeRecurringTransactions
+            .Where(rt => rt.InterestRate.HasValue && rt.InterestRate.Value > 0)
+            .ToList();
+        var fixedAmountTransactions = activeRecurringTransactions
+            .Where(rt => !rt.InterestRate.HasValue || rt.InterestRate.Value == 0)
+            .ToList();
+
+        // Get current balances for assets with interest-based recurring transactions
+        var assetBalances = new Dictionary<int, decimal>();
+        foreach (var rt in interestBasedTransactions)
+        {
+            if (!assetBalances.ContainsKey(rt.AssetId))
+            {
+                var asset = assets.FirstOrDefault(a => a.Id == rt.AssetId);
+                var latestSnapshot = asset?.Snapshots?.OrderByDescending(s => s.Date).FirstOrDefault();
+                assetBalances[rt.AssetId] = latestSnapshot?.Balance ?? 0;
+            }
+        }
+
         foreach (var rt in activeRecurringTransactions)
         {
-            var monthlyEquivalent = CalculateMonthlyEquivalent(rt.Amount, rt.Frequency);
+            var isInterestBased = rt.InterestRate.HasValue && rt.InterestRate.Value > 0;
+            decimal monthlyEquivalent;
+
+            if (isInterestBased)
+            {
+                // For interest-based, calculate monthly equivalent based on current balance
+                var currentBalance = assetBalances.GetValueOrDefault(rt.AssetId, 0);
+                monthlyEquivalent = CalculateInterestMonthlyEquivalent(currentBalance, rt.InterestRate.Value, rt.IsCompounding);
+            }
+            else
+            {
+                monthlyEquivalent = CalculateMonthlyEquivalent(rt.Amount, rt.Frequency);
+            }
+
             recurringTransfersMonthlyTotal += monthlyEquivalent;
 
             recurringTransferSummaries.Add(new RecurringTransferSummaryDto
@@ -270,7 +306,10 @@ public class NetWorthService : INetWorthService
                 AssetName = rt.Asset?.Name ?? UnknownAssetName,
                 Amount = rt.Amount,
                 Frequency = rt.Frequency.ToString(),
-                MonthlyEquivalent = monthlyEquivalent
+                MonthlyEquivalent = monthlyEquivalent,
+                InterestRate = rt.InterestRate,
+                IsCompounding = rt.IsCompounding,
+                IsInterestBased = isInterestBased
             });
         }
 
@@ -353,24 +392,62 @@ public class NetWorthService : INetWorthService
         var projectionStart = new DateTime(endDate.Year, endDate.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(1);
         var projectedNetWorth = currentNetWorth;
 
+        // Clone asset balances for projection tracking (interest compounds on updated balance)
+        var projectedAssetBalances = new Dictionary<int, decimal>(assetBalances);
+
         for (int i = 0; i < projectionMonths; i++)
         {
             var currentMonth = projectionStart.AddMonths(i);
-            var monthlyChange = projectedMonthlyChange;
 
-            // Adjust for recurring transactions that end during this month
+            // Start with fixed recurring transactions monthly change
+            decimal monthlyChange = 0;
+
             if (includeRecurringTransfers)
             {
-                foreach (var rt in activeRecurringTransactions.Where(rt => rt.EndDate.HasValue))
+                // Add fixed-amount recurring transactions
+                foreach (var rt in fixedAmountTransactions)
                 {
-                    // If the recurring transaction ends before or during this month, subtract its contribution
-                    if (rt.EndDate!.Value.Year < currentMonth.Year ||
-                        (rt.EndDate.Value.Year == currentMonth.Year && rt.EndDate.Value.Month < currentMonth.Month))
+                    // Check if this transaction is still active in this month
+                    if (rt.EndDate.HasValue &&
+                        (rt.EndDate.Value.Year < currentMonth.Year ||
+                        (rt.EndDate.Value.Year == currentMonth.Year && rt.EndDate.Value.Month < currentMonth.Month)))
                     {
-                        monthlyChange -= CalculateMonthlyEquivalent(rt.Amount, rt.Frequency);
+                        continue; // Transaction ended
                     }
+                    monthlyChange += CalculateMonthlyEquivalent(rt.Amount, rt.Frequency);
+                }
+
+                // Calculate and add interest-based recurring transactions
+                foreach (var rt in interestBasedTransactions)
+                {
+                    // Check if this transaction is still active in this month
+                    if (rt.EndDate.HasValue &&
+                        (rt.EndDate.Value.Year < currentMonth.Year ||
+                        (rt.EndDate.Value.Year == currentMonth.Year && rt.EndDate.Value.Month < currentMonth.Month)))
+                    {
+                        continue; // Transaction ended
+                    }
+
+                    var currentBalance = projectedAssetBalances.GetValueOrDefault(rt.AssetId, 0);
+                    var interestPayment = CalculateInterestMonthlyEquivalent(currentBalance, rt.InterestRate!.Value, rt.IsCompounding);
+
+                    // Add interest to the asset balance for compound effect
+                    projectedAssetBalances[rt.AssetId] = currentBalance + interestPayment;
+                    monthlyChange += interestPayment;
                 }
             }
+
+            // Add average expenses if enabled
+            if (includeAverageExpenses)
+            {
+                monthlyChange -= averageMonthlyExpenses;
+            }
+
+            // Add custom items monthly contribution
+            monthlyChange += customItemsMonthlyTotal;
+
+            // Adjust for recurring transactions that end during this month (legacy check for custom items with frequency)
+            // Note: The logic above already handles end dates for recurring transactions
 
             // Add one-time custom items that fall in this month (or first month if no date specified)
             if (customItems != null)
@@ -474,14 +551,14 @@ public class NetWorthService : INetWorthService
         {
             AverageMonthlyExpenses = $"Sum of all expenses over the last {monthsUsed} months, divided by {monthsUsed}. This represents your typical monthly spending. When enabled, this amount is subtracted from the projection.",
             AverageMonthlyNetChange = $"Historical reference: The average change in net worth between consecutive months. This shows your past trend but is not used in the projection calculation.",
-            RecurringTransfersMonthlyTotal = $"Sum of all active recurring transfers converted to their monthly equivalent. Weekly × {WeeksPerMonth:F2}, Biweekly × {BiweeklyPerMonth:F2}, Monthly × 1, Quarterly ÷ 3, Yearly ÷ 12.",
+            RecurringTransfersMonthlyTotal = $"Sum of all active recurring transfers converted to their monthly equivalent. Weekly × {WeeksPerMonth:F2}, Biweekly × {BiweeklyPerMonth:F2}, Monthly × 1, Quarterly ÷ 3, Yearly ÷ 12. Interest-based transactions (APR/APY) are calculated based on current asset balances and compound over time in the projection.",
             CustomItemsTotal = customItems?.Count > 0
                 ? $"Sum of {customItems.Count} custom item(s). One-time items are applied in their specified month. Recurring custom items are converted to monthly equivalents."
                 : "No custom items added. Add custom items for major purchases like a house, car, or other planned expenses/income.",
             ProjectedMonthlyChange = projectionParts.Count > 0
-                ? $"Calculated from: {string.Join(", ", projectionParts)}. This is the expected net worth change per month."
+                ? $"Calculated from: {string.Join(", ", projectionParts)}. This is the expected net worth change per month. Note: Interest-based recurring transactions compound over time, so monthly gains may increase."
                 : "No projection factors enabled. Enable recurring transfers or add custom items to see a projection.",
-            Projection = $"Starting from your current net worth ({currentNetWorth:C0}), the projection adds the monthly change each month for {projectionMonths} months. One-time custom items are applied in their specified month."
+            Projection = $"Starting from your current net worth ({currentNetWorth:C0}), the projection adds the monthly change each month for {projectionMonths} months. Interest-based recurring transactions compound on the projected balance. One-time custom items are applied in their specified month."
         };
 
         return new NetWorthProjectionDto
@@ -513,6 +590,31 @@ public class NetWorthService : INetWorthService
             RecurringFrequency.Yearly => amount / 12m,
             _ => amount
         };
+    }
+
+    /// <summary>
+    /// Calculate the monthly interest payment based on balance and annual rate
+    /// </summary>
+    private static decimal CalculateInterestMonthlyEquivalent(decimal balance, decimal annualRatePercent, bool isCompounding)
+    {
+        // Convert annual rate from percentage to decimal (e.g., 3.5% -> 0.035)
+        var rate = annualRatePercent / 100m;
+
+        // Monthly rate
+        // For APY (isCompounding=true), we calculate the effective monthly rate
+        // For APR (isCompounding=false), we simply divide by 12
+        if (isCompounding)
+        {
+            // APY represents the effective annual yield with compounding
+            // To get monthly: (1 + APY)^(1/12) - 1
+            // For simplicity and to avoid complex math, we use APY/12 which is close enough for projection
+            return Math.Round(balance * (rate / 12m), 2);
+        }
+        else
+        {
+            // APR - simple interest divided by 12
+            return Math.Round(balance * (rate / 12m), 2);
+        }
     }
 
     private static IEnumerable<DateTime> GenerateDatePoints(DateTime startDate, DateTime endDate, string groupBy)

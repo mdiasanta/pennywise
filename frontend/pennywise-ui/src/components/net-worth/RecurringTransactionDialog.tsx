@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import type { Asset } from '@/lib/api';
 
 export type RecurringFrequency = 'Weekly' | 'Biweekly' | 'Monthly' | 'Quarterly' | 'Yearly';
@@ -29,6 +30,9 @@ export interface RecurringFormData {
   dayOfMonth: string;
   startDate: string;
   endDate: string;
+  interestRate: string; // Annual rate as percentage
+  isCompounding: boolean; // True = APY, False = APR
+  isInterestBased: boolean; // True if using interest rate instead of fixed amount
 }
 
 interface RecurringTransactionDialogProps {
@@ -81,21 +85,90 @@ export function RecurringTransactionDialog({
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="recurringAmount" className="text-muted-foreground">
-                Amount * (positive to add, negative to subtract)
-              </Label>
-              <Input
-                id="recurringAmount"
-                type="number"
-                step="0.01"
-                className="border-border/60 bg-card text-foreground placeholder:text-muted-foreground"
-                value={formData.amount}
-                onChange={(e) => onFormDataChange({ ...formData, amount: e.target.value })}
-                required
-                placeholder="e.g. 2500.00"
+            {/* Interest-based toggle */}
+            <div className="flex items-center justify-between rounded-lg border border-border/60 p-3">
+              <div className="space-y-0.5">
+                <Label htmlFor="isInterestBased" className="text-foreground">
+                  Interest-based (APR/APY)
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Calculate interest based on account balance (e.g., high yield savings)
+                </p>
+              </div>
+              <Switch
+                id="isInterestBased"
+                checked={formData.isInterestBased}
+                onCheckedChange={(checked) =>
+                  onFormDataChange({
+                    ...formData,
+                    isInterestBased: checked,
+                    amount: checked ? '0' : formData.amount,
+                  })
+                }
               />
             </div>
+
+            {/* Interest rate fields (shown when interest-based is enabled) */}
+            {formData.isInterestBased && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="interestRate" className="text-muted-foreground">
+                    Annual Interest Rate (%) *
+                  </Label>
+                  <Input
+                    id="interestRate"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    className="border-border/60 bg-card text-foreground placeholder:text-muted-foreground"
+                    value={formData.interestRate}
+                    onChange={(e) => onFormDataChange({ ...formData, interestRate: e.target.value })}
+                    required
+                    placeholder="e.g. 3.5"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between rounded-lg border border-border/60 p-3">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="isCompounding" className="text-foreground">
+                      APY (Compounding)
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      {formData.isCompounding
+                        ? 'APY: Interest compounds on the growing balance'
+                        : 'APR: Simple interest rate (no compounding)'}
+                    </p>
+                  </div>
+                  <Switch
+                    id="isCompounding"
+                    checked={formData.isCompounding}
+                    onCheckedChange={(checked) =>
+                      onFormDataChange({ ...formData, isCompounding: checked })
+                    }
+                  />
+                </div>
+              </>
+            )}
+
+            {/* Fixed amount field (shown when NOT interest-based) */}
+            {!formData.isInterestBased && (
+              <div className="space-y-2">
+                <Label htmlFor="recurringAmount" className="text-muted-foreground">
+                  Amount * (positive to add, negative to subtract)
+                </Label>
+                <Input
+                  id="recurringAmount"
+                  type="number"
+                  step="0.01"
+                  className="border-border/60 bg-card text-foreground placeholder:text-muted-foreground"
+                  value={formData.amount}
+                  onChange={(e) => onFormDataChange({ ...formData, amount: e.target.value })}
+                  required
+                  placeholder="e.g. 2500.00"
+                />
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="recurringDescription" className="text-muted-foreground">
@@ -112,7 +185,7 @@ export function RecurringTransactionDialog({
                   })
                 }
                 required
-                placeholder="e.g. Paycheck"
+                placeholder={formData.isInterestBased ? 'e.g. HYSA Interest' : 'e.g. Paycheck'}
               />
             </div>
 

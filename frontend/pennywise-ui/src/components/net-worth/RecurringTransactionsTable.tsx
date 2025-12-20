@@ -70,7 +70,7 @@ export function RecurringTransactionsTable({
           <div className="py-8 text-center text-muted-foreground">
             <p>No recurring transactions set up.</p>
             <p className="mt-2 text-sm">
-              Click "Add Recurring" to automate deposits like paychecks.
+              Click "Add Recurring" to automate deposits like paychecks or interest.
             </p>
           </div>
         ) : (
@@ -81,16 +81,25 @@ export function RecurringTransactionsTable({
                   <TableHead className="text-muted-foreground">Description</TableHead>
                   <TableHead className="text-muted-foreground">Account</TableHead>
                   <TableHead className="text-muted-foreground">Frequency</TableHead>
-                  <TableHead className="text-right text-muted-foreground">Amount</TableHead>
+                  <TableHead className="text-right text-muted-foreground">Amount/Rate</TableHead>
                   <TableHead className="text-muted-foreground">Next Run</TableHead>
                   <TableHead className="text-muted-foreground">Status</TableHead>
                   <TableHead className="text-right text-muted-foreground">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {transactions.map((rt) => (
+                {transactions.map((rt) => {
+                  const isInterestBased = rt.interestRate !== undefined && rt.interestRate !== null && rt.interestRate > 0;
+                  return (
                   <TableRow key={rt.id} className="border-border/60 hover:bg-card/80">
-                    <TableCell className="font-medium text-foreground">{rt.description}</TableCell>
+                    <TableCell className="font-medium text-foreground">
+                      {rt.description}
+                      {isInterestBased && (
+                        <Badge variant="outline" className="ml-2 border-primary/60 text-primary text-xs">
+                          {rt.isCompounding ? 'APY' : 'APR'}
+                        </Badge>
+                      )}
+                    </TableCell>
                     <TableCell className="text-foreground">{rt.assetName}</TableCell>
                     <TableCell className="text-foreground">
                       {rt.frequency}
@@ -98,10 +107,16 @@ export function RecurringTransactionsTable({
                       {rt.dayOfMonth && ` (Day ${rt.dayOfMonth})`}
                     </TableCell>
                     <TableCell
-                      className={`text-right font-semibold ${rt.amount >= 0 ? 'text-success-foreground' : 'text-destructive'}`}
+                      className={`text-right font-semibold ${isInterestBased ? 'text-primary' : rt.amount >= 0 ? 'text-success-foreground' : 'text-destructive'}`}
                     >
-                      {rt.amount >= 0 ? '+' : ''}
-                      {formatCurrency(rt.amount)}
+                      {isInterestBased ? (
+                        <span>{rt.interestRate}%</span>
+                      ) : (
+                        <>
+                          {rt.amount >= 0 ? '+' : ''}
+                          {formatCurrency(rt.amount)}
+                        </>
+                      )}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {formatDate(rt.nextRunDate)}
@@ -168,7 +183,8 @@ export function RecurringTransactionsTable({
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </div>

@@ -17,6 +17,8 @@ public class RecurringTransactionDto
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+    public decimal? InterestRate { get; set; } // Annual rate as percentage (e.g., 3.5 for 3.5%)
+    public bool IsCompounding { get; set; } // True = APY, False = APR
 }
 
 public class CreateRecurringTransactionDto
@@ -29,6 +31,8 @@ public class CreateRecurringTransactionDto
     public int? DayOfMonth { get; set; }
     public DateTime StartDate { get; set; }
     public DateTime? EndDate { get; set; }
+    public decimal? InterestRate { get; set; } // Annual rate as percentage (e.g., 3.5 for 3.5%)
+    public bool IsCompounding { get; set; } = false; // True = APY, False = APR
 }
 
 public class UpdateRecurringTransactionDto
@@ -41,4 +45,6 @@ public class UpdateRecurringTransactionDto
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
     public bool? IsActive { get; set; }
+    public decimal? InterestRate { get; set; } // Annual rate as percentage (e.g., 3.5 for 3.5%)
+    public bool? IsCompounding { get; set; } // True = APY, False = APR
 }
