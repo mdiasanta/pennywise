@@ -34,7 +34,7 @@ import {
 } from '@/components/ui/table';
 import { useAuth } from '@/hooks/use-auth';
 import { useTags } from '@/hooks/use-tags';
-import type { Expense, NetWorthSummary } from '@/lib/api';
+import type { Expense, NetWorthComparison, NetWorthSummary } from '@/lib/api';
 import { expenseApi, netWorthApi } from '@/lib/api';
 import {
   ArrowDownRight,
@@ -44,6 +44,7 @@ import {
   DollarSign,
   Tag,
   TrendingDown,
+  TrendingUp,
   Wallet,
   X,
 } from 'lucide-react';
@@ -80,6 +81,7 @@ export default function DashboardPage() {
   const { tags, isLoading: tagsLoading } = useTags();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [netWorthSummary, setNetWorthSummary] = useState<NetWorthSummary | null>(null);
+  const [netWorthComparison, setNetWorthComparison] = useState<NetWorthComparison | null>(null);
   const [timeRange, setTimeRange] = useState<TimeRange>('month');
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
@@ -151,17 +153,29 @@ export default function DashboardPage() {
       setLoading(true);
       const { startDate, endDate } = getDateRange(timeRange);
 
-      const [expensesData, summaryData] = await Promise.all([
+      // Determine groupBy based on time range
+      const groupBy =
+        timeRange === 'day'
+          ? 'day'
+          : timeRange === 'week'
+            ? 'day'
+            : isMonthYearFilter(timeRange)
+              ? 'day'
+              : 'month';
+
+      const [expensesData, summaryData, comparisonData] = await Promise.all([
         expenseApi.getAll(user.id, {
           startDate,
           endDate,
           tagIds: selectedTagIds.length > 0 ? selectedTagIds : undefined,
         }),
         netWorthApi.getSummary(user.id),
+        netWorthApi.getComparison(user.id, startDate, endDate, groupBy),
       ]);
 
       setExpenses(expensesData);
       setNetWorthSummary(summaryData);
+      setNetWorthComparison(comparisonData);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -247,6 +261,43 @@ export default function DashboardPage() {
     }
   };
 
+  // Get period-specific net worth metrics from comparison data
+  const getPeriodNetWorthMetrics = () => {
+    if (!netWorthComparison?.netWorthHistory || netWorthComparison.netWorthHistory.length === 0) {
+      return {
+        startNetWorth: 0,
+        endNetWorth: netWorthSummary?.netWorth || 0,
+        change: 0,
+        changePercent: 0,
+        startAssets: 0,
+        endAssets: netWorthSummary?.totalAssets || 0,
+        startLiabilities: 0,
+        endLiabilities: netWorthSummary?.totalLiabilities || 0,
+      };
+    }
+
+    const history = netWorthComparison.netWorthHistory;
+    const firstPoint = history[0];
+    const lastPoint = history[history.length - 1];
+
+    const startNetWorth = firstPoint.netWorth;
+    const endNetWorth = lastPoint.netWorth;
+    const change = endNetWorth - startNetWorth;
+    const changePercent = startNetWorth !== 0 ? (change / Math.abs(startNetWorth)) * 100 : 0;
+
+    return {
+      startNetWorth,
+      endNetWorth,
+      change,
+      changePercent,
+      startAssets: firstPoint.totalAssets,
+      endAssets: lastPoint.totalAssets,
+      startLiabilities: firstPoint.totalLiabilities,
+      endLiabilities: lastPoint.totalLiabilities,
+    };
+  };
+
+  const periodMetrics = getPeriodNetWorthMetrics();
   const categoryData = getExpensesByCategory();
   const recentExpenses = getRecentExpenses();
   const totalExpenses = getTotalExpenses();
@@ -407,7 +458,8 @@ export default function DashboardPage() {
         )}
 
         {/* Summary Cards */}
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {/* Net Worth Card - Shows current net worth */}
           <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Net Worth</CardTitle>
@@ -419,29 +471,139 @@ export default function DashboardPage() {
               <div className="text-3xl font-semibold">
                 {loading ? '...' : formatCurrency(netWorthSummary?.netWorth || 0)}
               </div>
-              {netWorthSummary && netWorthSummary.changePercent !== 0 && (
+              <p className="mt-1 text-xs text-muted-foreground">Current balance</p>
+            </CardContent>
+          </Card>
+
+          {/* Net Worth Change Card - Shows change during selected period */}
+          <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Net Worth Change
+              </CardTitle>
+              <div
+                className={`flex h-9 w-9 items-center justify-center rounded-lg ${
+                  periodMetrics.change >= 0
+                    ? 'bg-success text-success-foreground'
+                    : 'bg-destructive text-destructive-foreground'
+                }`}
+              >
+                {periodMetrics.change >= 0 ? (
+                  <TrendingUp className="h-4 w-4" />
+                ) : (
+                  <TrendingDown className="h-4 w-4" />
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div
+                className={`text-3xl font-semibold ${
+                  periodMetrics.change >= 0 ? 'text-success-foreground' : 'text-destructive'
+                }`}
+              >
+                {loading
+                  ? '...'
+                  : `${periodMetrics.change >= 0 ? '+' : ''}${formatCurrency(periodMetrics.change)}`}
+              </div>
+              {!loading && periodMetrics.changePercent !== 0 && (
                 <div
                   className={`mt-1 flex items-center text-xs ${
-                    netWorthSummary.changeFromLastPeriod >= 0
-                      ? 'text-success-foreground'
-                      : 'text-destructive'
+                    periodMetrics.change >= 0 ? 'text-success-foreground' : 'text-destructive'
                   }`}
                 >
-                  {netWorthSummary.changeFromLastPeriod >= 0 ? (
-                    <ArrowUpRight className="h-3 w-3 mr-1" />
+                  {periodMetrics.change >= 0 ? (
+                    <ArrowUpRight className="mr-1 h-3 w-3" />
                   ) : (
-                    <ArrowDownRight className="h-3 w-3 mr-1" />
+                    <ArrowDownRight className="mr-1 h-3 w-3" />
                   )}
-                  {formatCurrency(Math.abs(netWorthSummary.changeFromLastPeriod))} (
-                  {netWorthSummary.changePercent.toFixed(1)}%)
+                  {Math.abs(periodMetrics.changePercent).toFixed(1)}% {getTimeRangeLabel()}
                 </div>
               )}
-              {(!netWorthSummary || netWorthSummary.changePercent === 0) && (
-                <p className="mt-1 text-xs text-muted-foreground">Current balance</p>
+              {!loading && periodMetrics.changePercent === 0 && (
+                <p className="mt-1 text-xs text-muted-foreground">{getTimeRangeLabel()}</p>
               )}
             </CardContent>
           </Card>
 
+          {/* Total Assets Card */}
+          <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Total Assets
+              </CardTitle>
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-success text-success-foreground">
+                <ArrowUpRight className="h-4 w-4" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-semibold">
+                {loading ? '...' : formatCurrency(netWorthSummary?.totalAssets || 0)}
+              </div>
+              {!loading && periodMetrics.endAssets - periodMetrics.startAssets !== 0 && (
+                <div
+                  className={`mt-1 flex items-center text-xs ${
+                    periodMetrics.endAssets - periodMetrics.startAssets >= 0
+                      ? 'text-success-foreground'
+                      : 'text-destructive'
+                  }`}
+                >
+                  {periodMetrics.endAssets - periodMetrics.startAssets >= 0 ? (
+                    <ArrowUpRight className="mr-1 h-3 w-3" />
+                  ) : (
+                    <ArrowDownRight className="mr-1 h-3 w-3" />
+                  )}
+                  {formatCurrency(Math.abs(periodMetrics.endAssets - periodMetrics.startAssets))}{' '}
+                  {getTimeRangeLabel()}
+                </div>
+              )}
+              {!loading && periodMetrics.endAssets - periodMetrics.startAssets === 0 && (
+                <p className="mt-1 text-xs text-muted-foreground">Current value</p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Total Liabilities Card */}
+          <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Total Liabilities
+              </CardTitle>
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-destructive text-destructive-foreground">
+                <ArrowDownRight className="h-4 w-4" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-semibold">
+                {loading ? '...' : formatCurrency(netWorthSummary?.totalLiabilities || 0)}
+              </div>
+              {!loading && periodMetrics.endLiabilities - periodMetrics.startLiabilities !== 0 && (
+                <div
+                  className={`mt-1 flex items-center text-xs ${
+                    periodMetrics.endLiabilities - periodMetrics.startLiabilities <= 0
+                      ? 'text-success-foreground'
+                      : 'text-destructive'
+                  }`}
+                >
+                  {periodMetrics.endLiabilities - periodMetrics.startLiabilities <= 0 ? (
+                    <ArrowDownRight className="mr-1 h-3 w-3" />
+                  ) : (
+                    <ArrowUpRight className="mr-1 h-3 w-3" />
+                  )}
+                  {formatCurrency(
+                    Math.abs(periodMetrics.endLiabilities - periodMetrics.startLiabilities)
+                  )}{' '}
+                  {getTimeRangeLabel()}
+                </div>
+              )}
+              {!loading && periodMetrics.endLiabilities - periodMetrics.startLiabilities === 0 && (
+                <p className="mt-1 text-xs text-muted-foreground">Current debt</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Expense Summary Cards */}
+        <div className="grid gap-4 md:grid-cols-3">
           <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
