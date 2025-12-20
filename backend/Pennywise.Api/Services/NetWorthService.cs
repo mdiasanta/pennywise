@@ -697,4 +697,9 @@ public class NetWorthService : INetWorthService
             MonthsToPayoff = overallMonthsToPayoff
         };
     }
+
+    public async Task<DateTime?> GetEarliestSnapshotDateAsync(int userId)
+    {
+        return await _snapshotRepository.GetEarliestDateByUserAsync(userId);
+    }
 }

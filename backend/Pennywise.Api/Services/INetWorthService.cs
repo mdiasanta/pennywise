@@ -17,4 +17,5 @@ public interface INetWorthService
     Task<LiabilityPayoffEstimateDto> GetLiabilityPayoffEstimateAsync(
         int userId,
         List<LiabilityPayoffSettingsDto>? settings = null);
+    Task<DateTime?> GetEarliestSnapshotDateAsync(int userId);
 }

@@ -105,4 +105,11 @@ public class NetWorthController : ControllerBase
         var estimate = await _netWorthService.GetLiabilityPayoffEstimateAsync(userId, settings);
         return Ok(estimate);
     }
+
+    [HttpGet("user/{userId}/earliest-date")]
+    public async Task<ActionResult<DateTime?>> GetEarliestDate(int userId)
+    {
+        var earliestDate = await _netWorthService.GetEarliestSnapshotDateAsync(userId);
+        return Ok(earliestDate);
+    }
 }

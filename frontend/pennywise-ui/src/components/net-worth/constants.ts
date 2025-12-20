@@ -4,10 +4,10 @@ export type TimeRange = 'month' | 'quarter' | 'year' | 'all' | `year-${number}`;
 export type GroupBy = 'day' | 'week' | 'month' | 'quarter' | 'year';
 
 // Maximum years of history to show for "All Time" view
-export const ALL_TIME_LOOKBACK_YEARS = 5;
+export const ALL_TIME_LOOKBACK_YEARS = 20;
 
 // Default number of years to show in year picker dropdown
-export const YEAR_PICKER_YEARS_BACK = 10;
+export const YEAR_PICKER_YEARS_BACK = 20;
 
 // Year filter prefix constant
 const YEAR_FILTER_PREFIX = 'year-';
@@ -35,6 +35,24 @@ export const getAvailableYears = (yearsBack: number = YEAR_PICKER_YEARS_BACK): n
   for (let i = 0; i <= yearsBack; i++) {
     years.push(currentYear - i);
   }
+  return years;
+};
+
+// Generate available years from earliest date to current year
+export const getAvailableYearsFromDate = (earliestDate: string | null): number[] => {
+  const currentYear = new Date().getFullYear();
+  const years: number[] = [];
+
+  if (earliestDate) {
+    const earliestYear = new Date(earliestDate).getFullYear();
+    for (let year = currentYear; year >= earliestYear; year--) {
+      years.push(year);
+    }
+  } else {
+    // Fallback to default behavior if no earliest date
+    return getAvailableYears();
+  }
+
   return years;
 };
 

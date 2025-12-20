@@ -2,7 +2,6 @@ import { AppLayout } from '@/components/AppLayout';
 import { GoogleSignInButton } from '@/components/GoogleSignInButton';
 import {
   AccountsTable,
-  ALL_TIME_LOOKBACK_YEARS,
   ASSET_COLOR_PALETTE,
   type AssetFormData,
   AssetFormDialog,
@@ -11,7 +10,7 @@ import {
   type BulkBalanceFormData,
   BulkUpdateBalanceDialog,
   formatChartDate,
-  getAvailableYears,
+  getAvailableYearsFromDate,
   getTimeRangeLabel,
   getYearFilterDateRange,
   type GroupBy,
@@ -125,6 +124,9 @@ export default function NetWorthPage() {
     []
   );
 
+  // Earliest date for "All Time" filter
+  const [earliestDate, setEarliestDate] = useState<string | null>(null);
+
   // Asset history for individual account chart
   const [assetSnapshots, setAssetSnapshots] = useState<Map<number, AssetSnapshot[]>>(new Map());
   const [recurringFormData, setRecurringFormData] = useState<RecurringFormData>({
@@ -138,36 +140,51 @@ export default function NetWorthPage() {
     endDate: '',
   });
 
-  const getDateRange = useCallback((range: TimeRange) => {
-    // Handle specific year filter (e.g., 'year-2024')
-    const yearRange = getYearFilterDateRange(range);
-    if (yearRange) {
-      return yearRange;
-    }
+  const getDateRange = useCallback(
+    (range: TimeRange) => {
+      // Handle specific year filter (e.g., 'year-2024')
+      const yearRange = getYearFilterDateRange(range);
+      if (yearRange) {
+        return yearRange;
+      }
 
-    const endDate = new Date();
-    const startDate = new Date();
+      const endDate = new Date();
+      let startDate: Date;
 
-    switch (range) {
-      case 'month':
-        startDate.setMonth(startDate.getMonth() - 1);
-        break;
-      case 'quarter':
-        startDate.setMonth(startDate.getMonth() - 3);
-        break;
-      case 'year':
-        startDate.setFullYear(startDate.getFullYear() - 1);
-        break;
-      case 'all':
-        startDate.setFullYear(startDate.getFullYear() - ALL_TIME_LOOKBACK_YEARS);
-        break;
-    }
+      switch (range) {
+        case 'month':
+          startDate = new Date();
+          startDate.setMonth(startDate.getMonth() - 1);
+          break;
+        case 'quarter':
+          startDate = new Date();
+          startDate.setMonth(startDate.getMonth() - 3);
+          break;
+        case 'year':
+          startDate = new Date();
+          startDate.setFullYear(startDate.getFullYear() - 1);
+          break;
+        case 'all':
+          // Use earliest data point if available, otherwise default to 20 years back
+          if (earliestDate) {
+            startDate = new Date(earliestDate);
+          } else {
+            startDate = new Date();
+            startDate.setFullYear(startDate.getFullYear() - 20);
+          }
+          break;
+        default:
+          startDate = new Date();
+          startDate.setFullYear(startDate.getFullYear() - 1);
+      }
 
-    return {
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-    };
-  }, []);
+      return {
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+      };
+    },
+    [earliestDate]
+  );
 
   const loadData = useCallback(async () => {
     if (authLoading) return;
@@ -280,6 +297,20 @@ export default function NetWorthPage() {
       setLiabilityPayoffLoading(false);
     }
   }, [authLoading, isAuthenticated, user, liabilityPayoffSettings, toast]);
+
+  // Fetch earliest date for "All Time" filter
+  useEffect(() => {
+    const fetchEarliestDate = async () => {
+      if (authLoading || !isAuthenticated || !user) return;
+      try {
+        const date = await netWorthApi.getEarliestDate(user.id);
+        setEarliestDate(date);
+      } catch (error) {
+        console.error('Error fetching earliest date:', error);
+      }
+    };
+    fetchEarliestDate();
+  }, [authLoading, isAuthenticated, user]);
 
   useEffect(() => {
     loadData();
@@ -862,7 +893,7 @@ export default function NetWorthPage() {
                 <Separator className="my-1" />
                 <SelectGroup>
                   <SelectLabel className="text-muted-foreground">By Year</SelectLabel>
-                  {getAvailableYears().map((year) => (
+                  {getAvailableYearsFromDate(earliestDate).map((year) => (
                     <SelectItem key={year} value={`year-${year}`}>
                       {year}
                     </SelectItem>

@@ -1050,6 +1050,13 @@ export const netWorthApi = {
     });
     return handleResponse<LiabilityPayoffEstimate>(response);
   },
+
+  async getEarliestDate(userId: number): Promise<string | null> {
+    const response = await fetch(`${API_BASE_URL}/networth/user/${userId}/earliest-date`, {
+      credentials: 'include',
+    });
+    return handleResponse<string | null>(response);
+  },
 };
 
 // Recurring Transaction types

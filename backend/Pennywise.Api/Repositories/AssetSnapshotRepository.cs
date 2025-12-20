@@ -59,10 +59,10 @@ public class AssetSnapshotRepository : IAssetSnapshotRepository
         snapshot.UpdatedAt = DateTime.UtcNow;
         _context.AssetSnapshots.Add(snapshot);
         await _context.SaveChangesAsync();
-        
+
         // Load the asset for the created snapshot
         await _context.Entry(snapshot).Reference(s => s.Asset).LoadAsync();
-        
+
         return snapshot;
     }
 
@@ -78,10 +78,10 @@ public class AssetSnapshotRepository : IAssetSnapshotRepository
         existing.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
-        
+
         // Load the asset for the updated snapshot
         await _context.Entry(existing).Reference(s => s.Asset).LoadAsync();
-        
+
         return existing;
     }
 
@@ -137,5 +137,15 @@ public class AssetSnapshotRepository : IAssetSnapshotRepository
             .Include(s => s.Asset)
             .Where(s => s.AssetId == assetId && dateOnlyList.Contains(s.Date.Date))
             .ToListAsync();
+    }
+
+    public async Task<DateTime?> GetEarliestDateByUserAsync(int userId)
+    {
+        return await _context.AssetSnapshots
+            .AsNoTracking()
+            .Where(s => s.Asset.UserId == userId)
+            .OrderBy(s => s.Date)
+            .Select(s => (DateTime?)s.Date)
+            .FirstOrDefaultAsync();
     }
 }
