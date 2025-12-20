@@ -10,6 +10,7 @@ import {
   Home,
   Menu,
   Palette,
+  Tag,
   TrendingUp,
   Wallet,
   X,
@@ -28,6 +29,7 @@ const navItems: NavItem[] = [
   { to: '/dashboard', label: 'Dashboard', icon: BarChart3 },
   { to: '/expenses', label: 'Expenses', icon: CreditCard },
   { to: '/categories', label: 'Categories', icon: Palette },
+  { to: '/tags', label: 'Tags', icon: Tag },
   { to: '/networth', label: 'Net Worth', icon: TrendingUp },
 ];
 
