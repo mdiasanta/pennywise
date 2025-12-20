@@ -8,6 +8,7 @@ import {
   type BalanceFormData,
   BalanceHistoryDialog,
   type BulkBalanceFormData,
+  BulkImportBalancesDialog,
   BulkUpdateBalanceDialog,
   formatChartDate,
   getAvailableYearsFromDate,
@@ -76,6 +77,7 @@ export default function NetWorthPage() {
   const [isUpdateBalanceDialogOpen, setIsUpdateBalanceDialogOpen] = useState(false);
   const [isBulkUpdateBalanceDialogOpen, setIsBulkUpdateBalanceDialogOpen] = useState(false);
   const [isImportBalancesDialogOpen, setIsImportBalancesDialogOpen] = useState(false);
+  const [isBulkImportBalancesDialogOpen, setIsBulkImportBalancesDialogOpen] = useState(false);
   const [isBalanceHistoryDialogOpen, setIsBalanceHistoryDialogOpen] = useState(false);
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
   const [selectedAssetForUpdate, setSelectedAssetForUpdate] = useState<Asset | null>(null);
@@ -885,6 +887,10 @@ export default function NetWorthPage() {
     }
   };
 
+  const handleBulkImportBalances = () => {
+    setIsBulkImportBalancesDialogOpen(true);
+  };
+
   // Derived data
   const assetCategories = categories.filter((c) => !c.isLiability);
   const liabilityCategories = categories.filter((c) => c.isLiability);
@@ -1054,6 +1060,7 @@ export default function NetWorthPage() {
           onUpdateBalance={handleOpenUpdateBalance}
           onBulkUpdateBalance={handleOpenBulkUpdateBalance}
           onImportBalances={handleOpenImportBalances}
+          onBulkImportBalances={handleBulkImportBalances}
           onViewHistory={handleViewHistory}
           onDeleteAccount={handleDeleteAsset}
           onExportAccount={handleExportAccount}
@@ -1146,6 +1153,13 @@ export default function NetWorthPage() {
             }
           }}
           selectedAsset={selectedAssetForImport}
+          userId={user?.id ?? 0}
+          onImportComplete={loadData}
+        />
+
+        <BulkImportBalancesDialog
+          open={isBulkImportBalancesDialogOpen}
+          onOpenChange={setIsBulkImportBalancesDialogOpen}
           userId={user?.id ?? 0}
           onImportComplete={loadData}
         />

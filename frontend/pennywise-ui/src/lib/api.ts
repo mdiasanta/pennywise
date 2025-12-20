@@ -992,6 +992,70 @@ export const assetSnapshotApi = {
 
     return { blob, filename };
   },
+
+  async downloadBulkTemplate(
+    format: 'csv' | 'xlsx',
+    userId: number
+  ): Promise<{ blob: Blob; filename: string }> {
+    const params = new URLSearchParams({ format, userId: userId.toString() });
+
+    const response = await fetch(`${API_BASE_URL}/assetsnapshots/bulk-template?${params}`, {
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(error || 'Failed to download template');
+    }
+
+    const blob = await response.blob();
+    const disposition = response.headers.get('Content-Disposition') ?? '';
+    const match = disposition.match(
+      /filename\*=([^']+)''([^;]+)|filename="([^"]+)"|filename=([^;]+)/i
+    );
+    const filename = match?.[2]
+      ? decodeURIComponent(match[2])
+      : match?.[3] || match?.[4] || `all-accounts-balances-template.${format}`;
+
+    return { blob, filename };
+  },
+
+  async bulkImportBalances(
+    userId: number,
+    file: File,
+    options?: {
+      duplicateStrategy?: 'skip' | 'update';
+      timezone?: string;
+      dryRun?: boolean;
+    }
+  ): Promise<AssetSnapshotImportResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('userId', userId.toString());
+
+    if (options?.duplicateStrategy) {
+      formData.append('duplicateStrategy', options.duplicateStrategy);
+    }
+
+    if (options?.timezone) {
+      formData.append('timezone', options.timezone);
+    }
+
+    formData.append('dryRun', options?.dryRun === false ? 'false' : 'true');
+
+    const response = await fetch(`${API_BASE_URL}/assetsnapshots/bulk-import`, {
+      method: 'POST',
+      body: formData,
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      const message = await response.text();
+      throw new Error(message || 'Failed to import balances');
+    }
+
+    return response.json() as Promise<AssetSnapshotImportResponse>;
+  },
 };
 
 // Net Worth API

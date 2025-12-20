@@ -81,6 +81,30 @@ public class AssetSnapshotsController : ControllerBase
         }
     }
 
+    [HttpGet("bulk-template")]
+    public async Task<IActionResult> GetBulkTemplate([FromQuery] string format = "csv", [FromQuery] int userId = 0)
+    {
+        try
+        {
+            if (userId <= 0)
+            {
+                return BadRequest("Invalid user ID.");
+            }
+
+            var template = await _importService.GenerateBulkTemplateAsync(format, userId);
+            Response.Headers["Content-Disposition"] = $"attachment; filename=\"{template.FileName}\"";
+            return File(template.Content, template.ContentType);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, "Failed to generate template.");
+        }
+    }
+
     [HttpPost("import")]
     [RequestFormLimits(MultipartBodyLengthLimit = 10 * 1024 * 1024)]
     public async Task<ActionResult<AssetSnapshotImportResponseDto>> ImportBalances(
@@ -114,6 +138,50 @@ public class AssetSnapshotsController : ControllerBase
                 FileStream = stream,
                 FileName = file.FileName,
                 AssetId = assetId,
+                UserId = userId,
+                DuplicateStrategy = duplicateStrategy,
+                Timezone = timezone,
+                DryRun = dryRun
+            });
+
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, "Failed to import balances. Please try again.");
+        }
+    }
+
+    [HttpPost("bulk-import")]
+    [RequestFormLimits(MultipartBodyLengthLimit = 10 * 1024 * 1024)]
+    public async Task<ActionResult<AssetSnapshotImportResponseDto>> BulkImportBalances(
+        [FromForm] IFormFile file,
+        [FromForm] int userId,
+        [FromForm] string duplicateStrategy = "skip",
+        [FromForm] string? timezone = null,
+        [FromForm] bool dryRun = true)
+    {
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest("No file uploaded.");
+        }
+
+        if (userId <= 0)
+        {
+            return BadRequest("Invalid user ID.");
+        }
+
+        try
+        {
+            await using var stream = file.OpenReadStream();
+            var result = await _importService.BulkImportAsync(new BulkAssetSnapshotImportRequest
+            {
+                FileStream = stream,
+                FileName = file.FileName,
                 UserId = userId,
                 DuplicateStrategy = duplicateStrategy,
                 Timezone = timezone,

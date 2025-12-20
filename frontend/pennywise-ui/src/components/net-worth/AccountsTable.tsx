@@ -52,6 +52,7 @@ interface AccountsTableProps {
   onDeleteAccount: (asset: Asset) => void;
   onExportAccount?: (asset: Asset, format: 'csv' | 'xlsx') => void;
   onExportAllAccounts?: (format: 'csv' | 'xlsx') => void;
+  onBulkImportBalances?: () => void;
 }
 
 export function AccountsTable({
@@ -67,6 +68,7 @@ export function AccountsTable({
   onDeleteAccount,
   onExportAccount,
   onExportAllAccounts,
+  onBulkImportBalances,
 }: AccountsTableProps) {
   return (
     <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
@@ -79,6 +81,16 @@ export function AccountsTable({
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
+            {onBulkImportBalances && (
+              <Button
+                variant="outline"
+                onClick={onBulkImportBalances}
+                className="border-border/60 bg-card/80 text-foreground hover:bg-card/70"
+              >
+                <Upload className="mr-2 h-4 w-4" />
+                Bulk Import
+              </Button>
+            )}
             {onExportAllAccounts && assets.length > 0 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

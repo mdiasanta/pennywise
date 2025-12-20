@@ -77,7 +77,7 @@ public class AssetSnapshotImportService : IAssetSnapshotImportService
 
         var seenDates = new HashSet<DateTime>(existingByDate.Keys);
         var rows = new List<AssetSnapshotImportRowResultDto>();
-        
+
         // Cache the strategy check outside the loop for better performance
         var shouldUpdate = string.Equals(normalizedStrategy, "update", StringComparison.OrdinalIgnoreCase);
 
@@ -401,6 +401,328 @@ public class AssetSnapshotImportService : IAssetSnapshotImportService
 
         var notes = row.Values.TryGetValue("Notes", out var noteVal) ? noteVal : null;
         return (dateUtc, decimal.Round(balance, 2), string.IsNullOrWhiteSpace(notes) ? null : notes.Trim(), null);
+    }
+
+    private static (DateTime DateUtc, decimal Balance, string? Notes, string? Account, string? Error) ValidateBulkRow(
+        ParsedRow row,
+        TimeZoneInfo? timeZone)
+    {
+        var missingFields = new List<string>();
+
+        if (!row.Values.TryGetValue("Date", out var dateValue) || string.IsNullOrWhiteSpace(dateValue))
+            missingFields.Add("Date");
+        if (!row.Values.TryGetValue("Balance", out var balanceValue) || string.IsNullOrWhiteSpace(balanceValue))
+            missingFields.Add("Balance");
+        if (!row.Values.TryGetValue("Account", out var accountValue) || string.IsNullOrWhiteSpace(accountValue))
+            missingFields.Add("Account");
+
+        if (missingFields.Count > 0)
+        {
+            return (default, default, null, null, $"Missing required fields: {string.Join(", ", missingFields)}");
+        }
+
+        if (!DateTime.TryParse(dateValue, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate))
+        {
+            return (default, default, null, null, "Invalid date format. Use yyyy-MM-dd.");
+        }
+
+        var normalizedDate = DateTime.SpecifyKind(parsedDate, DateTimeKind.Unspecified);
+        var dateUtc = timeZone != null
+            ? TimeZoneInfo.ConvertTimeToUtc(normalizedDate, timeZone)
+            : DateTime.SpecifyKind(parsedDate, DateTimeKind.Utc);
+
+        if (!decimal.TryParse(balanceValue, NumberStyles.Number, CultureInfo.InvariantCulture, out var balance))
+        {
+            return (default, default, null, null, "Balance must be a valid number.");
+        }
+
+        var notes = row.Values.TryGetValue("Notes", out var noteVal) ? noteVal : null;
+        return (dateUtc, decimal.Round(balance, 2), string.IsNullOrWhiteSpace(notes) ? null : notes.Trim(), accountValue!.Trim(), null);
+    }
+
+    public async Task<(byte[] Content, string ContentType, string FileName)> GenerateBulkTemplateAsync(string format, int userId)
+    {
+        var normalized = NormalizeFormat(format);
+        var assets = await _assetRepository.GetAllByUserAsync(userId);
+
+        if (normalized == "csv")
+        {
+            var csv = BuildBulkCsvTemplate(assets);
+            return (Encoding.UTF8.GetBytes(csv), "text/csv", "all-accounts-balances-template.csv");
+        }
+
+        var xlsxBytes = BuildBulkExcelTemplate(assets);
+        return (xlsxBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "all-accounts-balances-template.xlsx");
+    }
+
+    private static string BuildBulkCsvTemplate(IEnumerable<Asset> assets)
+    {
+        var builder = new StringBuilder();
+        builder.AppendLine("Account,Date,Balance,Notes");
+
+        var assetList = assets.ToList();
+        if (assetList.Count == 0)
+        {
+            builder.AppendLine($"\"My Checking Account\",{DateTime.UtcNow:yyyy-MM-dd},1000.00,\"Example balance\"");
+            builder.AppendLine($"\"My Savings Account\",{DateTime.UtcNow:yyyy-MM-dd},5000.00,\"Example balance\"");
+        }
+        else
+        {
+            foreach (var asset in assetList.Take(3))
+            {
+                builder.AppendLine($"\"{asset.Name}\",{DateTime.UtcNow:yyyy-MM-dd},1000.00,\"Example balance for {asset.Name}\"");
+            }
+        }
+
+        return builder.ToString();
+    }
+
+    private static byte[] BuildBulkExcelTemplate(IEnumerable<Asset> assets)
+    {
+        using var workbook = new XLWorkbook();
+        var sheet = workbook.Worksheets.Add("Import");
+
+        var headers = new[] { "Account", "Date", "Balance", "Notes" };
+
+        for (var i = 0; i < headers.Length; i++)
+        {
+            sheet.Cell(1, i + 1).Value = headers[i];
+        }
+
+        var assetList = assets.ToList();
+        var row = 2;
+
+        if (assetList.Count == 0)
+        {
+            sheet.Cell(row, 1).Value = "My Checking Account";
+            sheet.Cell(row, 2).Value = DateTime.UtcNow.Date;
+            sheet.Cell(row, 3).Value = 1000.00;
+            sheet.Cell(row, 4).Value = "Example balance";
+            row++;
+            sheet.Cell(row, 1).Value = "My Savings Account";
+            sheet.Cell(row, 2).Value = DateTime.UtcNow.Date;
+            sheet.Cell(row, 3).Value = 5000.00;
+            sheet.Cell(row, 4).Value = "Example balance";
+        }
+        else
+        {
+            foreach (var asset in assetList.Take(5))
+            {
+                sheet.Cell(row, 1).Value = asset.Name;
+                sheet.Cell(row, 2).Value = DateTime.UtcNow.Date;
+                sheet.Cell(row, 3).Value = 1000.00;
+                sheet.Cell(row, 4).Value = $"Example balance for {asset.Name}";
+                row++;
+            }
+        }
+
+        // Add accounts reference sheet
+        var accountsSheet = workbook.Worksheets.Add("Accounts");
+        accountsSheet.Cell(1, 1).Value = "Your Existing Accounts";
+        accountsSheet.Cell(1, 2).Value = "Type";
+        accountsSheet.Cell(1, 3).Value = "Category";
+
+        var accountRow = 2;
+        foreach (var asset in assetList)
+        {
+            accountsSheet.Cell(accountRow, 1).Value = asset.Name;
+            accountsSheet.Cell(accountRow, 2).Value = asset.AssetCategory?.IsLiability == true ? "Liability" : "Asset";
+            accountsSheet.Cell(accountRow, 3).Value = asset.AssetCategory?.Name ?? "Unknown";
+            accountRow++;
+        }
+
+        if (assetList.Count == 0)
+        {
+            accountsSheet.Cell(2, 1).Value = "(No accounts yet - create accounts first or they will be auto-created)";
+        }
+
+        var instructions = workbook.Worksheets.Add("Instructions");
+        instructions.Cell(1, 1).Value = "Bulk Balance Import Template";
+        instructions.Cell(2, 1).Value = "Required columns: Account (exact name), Date (yyyy-MM-dd), Balance (number).";
+        instructions.Cell(3, 1).Value = "Optional columns: Notes.";
+        instructions.Cell(4, 1).Value = "Account names must match existing accounts exactly (case-insensitive).";
+        instructions.Cell(5, 1).Value = "See the 'Accounts' sheet for a list of your existing accounts.";
+        instructions.Cell(6, 1).Value = "Balance can be positive or negative (for liabilities).";
+        instructions.Cell(7, 1).Value = "If a balance already exists for an account+date, it will be updated or skipped based on strategy.";
+
+        sheet.Columns().AdjustToContents();
+        accountsSheet.Columns().AdjustToContents();
+
+        using var ms = new MemoryStream();
+        workbook.SaveAs(ms);
+        return ms.ToArray();
+    }
+
+    public async Task<AssetSnapshotImportResponseDto> BulkImportAsync(BulkAssetSnapshotImportRequest request)
+    {
+        if (request.FileStream == null)
+            throw new InvalidOperationException("No file content received.");
+
+        var normalizedStrategy = NormalizeStrategy(request.DuplicateStrategy);
+        var timeZone = ResolveTimeZone(request.Timezone);
+
+        await using var buffer = new MemoryStream();
+        await request.FileStream.CopyToAsync(buffer);
+        if (buffer.Length == 0)
+            throw new InvalidOperationException("No file content received.");
+
+        if (buffer.Length > MaxFileBytes)
+            throw new InvalidOperationException("File is too large. Please upload a file smaller than 10 MB.");
+
+        buffer.Position = 0;
+
+        var extension = Path.GetExtension(request.FileName)?.Trim('.').ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(extension) || !SupportedFormats.Contains(extension))
+            throw new InvalidOperationException("Unsupported file type. Please upload a CSV or XLSX file.");
+
+        var parsedRows = extension == "csv"
+            ? ParseCsv(buffer)
+            : ParseExcel(buffer);
+
+        // Get all assets for this user
+        var allAssets = await _assetRepository.GetAllByUserAsync(request.UserId);
+        var assetsByName = allAssets.ToDictionary(a => a.Name.ToLowerInvariant(), a => a);
+
+        // Get all existing snapshots for this user's assets
+        var allSnapshots = new Dictionary<int, Dictionary<DateTime, AssetSnapshot>>();
+        foreach (var asset in allAssets)
+        {
+            var snapshots = await _snapshotRepository.GetByAssetAsync(asset.Id);
+            allSnapshots[asset.Id] = snapshots.ToDictionary(s => s.Date.Date, s => s);
+        }
+
+        var rows = new List<AssetSnapshotImportRowResultDto>();
+        var shouldUpdate = string.Equals(normalizedStrategy, "update", StringComparison.OrdinalIgnoreCase);
+
+        int inserted = 0, updated = 0, skipped = 0, total = 0;
+
+        foreach (var parsedRow in parsedRows)
+        {
+            if (rows.Count >= MaxRows)
+            {
+                rows.Add(new AssetSnapshotImportRowResultDto
+                {
+                    RowNumber = parsedRow.RowNumber,
+                    Status = "error",
+                    Message = $"Row limit exceeded. Maximum allowed rows is {MaxRows}."
+                });
+                total++;
+                break;
+            }
+
+            var validation = ValidateBulkRow(parsedRow, timeZone);
+            if (validation.Error != null)
+            {
+                rows.Add(new AssetSnapshotImportRowResultDto
+                {
+                    RowNumber = parsedRow.RowNumber,
+                    Status = "error",
+                    Message = validation.Error
+                });
+                total++;
+                continue;
+            }
+
+            // Find the asset by name (case-insensitive)
+            var accountNameLower = validation.Account!.ToLowerInvariant();
+            if (!assetsByName.TryGetValue(accountNameLower, out var asset))
+            {
+                rows.Add(new AssetSnapshotImportRowResultDto
+                {
+                    RowNumber = parsedRow.RowNumber,
+                    Status = "error",
+                    Message = $"Account '{validation.Account}' not found. Please create the account first or check the spelling."
+                });
+                total++;
+                continue;
+            }
+
+            var dateKey = validation.DateUtc.Date;
+
+            // Check for existing snapshot
+            if (!allSnapshots.TryGetValue(asset.Id, out var assetSnapshots))
+            {
+                assetSnapshots = new Dictionary<DateTime, AssetSnapshot>();
+                allSnapshots[asset.Id] = assetSnapshots;
+            }
+
+            if (assetSnapshots.ContainsKey(dateKey))
+            {
+                if (shouldUpdate && assetSnapshots.TryGetValue(dateKey, out var existingSnapshot))
+                {
+                    updated++;
+                    rows.Add(new AssetSnapshotImportRowResultDto
+                    {
+                        RowNumber = parsedRow.RowNumber,
+                        Status = "updated",
+                        Message = request.DryRun
+                            ? $"Would update balance for {asset.Name}"
+                            : $"Updated balance for {asset.Name}"
+                    });
+
+                    if (!request.DryRun)
+                    {
+                        existingSnapshot.Balance = validation.Balance;
+                        existingSnapshot.Notes = validation.Notes;
+                        await _snapshotRepository.UpdateAsync(existingSnapshot);
+                    }
+                }
+                else
+                {
+                    skipped++;
+                    rows.Add(new AssetSnapshotImportRowResultDto
+                    {
+                        RowNumber = parsedRow.RowNumber,
+                        Status = "skipped",
+                        Message = $"Duplicate date for {asset.Name}. Skipped based on strategy."
+                    });
+                }
+
+                total++;
+                continue;
+            }
+
+            inserted++;
+            rows.Add(new AssetSnapshotImportRowResultDto
+            {
+                RowNumber = parsedRow.RowNumber,
+                Status = request.DryRun ? "valid" : "inserted",
+                Message = request.DryRun ? $"Valid row for {asset.Name}" : $"Inserted for {asset.Name}"
+            });
+
+            if (!request.DryRun)
+            {
+                var snapshot = new AssetSnapshot
+                {
+                    AssetId = asset.Id,
+                    Balance = validation.Balance,
+                    Date = validation.DateUtc,
+                    Notes = validation.Notes
+                };
+                var created = await _snapshotRepository.CreateAsync(snapshot);
+                assetSnapshots[dateKey] = created;
+            }
+            else
+            {
+                // Track for duplicate detection in dry run
+                assetSnapshots[dateKey] = new AssetSnapshot { Date = validation.DateUtc };
+            }
+
+            total++;
+        }
+
+        return new AssetSnapshotImportResponseDto
+        {
+            FileName = request.FileName,
+            DryRun = request.DryRun,
+            DuplicateStrategy = normalizedStrategy,
+            Timezone = timeZone?.Id,
+            TotalRows = total,
+            Inserted = inserted,
+            Updated = updated,
+            Skipped = skipped,
+            Rows = rows
+        };
     }
 
     private sealed record ParsedRow(int RowNumber, Dictionary<string, string> Values);

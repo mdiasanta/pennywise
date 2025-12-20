@@ -1,6 +1,7 @@
 export { AccountsTable } from './AccountsTable';
 export { AssetFormDialog, type AssetFormData } from './AssetFormDialog';
 export { BalanceHistoryDialog, type EditingSnapshot } from './BalanceHistoryDialog';
+export { BulkImportBalancesDialog } from './BulkImportBalancesDialog';
 export {
   BulkUpdateBalanceDialog,
   type BulkBalanceEntry,
