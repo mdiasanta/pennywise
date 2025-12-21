@@ -150,7 +150,7 @@ export default function ExpensesPage() {
         setLoading(false);
       }
     },
-    [authLoading, isAuthenticated, user, buildFilterPayload, filters]
+    [authLoading, isAuthenticated, user, buildFilterPayload, filters, toast]
   );
 
   useEffect(() => {
@@ -235,20 +235,22 @@ export default function ExpensesPage() {
     } catch (error) {
       let message = 'Could not export expenses. Please try again.';
       // Try to extract more specific error information
-      if (error && typeof error === 'object') {
-        // Axios-style error
-        if ('response' in error && error.response) {
-          // Try to get message from response data
-          const data = (error as any).response.data;
+      if (error instanceof Error) {
+        message = error.message;
+      } else if (error && typeof error === 'object') {
+        // Axios-style error with response
+        const err = error as { response?: { data?: unknown; status?: number }; message?: string };
+        if (err.response) {
+          const data = err.response.data;
           if (data && typeof data === 'object' && 'message' in data) {
-            message = data.message;
+            message = String((data as { message: unknown }).message);
           } else if (typeof data === 'string') {
             message = data;
-          } else if ((error as any).response.status) {
-            message = `Server error (${(error as any).response.status}) during export.`;
+          } else if (err.response.status) {
+            message = `Server error (${err.response.status}) during export.`;
           }
-        } else if ('message' in error && typeof (error as any).message === 'string') {
-          message = (error as any).message;
+        } else if (err.message) {
+          message = err.message;
         }
       }
       toast({

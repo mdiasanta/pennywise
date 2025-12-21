@@ -69,7 +69,6 @@ export function LiabilityPayoffEstimator({
   estimate,
   loading,
   onSettingsChange,
-  currentSettings: _currentSettings,
 }: LiabilityPayoffEstimatorProps) {
   const [localSettings, setLocalSettings] = useState<
     Record<number, { monthlyPayment: string; interestRate: string }>

@@ -109,8 +109,9 @@ export function NetWorthProjectionComponent({
   const [hypotheticalIncomeEnabled, setHypotheticalIncomeEnabled] = useState(false);
   const [hypotheticalMonthlyIncome, setHypotheticalMonthlyIncome] = useState('');
 
-  // Sync goalInput when currentGoal changes
+  // Sync goalInput when currentGoal prop changes from parent
   useEffect(() => {
+    /* eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: syncing prop to local state for controlled input */
     setGoalInput(currentGoal?.toString() || '');
   }, [currentGoal]);
 
