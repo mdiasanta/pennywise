@@ -161,6 +161,45 @@ export interface TransactionSummary {
   categoryColor?: string;
 }
 
+// Year-over-Year Comparison Types
+export interface YearOverYearComparison {
+  comparisonMode: string;
+  currentPeriod: YearOverYearPeriod;
+  previousPeriod: YearOverYearPeriod;
+  totalDifference: number;
+  percentageChange: number;
+  categoryComparisons: YearOverYearCategoryComparison[];
+  monthlyData: YearOverYearMonthlyData[];
+}
+
+export interface YearOverYearPeriod {
+  year: number;
+  month?: number;
+  label: string;
+  total: number;
+  transactionCount: number;
+  hasData: boolean;
+}
+
+export interface YearOverYearCategoryComparison {
+  categoryId: number;
+  categoryName: string;
+  categoryColor?: string;
+  currentAmount: number;
+  previousAmount: number;
+  difference: number;
+  percentageChange: number;
+  isNewCategory: boolean;
+}
+
+export interface YearOverYearMonthlyData {
+  month: number;
+  monthName: string;
+  currentYearAmount: number;
+  previousYearAmount: number;
+  difference: number;
+}
+
 // Helper for handling API responses
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
@@ -476,6 +515,34 @@ export const summaryApi = {
       credentials: 'include',
     });
     return handleResponse<DashboardSummary>(response);
+  },
+
+  async getYearOverYearComparison(
+    userId: number,
+    options?: {
+      mode?: 'month' | 'year';
+      currentYear?: number;
+      currentMonth?: number;
+      previousYear?: number;
+      previousMonth?: number;
+    }
+  ): Promise<YearOverYearComparison> {
+    const params = new URLSearchParams();
+    if (options?.mode) params.set('mode', options.mode);
+    if (options?.currentYear) params.set('currentYear', options.currentYear.toString());
+    if (options?.currentMonth) params.set('currentMonth', options.currentMonth.toString());
+    if (options?.previousYear) params.set('previousYear', options.previousYear.toString());
+    if (options?.previousMonth) params.set('previousMonth', options.previousMonth.toString());
+
+    const query = params.toString();
+    const url = query
+      ? `${API_BASE_URL}/summary/user/${userId}/year-over-year?${query}`
+      : `${API_BASE_URL}/summary/user/${userId}/year-over-year`;
+
+    const response = await fetch(url, {
+      credentials: 'include',
+    });
+    return handleResponse<YearOverYearComparison>(response);
   },
 };
 

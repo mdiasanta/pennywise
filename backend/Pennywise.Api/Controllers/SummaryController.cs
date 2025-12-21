@@ -23,4 +23,26 @@ public class SummaryController : ControllerBase
         var summary = await _summaryService.GetDashboardSummaryAsync(userId);
         return Ok(summary);
     }
+
+    [HttpGet("user/{userId}/year-over-year")]
+    public async Task<ActionResult<YearOverYearComparisonDto>> GetYearOverYearComparison(
+        int userId,
+        [FromQuery] string mode = "month",
+        [FromQuery] int? currentYear = null,
+        [FromQuery] int? currentMonth = null,
+        [FromQuery] int? previousYear = null,
+        [FromQuery] int? previousMonth = null)
+    {
+        var request = new YearOverYearRequestDto
+        {
+            Mode = mode,
+            CurrentYear = currentYear ?? DateTime.UtcNow.Year,
+            CurrentMonth = currentMonth,
+            PreviousYear = previousYear,
+            PreviousMonth = previousMonth
+        };
+
+        var comparison = await _summaryService.GetYearOverYearComparisonAsync(userId, request);
+        return Ok(comparison);
+    }
 }

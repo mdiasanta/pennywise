@@ -32,6 +32,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { YearOverYearComparison } from '@/components/YearOverYearComparison';
 import { useAuth } from '@/hooks/use-auth';
 import { useTags } from '@/hooks/use-tags';
 import type { Expense, NetWorthComparison, NetWorthSummary } from '@/lib/api';
@@ -855,6 +856,14 @@ export default function DashboardPage() {
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {/* Year-over-Year Comparison */}
+        {user && (
+          <YearOverYearComparison
+            userId={user.id}
+            availableYears={getAvailableYearsFromDate(earliestDate)}
+          />
         )}
       </div>
     </AppLayout>
