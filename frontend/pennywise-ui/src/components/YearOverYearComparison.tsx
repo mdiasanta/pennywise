@@ -35,6 +35,11 @@ const COLORS = {
   decrease: '#22c55e',
 };
 
+// Display constants
+const CATEGORY_NAME_MAX_LENGTH = 12;
+const MAX_CHART_CATEGORIES = 8;
+const MAX_CATEGORY_CHANGES = 6;
+
 export function YearOverYearComparison({ userId, availableYears }: YearOverYearComparisonProps) {
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
@@ -106,8 +111,11 @@ export function YearOverYearComparison({ userId, availableYears }: YearOverYearC
     comparison;
 
   // Prepare chart data for category comparison
-  const categoryChartData = categoryComparisons.slice(0, 8).map((cat) => ({
-    name: cat.categoryName.length > 12 ? cat.categoryName.slice(0, 12) + '...' : cat.categoryName,
+  const categoryChartData = categoryComparisons.slice(0, MAX_CHART_CATEGORIES).map((cat) => ({
+    name:
+      cat.categoryName.length > CATEGORY_NAME_MAX_LENGTH
+        ? cat.categoryName.slice(0, CATEGORY_NAME_MAX_LENGTH) + '...'
+        : cat.categoryName,
     current: cat.currentAmount,
     previous: cat.previousAmount,
     fill: cat.categoryColor || COLORS.current,
@@ -323,7 +331,7 @@ export function YearOverYearComparison({ userId, availableYears }: YearOverYearC
                 <div className="space-y-2">
                   <h4 className="text-sm font-medium text-muted-foreground">Biggest Changes</h4>
                   <div className="grid gap-2 md:grid-cols-2">
-                    {categoryComparisons.slice(0, 6).map((cat) => (
+                    {categoryComparisons.slice(0, MAX_CATEGORY_CHANGES).map((cat) => (
                       <div
                         key={cat.categoryId}
                         className="flex items-center justify-between rounded-lg border border-border/60 bg-card/30 p-3"

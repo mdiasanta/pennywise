@@ -116,12 +116,13 @@ public class SummaryService : ISummaryService
         var previousExpenses = allExpenses.Where(e => e.Date >= previousStart && e.Date <= previousEnd).ToList();
 
         // Build period DTOs
+        var enUS = new CultureInfo("en-US");
         var currentPeriod = new YearOverYearPeriodDto
         {
             Year = currentYear,
             Month = isMonthMode ? currentMonth : null,
             Label = isMonthMode
-                ? $"{CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(currentMonth)} {currentYear}"
+                ? $"{enUS.DateTimeFormat.GetMonthName(currentMonth)} {currentYear}"
                 : currentYear.ToString(),
             Total = currentExpenses.Sum(e => e.Amount),
             TransactionCount = currentExpenses.Count,
@@ -133,7 +134,7 @@ public class SummaryService : ISummaryService
             Year = previousYear,
             Month = isMonthMode ? previousMonth : null,
             Label = isMonthMode
-                ? $"{CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(previousMonth)} {previousYear}"
+                ? $"{enUS.DateTimeFormat.GetMonthName(previousMonth)} {previousYear}"
                 : previousYear.ToString(),
             Total = previousExpenses.Sum(e => e.Amount),
             TransactionCount = previousExpenses.Count,
@@ -205,7 +206,7 @@ public class SummaryService : ISummaryService
                 monthlyData.Add(new YearOverYearMonthlyDataDto
                 {
                     Month = month,
-                    MonthName = CultureInfo.CurrentCulture.DateTimeFormat.GetAbbreviatedMonthName(month),
+                    MonthName = enUS.DateTimeFormat.GetAbbreviatedMonthName(month),
                     CurrentYearAmount = currentMonthAmount,
                     PreviousYearAmount = previousMonthAmount,
                     Difference = currentMonthAmount - previousMonthAmount
