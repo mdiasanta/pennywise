@@ -132,46 +132,44 @@ export function YearOverYearComparison({ userId, availableYears }: YearOverYearC
 
   return (
     <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
-      <CardHeader>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
+      <CardHeader className="space-y-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0 flex-1">
             <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Year-over-Year Comparison
+              <Calendar className="h-5 w-5 shrink-0" />
+              <span className="truncate">Year-over-Year Comparison</span>
             </CardTitle>
             <CardDescription className="text-muted-foreground">
               Compare spending across the same periods in different years
             </CardDescription>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Mode Toggle */}
-            <Tabs
-              value={mode}
-              onValueChange={(v) => setMode(v as 'month' | 'year')}
-              className="w-auto"
-            >
-              <TabsList className="h-9">
-                <TabsTrigger value="month" className="text-xs">
-                  Month
-                </TabsTrigger>
-                <TabsTrigger value="year" className="text-xs">
-                  Full Year
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
+          {/* Mode Toggle */}
+          <Tabs
+            value={mode}
+            onValueChange={(v) => setMode(v as 'month' | 'year')}
+            className="w-full sm:w-auto"
+          >
+            <TabsList className="h-9 w-full sm:w-auto">
+              <TabsTrigger value="month" className="flex-1 text-xs sm:flex-none">
+                Month
+              </TabsTrigger>
+              <TabsTrigger value="year" className="flex-1 text-xs sm:flex-none">
+                Full Year
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
 
         {/* Period Selectors */}
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Comparing:</span>
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+          <span className="text-sm text-muted-foreground">Comparing:</span>
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-2">
             {mode === 'month' && (
               <Select
                 value={selectedCurrentMonth.toString()}
                 onValueChange={(v) => setSelectedCurrentMonth(parseInt(v))}
               >
-                <SelectTrigger className="w-[120px] border-border/60 bg-card/70">
+                <SelectTrigger className="w-full border-border/60 bg-card/70 sm:w-[120px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="border-border/60 bg-card">
@@ -187,7 +185,7 @@ export function YearOverYearComparison({ userId, availableYears }: YearOverYearC
               value={selectedCurrentYear.toString()}
               onValueChange={(v) => setSelectedCurrentYear(parseInt(v))}
             >
-              <SelectTrigger className="w-[100px] border-border/60 bg-card/70">
+              <SelectTrigger className="w-full border-border/60 bg-card/70 sm:w-[100px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="border-border/60 bg-card">
@@ -198,12 +196,15 @@ export function YearOverYearComparison({ userId, availableYears }: YearOverYearC
                 ))}
               </SelectContent>
             </Select>
-            <span className="text-sm text-muted-foreground">vs</span>
+          </div>
+          <span className="hidden text-sm text-muted-foreground sm:inline">vs</span>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground sm:hidden">vs</span>
             <Select
               value={selectedPreviousYear.toString()}
               onValueChange={(v) => setSelectedPreviousYear(parseInt(v))}
             >
-              <SelectTrigger className="w-[100px] border-border/60 bg-card/70">
+              <SelectTrigger className="w-full border-border/60 bg-card/70 sm:w-[100px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="border-border/60 bg-card">
