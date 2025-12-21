@@ -45,4 +45,30 @@ public class SummaryController : ControllerBase
         var comparison = await _summaryService.GetYearOverYearComparisonAsync(userId, request);
         return Ok(comparison);
     }
+
+    [HttpGet("user/{userId}/average-expenses")]
+    public async Task<ActionResult<AverageExpensesResponseDto>> GetAverageExpenses(
+        int userId,
+        [FromQuery] string viewMode = "month",
+        [FromQuery] string? years = null)
+    {
+        var yearsList = new List<int>();
+        if (!string.IsNullOrWhiteSpace(years))
+        {
+            yearsList = years.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(y => int.TryParse(y.Trim(), out var parsed) ? parsed : (int?)null)
+                .Where(y => y.HasValue)
+                .Select(y => y!.Value)
+                .ToList();
+        }
+
+        var request = new AverageExpensesRequestDto
+        {
+            ViewMode = viewMode,
+            Years = yearsList
+        };
+
+        var averages = await _summaryService.GetAverageExpensesAsync(userId, request);
+        return Ok(averages);
+    }
 }

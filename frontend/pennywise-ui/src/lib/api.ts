@@ -200,6 +200,53 @@ export interface YearOverYearMonthlyData {
   difference: number;
 }
 
+// Average Expenses Types
+export interface AverageExpenses {
+  viewMode: string;
+  selectedYears: number[];
+  totalAverage: number;
+  monthlyAverages: AverageExpensesByMonth[];
+  categoryAverages: AverageExpensesByCategory[];
+  yearlyData: YearlyExpenseData[];
+}
+
+export interface AverageExpensesByMonth {
+  month: number;
+  monthName: string;
+  average: number;
+  min: number;
+  max: number;
+}
+
+export interface AverageExpensesByCategory {
+  categoryId: number;
+  categoryName: string;
+  categoryColor?: string;
+  average: number;
+  min: number;
+  max: number;
+}
+
+export interface YearlyExpenseData {
+  year: number;
+  total: number;
+  monthlyData: MonthlyExpenseData[];
+  categoryData: CategoryExpenseData[];
+}
+
+export interface MonthlyExpenseData {
+  month: number;
+  monthName: string;
+  amount: number;
+}
+
+export interface CategoryExpenseData {
+  categoryId: number;
+  categoryName: string;
+  categoryColor?: string;
+  amount: number;
+}
+
 // Helper for handling API responses
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
@@ -543,6 +590,30 @@ export const summaryApi = {
       credentials: 'include',
     });
     return handleResponse<YearOverYearComparison>(response);
+  },
+
+  async getAverageExpenses(
+    userId: number,
+    options?: {
+      viewMode?: 'month' | 'category';
+      years?: number[];
+    }
+  ): Promise<AverageExpenses> {
+    const params = new URLSearchParams();
+    if (options?.viewMode) params.set('viewMode', options.viewMode);
+    if (options?.years && options.years.length > 0) {
+      params.set('years', options.years.join(','));
+    }
+
+    const query = params.toString();
+    const url = query
+      ? `${API_BASE_URL}/summary/user/${userId}/average-expenses?${query}`
+      : `${API_BASE_URL}/summary/user/${userId}/average-expenses`;
+
+    const response = await fetch(url, {
+      credentials: 'include',
+    });
+    return handleResponse<AverageExpenses>(response);
   },
 };
 
