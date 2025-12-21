@@ -5,16 +5,15 @@ import { useAuth } from '@/hooks/use-auth';
 import {
   ArrowRight,
   BarChart3,
-  CheckCircle2,
-  CircleDollarSign,
-  Clock3,
-  LineChart,
+  Download,
+  FolderKanban,
   PieChart,
-  Shield,
+  Plus,
+  RefreshCw,
   Sparkles,
-  TrendingDown,
+  Tag,
+  TrendingUp,
   Wallet,
-  Zap,
 } from 'lucide-react';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -37,58 +36,58 @@ export default function HomePage() {
 
   const features = [
     {
-      icon: TrendingDown,
-      title: 'Live spend radar',
-      copy: 'Spot burn rates early with trending views and weekly digest summaries.',
-      badge: 'Control',
+      icon: Plus,
+      title: 'Quick expense entry',
+      copy: 'Add expenses in seconds with smart category suggestions and date pickers.',
+      badge: 'Tracking',
     },
     {
-      icon: BarChart3,
-      title: 'Clarity dashboards',
-      copy: 'Purpose-built reports for cash flow, recurring spend, and category drift.',
-      badge: 'Visibility',
+      icon: FolderKanban,
+      title: 'Custom categories',
+      copy: 'Create personalized categories with colors to organize spending your way.',
+      badge: 'Organization',
     },
     {
-      icon: PieChart,
-      title: 'Smart categories',
-      copy: 'Adaptive rules keep new expenses organized without manual cleanup.',
+      icon: Tag,
+      title: 'Flexible tagging',
+      copy: 'Add multiple tags per expense for cross-cutting views like trips or projects.',
+      badge: 'Flexibility',
+    },
+    {
+      icon: TrendingUp,
+      title: 'Net worth tracking',
+      copy: 'Monitor assets and liabilities over time with balance history and projections.',
+      badge: 'Wealth',
+    },
+    {
+      icon: RefreshCw,
+      title: 'Recurring transactions',
+      copy: 'Set up recurring income and expenses to plan ahead and stay on track.',
       badge: 'Automation',
     },
     {
-      icon: Zap,
-      title: 'Capture in seconds',
-      copy: 'Forward a receipt, tap add, or paste a link—Pennywise normalizes it.',
-      badge: 'Speed',
-    },
-    {
-      icon: Shield,
-      title: 'Secure vault',
-      copy: 'Encrypted by default with audit-friendly exports for your records.',
-      badge: 'Trust',
-    },
-    {
-      icon: Wallet,
-      title: 'Envelope guardrails',
-      copy: 'Create envelopes for trips or teams and keep spend aligned to intent.',
-      badge: 'Discipline',
+      icon: Download,
+      title: 'Import & export',
+      copy: 'Import transactions from CSV or export your data to Excel and CSV formats.',
+      badge: 'Portability',
     },
   ];
 
   const workflow = [
     {
-      icon: Clock3,
-      title: 'Capture once',
-      copy: 'Drop a receipt, quick-add on mobile, or import from your card feed.',
+      icon: Plus,
+      title: 'Add expenses',
+      copy: 'Quickly log transactions with category, amount, date, and optional tags.',
     },
     {
-      icon: LineChart,
-      title: 'Auto-classify',
-      copy: 'Rules apply tags, merchants, and budgets so every dollar is contextual.',
+      icon: PieChart,
+      title: 'View insights',
+      copy: 'See spending breakdowns by category with interactive charts on your dashboard.',
     },
     {
-      icon: CheckCircle2,
-      title: 'Decide faster',
-      copy: "Answers for 'Can we afford it?' or 'Where did it go?' in two clicks.",
+      icon: BarChart3,
+      title: 'Track progress',
+      copy: 'Compare year-over-year trends and monitor your net worth growth over time.',
     },
   ];
 
@@ -154,29 +153,29 @@ export default function HomePage() {
             <div className="grid gap-4 pt-8 sm:grid-cols-3">
               <div className="rounded-2xl border border-border/60 bg-card/80 px-4 py-4 shadow-sm shadow-border/40">
                 <div className="flex h-10 w-10 mx-auto items-center justify-center rounded-xl bg-brand text-brand-foreground mb-3">
-                  <TrendingDown className="h-5 w-5" />
+                  <Plus className="h-5 w-5" />
                 </div>
-                <p className="text-sm font-semibold text-foreground">Track spending in real-time</p>
+                <p className="text-sm font-semibold text-foreground">Track every expense</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  See where every dollar goes with live dashboards and alerts
+                  Log transactions with categories, tags, and notes
                 </p>
               </div>
               <div className="rounded-2xl border border-border/60 bg-card/80 px-4 py-4 shadow-sm shadow-border/40">
                 <div className="flex h-10 w-10 mx-auto items-center justify-center rounded-xl bg-info text-info-foreground mb-3">
                   <PieChart className="h-5 w-5" />
                 </div>
-                <p className="text-sm font-semibold text-foreground">Smart categorization</p>
+                <p className="text-sm font-semibold text-foreground">Visual dashboards</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Auto-organize expenses into meaningful categories
+                  See spending breakdowns with interactive charts
                 </p>
               </div>
               <div className="rounded-2xl border border-border/60 bg-card/80 px-4 py-4 shadow-sm shadow-border/40">
                 <div className="flex h-10 w-10 mx-auto items-center justify-center rounded-xl bg-success text-success-foreground mb-3">
-                  <BarChart3 className="h-5 w-5" />
+                  <TrendingUp className="h-5 w-5" />
                 </div>
-                <p className="text-sm font-semibold text-foreground">Insightful reports</p>
+                <p className="text-sm font-semibold text-foreground">Net worth tracking</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Make better financial decisions with clear visualizations
+                  Monitor assets and liabilities over time
                 </p>
               </div>
             </div>
@@ -230,19 +229,19 @@ export default function HomePage() {
               <div>
                 <p className="text-sm uppercase tracking-[0.2em] text-foreground/50">Flow</p>
                 <h2 className="text-2xl sm:text-3xl font-semibold text-foreground md:text-4xl">
-                  From capture to clarity
+                  Simple three-step workflow
                 </h2>
                 <p className="max-w-2xl text-sm sm:text-base text-muted-foreground">
-                  The Pennywise loop is built to keep you proactive—no dusty spreadsheets or
-                  surprise bills.
+                  Pennywise keeps things simple—add expenses, view insights, and track your
+                  financial progress over time.
                 </p>
               </div>
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-2xl bg-brand text-brand-foreground">
-                  <CircleDollarSign className="h-5 w-5 sm:h-6 sm:w-6" />
+                  <Wallet className="h-5 w-5 sm:h-6 sm:w-6" />
                 </div>
                 <p className="text-xs sm:text-sm text-muted-foreground">
-                  Built for teams and households that want answers on demand.
+                  Perfect for individuals and households tracking personal finances.
                 </p>
               </div>
             </div>
@@ -277,11 +276,11 @@ export default function HomePage() {
                     Get started
                   </p>
                   <h3 className="text-2xl sm:text-3xl font-semibold md:text-4xl">
-                    Bring Pennywise into your week and stay two steps ahead.
+                    Start tracking your finances today.
                   </h3>
                   <p className="text-base sm:text-lg text-muted-foreground">
-                    Sign in to access your dashboard, set up envelopes for the month, and watch
-                    every transaction land exactly where it belongs.
+                    Sign in to access your dashboard, add your first expenses, and see exactly where
+                    your money goes with clear visual breakdowns.
                   </p>
                   <div className="flex flex-col gap-3 sm:flex-row">
                     <GoogleSignInButton />
@@ -290,33 +289,39 @@ export default function HomePage() {
                 <div className="rounded-3xl border border-border/60 bg-card/70 p-4 sm:p-5 text-sm text-muted-foreground shadow-lg backdrop-blur">
                   <div className="flex items-center justify-between">
                     <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                      In sync
+                      Features
                     </span>
                     <span className="rounded-full bg-card/70 px-3 py-1 text-xs text-foreground">
-                      Realtime
+                      Included
                     </span>
                   </div>
                   <div className="mt-4 space-y-3">
                     <div className="flex items-center justify-between rounded-2xl bg-card/70 px-4 py-3">
                       <div>
-                        <p className="text-xs text-muted-foreground">Recurring</p>
-                        <p className="text-base font-semibold text-foreground">Bills cleared</p>
+                        <p className="text-xs text-muted-foreground">Expenses</p>
+                        <p className="text-base font-semibold text-foreground">
+                          Unlimited tracking
+                        </p>
                       </div>
-                      <p className="text-lg font-semibold text-success-foreground">92%</p>
+                      <p className="text-lg font-semibold text-success-foreground">✓</p>
                     </div>
                     <div className="flex items-center justify-between rounded-2xl bg-card/70 px-4 py-3">
                       <div>
-                        <p className="text-xs text-muted-foreground">On budget</p>
-                        <p className="text-base font-semibold text-foreground">Envelope health</p>
+                        <p className="text-xs text-muted-foreground">Categories & Tags</p>
+                        <p className="text-base font-semibold text-foreground">
+                          Full customization
+                        </p>
                       </div>
-                      <p className="text-lg font-semibold text-warning-foreground">88%</p>
+                      <p className="text-lg font-semibold text-success-foreground">✓</p>
                     </div>
                     <div className="flex items-center justify-between rounded-2xl bg-card/70 px-4 py-3">
                       <div>
-                        <p className="text-xs text-muted-foreground">Time saved</p>
-                        <p className="text-base font-semibold text-foreground">Manual cleanup</p>
+                        <p className="text-xs text-muted-foreground">Net Worth</p>
+                        <p className="text-base font-semibold text-foreground">
+                          Assets & liabilities
+                        </p>
                       </div>
-                      <p className="text-lg font-semibold text-info-foreground">-12 hr/mo</p>
+                      <p className="text-lg font-semibold text-success-foreground">✓</p>
                     </div>
                   </div>
                 </div>
