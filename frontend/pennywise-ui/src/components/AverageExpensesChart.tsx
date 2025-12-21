@@ -42,16 +42,20 @@ const MAX_CHART_CATEGORIES = 10;
 const CATEGORY_NAME_MAX_LENGTH = 12;
 
 export function AverageExpensesChart({ userId, availableYears }: AverageExpensesChartProps) {
-  const currentYear = new Date().getFullYear();
-
-  // Default to last 2-3 years if available
-  const defaultYears = availableYears.slice(-3);
-  const [selectedYears, setSelectedYears] = useState<number[]>(
-    defaultYears.length > 0 ? defaultYears : [currentYear - 1, currentYear]
-  );
+  const [selectedYears, setSelectedYears] = useState<number[]>([]);
   const [viewMode, setViewMode] = useState<'month' | 'category'>('month');
   const [averageData, setAverageData] = useState<AverageExpenses | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Update selected years when availableYears changes (e.g., after data loads)
+  // Default to the most recent 3 years available
+  useEffect(() => {
+    if (availableYears.length > 0 && selectedYears.length === 0) {
+      // availableYears is in descending order (newest first), so slice(0, 3) gets the most recent
+      const defaultYears = availableYears.slice(0, 3);
+      setSelectedYears(defaultYears.sort((a, b) => a - b));
+    }
+  }, [availableYears, selectedYears.length]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -301,7 +305,9 @@ export function AverageExpensesChart({ userId, availableYears }: AverageExpenses
                       type="monotone"
                       dataKey={yearData.year.toString()}
                       name={yearData.year.toString()}
-                      stroke={YEAR_COLORS[availableYears.indexOf(yearData.year) % YEAR_COLORS.length]}
+                      stroke={
+                        YEAR_COLORS[availableYears.indexOf(yearData.year) % YEAR_COLORS.length]
+                      }
                       strokeWidth={2}
                       dot={{ r: 4 }}
                       activeDot={{ r: 6 }}
@@ -358,7 +364,9 @@ export function AverageExpensesChart({ userId, availableYears }: AverageExpenses
                       type="monotone"
                       dataKey={yearData.year.toString()}
                       name={yearData.year.toString()}
-                      stroke={YEAR_COLORS[availableYears.indexOf(yearData.year) % YEAR_COLORS.length]}
+                      stroke={
+                        YEAR_COLORS[availableYears.indexOf(yearData.year) % YEAR_COLORS.length]
+                      }
                       strokeWidth={2}
                       dot={{ r: 4 }}
                       activeDot={{ r: 6 }}
