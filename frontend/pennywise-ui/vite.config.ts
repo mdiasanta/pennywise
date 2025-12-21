@@ -52,7 +52,13 @@ export default defineConfig({
             src: '/icons/icon-192x192.png',
             sizes: '192x192',
             type: 'image/png',
-            purpose: 'any maskable',
+            purpose: 'any',
+          },
+          {
+            src: '/icons/icon-192x192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'maskable',
           },
           {
             src: '/icons/icon-384x384.png',
@@ -63,7 +69,13 @@ export default defineConfig({
             src: '/icons/icon-512x512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable',
+            purpose: 'any',
+          },
+          {
+            src: '/icons/icon-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
           },
         ],
         shortcuts: [
@@ -114,6 +126,11 @@ export default defineConfig({
             },
           },
         ],
+      },
+      // Enable PWA in development mode for testing
+      devOptions: {
+        enabled: false,
+        type: 'module',
       },
     }),
   ],
