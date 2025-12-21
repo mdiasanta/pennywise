@@ -1,6 +1,7 @@
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import './App.css';
+import { OfflineIndicator } from './components/OfflineIndicator';
 import { Toaster } from './components/ui/toaster';
 import { TooltipProvider } from './components/ui/tooltip';
 import { AuthProvider } from './hooks/use-auth';
@@ -28,6 +29,7 @@ function App() {
               <Route path="/networth" element={<NetWorthPage />} />
             </Routes>
             <Toaster />
+            <OfflineIndicator />
           </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>
