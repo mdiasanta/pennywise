@@ -268,7 +268,7 @@ export function LiabilityPayoffEstimator({
                 />
                 <Tooltip
                   contentStyle={chartTooltipStyle}
-                  formatter={(value: number) => formatCurrency(value)}
+                  formatter={(value) => formatCurrency(Number(value))}
                 />
                 <Legend wrapperStyle={{ color: '#cbd5f5' }} />
 

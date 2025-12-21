@@ -696,7 +696,7 @@ export default function DashboardPage() {
                       ))}
                     </Pie>
                     <Tooltip
-                      formatter={(value: number) => formatCurrency(value)}
+                      formatter={(value) => formatCurrency(Number(value))}
                       contentStyle={{
                         backgroundColor: '#0f172a',
                         border: '1px solid rgba(255,255,255,0.1)',
@@ -739,7 +739,7 @@ export default function DashboardPage() {
                       tickLine={false}
                     />
                     <Tooltip
-                      formatter={(value: number) => formatCurrency(value)}
+                      formatter={(value) => formatCurrency(Number(value))}
                       contentStyle={{
                         backgroundColor: '#0f172a',
                         border: '1px solid rgba(255,255,255,0.1)',

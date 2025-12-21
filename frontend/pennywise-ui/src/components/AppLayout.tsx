@@ -1,3 +1,4 @@
+import { PWAInstallButton } from '@/components/PWAInstallButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { UserMenu } from '@/components/UserMenu';
 import { Button } from '@/components/ui/button';
@@ -196,6 +197,11 @@ export function AppLayout({ children, title, description }: AppLayoutProps) {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <PWAInstallButton
+                variant="outline"
+                size="sm"
+                className="hidden sm:flex border-border/60 bg-card/80 text-foreground hover:bg-card/70"
+              />
               <ThemeToggle />
               <UserMenu />
             </div>

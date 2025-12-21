@@ -10,7 +10,8 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "test": "vitest",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "generate-icons": "node scripts/generate-icons.js"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",
@@ -63,10 +64,12 @@
     "jsdom": "^27.3.0",
     "postcss": "^8.5.6",
     "prettier": "^3.7.4",
+    "sharp": "^0.34.5",
     "tailwindcss": "^4.1.17",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
     "vite": "^7.2.4",
+    "vite-plugin-pwa": "^1.2.0",
     "vitest": "^4.0.15"
   }
 }

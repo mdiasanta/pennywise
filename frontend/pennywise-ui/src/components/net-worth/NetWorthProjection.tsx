@@ -920,7 +920,7 @@ export function NetWorthProjectionComponent({
               tickLine={false}
             />
             <Tooltip
-              formatter={(value: number) => formatCurrency(value)}
+              formatter={(value) => formatCurrency(Number(value))}
               contentStyle={chartTooltipStyle}
               labelStyle={{ color: '#e2e8f0' }}
               itemStyle={{ color: '#e2e8f0' }}
