@@ -7,9 +7,11 @@ React + TypeScript + Vite frontend for the Pennywise personal finance applicatio
 ### Pages
 
 - **HomePage** (`/`) - Landing page with marketing content and quick access to the app
-- **DashboardPage** (`/dashboard`) - Main dashboard with expense analytics and charts
-- **ExpensesPage** (`/expenses`) - Expense management with CRUD operations and import/export
+- **DashboardPage** (`/dashboard`) - Main dashboard with expense analytics, charts, and year-over-year comparison
+- **ExpensesPage** (`/expenses`) - Expense management with CRUD operations, filtering, and import/export
 - **CategoriesPage** (`/categories`) - Category management for organizing expenses
+- **TagsPage** (`/tags`) - Tag management for flexible expense grouping
+- **NetWorthPage** (`/net-worth`) - Asset and liability tracking with balance history, projections, and recurring transactions
 
 ### Navigation
 
@@ -27,12 +29,20 @@ The HomePage has its own standalone layout as a marketing/landing page.
 
 - `src/components/AppLayout.tsx` - Main application shell with sidebar navigation
 - `src/components/ThemeToggle.tsx` - Dark/light theme switcher
+- `src/components/GoogleSignInButton.tsx` - Google OAuth sign-in button
+- `src/components/UserMenu.tsx` - User profile dropdown menu
+- `src/components/YearOverYearComparison.tsx` - Year-over-year expense comparison
+- `src/components/net-worth/` - Net worth tracking components (charts, dialogs, tables)
 - `src/components/ui/` - shadcn/ui component library (30+ components)
 
 ### Hooks
 
-- `src/hooks/use-categories.tsx` - Category state management with context
+- `src/hooks/use-auth.tsx` - Authentication state management with Google OAuth
+- `src/hooks/use-categories.ts` - Category state management
+- `src/hooks/use-tags.ts` - Tag state management
+- `src/hooks/use-asset-categories.ts` - Asset category state management
 - `src/hooks/use-toast.ts` - Toast notification system
+- `src/hooks/use-pwa-install.ts` - PWA installation prompt handling
 
 ### API Integration
 

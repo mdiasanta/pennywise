@@ -94,19 +94,27 @@ pennywise/
 │   └── Pennywise.Api/           # .NET Web API project
 │       ├── Program.cs
 │       ├── Pennywise.Api.csproj
-│       └── Dockerfile
+│       ├── Dockerfile
+│       ├── Controllers/         # API endpoints
+│       ├── Services/            # Business logic
+│       ├── Repositories/        # Data access
+│       ├── Models/              # EF Core entities
+│       └── DTOs/                # Request/response objects
 ├── frontend/
 │   └── pennywise-ui/            # React + TypeScript + Vite
 │       ├── src/
 │       │   ├── components/
 │       │   │   ├── AppLayout.tsx    # Shared app layout with sidebar navigation
 │       │   │   ├── ThemeToggle.tsx  # Dark/light theme switcher
+│       │   │   ├── net-worth/       # Net worth tracking components
 │       │   │   └── ui/              # shadcn/ui components (30+ components)
 │       │   ├── pages/
 │       │   │   ├── HomePage.tsx     # Landing page
 │       │   │   ├── DashboardPage.tsx # Dashboard with analytics
 │       │   │   ├── ExpensesPage.tsx  # Expense management
-│       │   │   └── CategoriesPage.tsx # Category management
+│       │   │   ├── CategoriesPage.tsx # Category management
+│       │   │   ├── TagsPage.tsx     # Tag management
+│       │   │   └── NetWorthPage.tsx # Net worth tracking
 │       │   ├── hooks/               # Custom React hooks
 │       │   └── lib/                 # API client and utilities
 │       ├── package.json
@@ -116,22 +124,40 @@ pennywise/
 └── README.md
 ```
 
+## Features
+
+- **Expense Tracking**: Add, edit, delete expenses with categories and tags
+- **Custom Categories**: Create personalized categories with colors
+- **Flexible Tags**: Tag expenses for cross-cutting views (trips, projects, etc.)
+- **Net Worth Tracking**: Monitor assets and liabilities over time
+- **Balance History**: Track account balances with projections
+- **Recurring Transactions**: Manage recurring income and expenses
+- **Dashboard Analytics**: Visual summaries with pie charts, bar charts, and year-over-year comparisons
+- **Import/Export**: Import transactions from CSV, export to CSV/Excel
+- **Google Sign-In**: Secure authentication via Google OAuth
+- **Dark/Light Theme**: Toggle between themes
+- **PWA Support**: Install as a progressive web app
+
 ## Technologies
 
 ### Frontend
 
 - React 19
 - TypeScript
-- Vite
+- Vite (with PWA plugin)
 - Tailwind CSS
 - shadcn/ui components (30+ components including accordion, alert, avatar, badge, button, card, checkbox, dialog, dropdown, forms, tables, and more)
 - Radix UI primitives
+- Recharts (for dashboard visualizations)
+- React Router DOM
 - Nginx (for production)
 
 ### Backend
 
 - .NET 10
 - ASP.NET Core Web API
+- Entity Framework Core with Npgsql
+- Google OAuth ID token validation
 - OpenAPI/Swagger
 
 ### Database
