@@ -37,6 +37,10 @@ const YEAR_COLORS = [
 
 const AVERAGE_LINE_COLOR = '#ef4444';
 
+// Display constants
+const MAX_CHART_CATEGORIES = 10;
+const CATEGORY_NAME_MAX_LENGTH = 12;
+
 export function AverageExpensesChart({ userId, availableYears }: AverageExpensesChartProps) {
   const currentYear = new Date().getFullYear();
 
@@ -156,9 +160,12 @@ export function AverageExpensesChart({ userId, availableYears }: AverageExpenses
   });
 
   // Prepare chart data for category view
-  const categoryChartData = averageData.categoryAverages.slice(0, 10).map((c) => {
+  const categoryChartData = averageData.categoryAverages.slice(0, MAX_CHART_CATEGORIES).map((c) => {
     const dataPoint: Record<string, string | number> = {
-      name: c.categoryName.length > 12 ? c.categoryName.slice(0, 12) + '...' : c.categoryName,
+      name:
+        c.categoryName.length > CATEGORY_NAME_MAX_LENGTH
+          ? c.categoryName.slice(0, CATEGORY_NAME_MAX_LENGTH) + '...'
+          : c.categoryName,
       Average: c.average,
     };
 

@@ -226,6 +226,9 @@ public class SummaryService : ISummaryService
         };
     }
 
+    // Default number of years to include when none are specified
+    private const int DefaultYearsToInclude = 2;
+
     public async Task<AverageExpensesResponseDto> GetAverageExpensesAsync(int userId, AverageExpensesRequestDto request)
     {
         var isCategoryMode = request.ViewMode?.ToLowerInvariant() == "category";
@@ -233,9 +236,9 @@ public class SummaryService : ISummaryService
 
         if (selectedYears.Count == 0)
         {
-            // Default to current year and previous year
+            // Default to current year and previous year(s)
             var currentYear = DateTime.UtcNow.Year;
-            selectedYears = [currentYear - 1, currentYear];
+            selectedYears = Enumerable.Range(currentYear - DefaultYearsToInclude + 1, DefaultYearsToInclude).ToList();
         }
 
         // Calculate date range for all selected years

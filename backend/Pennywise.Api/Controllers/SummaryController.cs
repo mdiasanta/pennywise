@@ -53,13 +53,28 @@ public class SummaryController : ControllerBase
         [FromQuery] string? years = null)
     {
         var yearsList = new List<int>();
+        var invalidYears = new List<string>();
+
         if (!string.IsNullOrWhiteSpace(years))
         {
-            yearsList = years.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                .Select(y => int.TryParse(y.Trim(), out var parsed) ? parsed : (int?)null)
-                .Where(y => y.HasValue)
-                .Select(y => y!.Value)
-                .ToList();
+            var yearParts = years.Split(',', StringSplitOptions.RemoveEmptyEntries);
+            foreach (var yearPart in yearParts)
+            {
+                var trimmed = yearPart.Trim();
+                if (int.TryParse(trimmed, out var parsed))
+                {
+                    yearsList.Add(parsed);
+                }
+                else
+                {
+                    invalidYears.Add(trimmed);
+                }
+            }
+        }
+
+        if (invalidYears.Count > 0)
+        {
+            return BadRequest($"Invalid year values: {string.Join(", ", invalidYears)}");
         }
 
         var request = new AverageExpensesRequestDto
