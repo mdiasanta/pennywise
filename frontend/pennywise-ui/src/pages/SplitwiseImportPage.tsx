@@ -474,7 +474,7 @@ export default function SplitwiseImportPage() {
                         <SelectItem key={member.id} value={member.id.toString()}>
                           {member.displayName}
                           {member.email && (
-                            <span className="text-muted-foreground ml-1">({member.email})</span>
+                            <span className="ml-1 text-muted-foreground">({member.email})</span>
                           )}
                         </SelectItem>
                       ))}

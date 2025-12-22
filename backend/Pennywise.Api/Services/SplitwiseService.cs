@@ -146,7 +146,13 @@ public class SplitwiseService : ISplitwiseService
             queryParams.Add($"dated_after={request.StartDate.Value:yyyy-MM-dd}");
         
         if (request.EndDate.HasValue)
-            queryParams.Add($"dated_before={request.EndDate.Value.AddDays(1):yyyy-MM-dd}"); // Add 1 day for inclusive end
+        {
+            // Add 1 day for inclusive end, but protect against overflow
+            var endDateForQuery = request.EndDate.Value.Date < DateTime.MaxValue.AddDays(-1) 
+                ? request.EndDate.Value.AddDays(1) 
+                : DateTime.MaxValue;
+            queryParams.Add($"dated_before={endDateForQuery:yyyy-MM-dd}");
+        }
         
         var queryString = string.Join("&", queryParams);
         var expensesResponse = await client.GetAsync($"{SplitwiseApiBaseUrl}/get_expenses?{queryString}");
@@ -300,6 +306,9 @@ public class SplitwiseService : ISplitwiseService
     
     private HttpClient CreateClient(string apiKey)
     {
+        if (string.IsNullOrWhiteSpace(apiKey))
+            throw new ArgumentException("API key cannot be empty", nameof(apiKey));
+        
         var client = _httpClientFactory.CreateClient("SplitwiseApi");
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
         return client;
