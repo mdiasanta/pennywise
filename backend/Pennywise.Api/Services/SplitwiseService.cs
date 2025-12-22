@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Configuration;
 using Pennywise.Api.DTOs;
 using Pennywise.Api.Models;
 using Pennywise.Api.Repositories;
@@ -17,6 +18,7 @@ public class SplitwiseService : ISplitwiseService
     private readonly IExpenseRepository _expenseRepository;
     private readonly ICategoryRepository _categoryRepository;
     private readonly ITagRepository _tagRepository;
+    private readonly string? _apiKey;
     
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -28,19 +30,26 @@ public class SplitwiseService : ISplitwiseService
         IHttpClientFactory httpClientFactory,
         IExpenseRepository expenseRepository,
         ICategoryRepository categoryRepository,
-        ITagRepository tagRepository)
+        ITagRepository tagRepository,
+        IConfiguration configuration)
     {
         _httpClientFactory = httpClientFactory;
         _expenseRepository = expenseRepository;
         _categoryRepository = categoryRepository;
         _tagRepository = tagRepository;
+        _apiKey = configuration["Splitwise:ApiKey"];
     }
 
-    public async Task<SplitwiseCurrentUserDto?> ValidateApiKeyAsync(string apiKey)
+    public bool IsConfigured => !string.IsNullOrWhiteSpace(_apiKey);
+
+    public async Task<SplitwiseCurrentUserDto?> ValidateApiKeyAsync()
     {
+        if (!IsConfigured)
+            return null;
+            
         try
         {
-            var client = CreateClient(apiKey);
+            var client = CreateClient();
             var response = await client.GetAsync($"{SplitwiseApiBaseUrl}/get_current_user");
             
             if (!response.IsSuccessStatusCode)
@@ -66,9 +75,9 @@ public class SplitwiseService : ISplitwiseService
         }
     }
 
-    public async Task<List<SplitwiseGroupDto>> GetGroupsAsync(string apiKey)
+    public async Task<List<SplitwiseGroupDto>> GetGroupsAsync()
     {
-        var client = CreateClient(apiKey);
+        var client = CreateClient();
         var response = await client.GetAsync($"{SplitwiseApiBaseUrl}/get_groups");
         
         response.EnsureSuccessStatusCode();
@@ -98,9 +107,9 @@ public class SplitwiseService : ISplitwiseService
             .ToList();
     }
 
-    public async Task<List<SplitwiseGroupMemberDto>> GetGroupMembersAsync(string apiKey, long groupId)
+    public async Task<List<SplitwiseGroupMemberDto>> GetGroupMembersAsync(long groupId)
     {
-        var client = CreateClient(apiKey);
+        var client = CreateClient();
         var response = await client.GetAsync($"{SplitwiseApiBaseUrl}/get_group/{groupId}");
         
         response.EnsureSuccessStatusCode();
@@ -122,7 +131,7 @@ public class SplitwiseService : ISplitwiseService
 
     public async Task<SplitwiseImportResponseDto> ImportExpensesAsync(SplitwiseImportRequest request)
     {
-        var client = CreateClient(request.ApiKey);
+        var client = CreateClient();
         
         // Get group info for display
         var groupResponse = await client.GetAsync($"{SplitwiseApiBaseUrl}/get_group/{request.GroupId}");
@@ -304,13 +313,13 @@ public class SplitwiseService : ISplitwiseService
         };
     }
     
-    private HttpClient CreateClient(string apiKey)
+    private HttpClient CreateClient()
     {
-        if (string.IsNullOrWhiteSpace(apiKey))
-            throw new ArgumentException("API key cannot be empty", nameof(apiKey));
+        if (string.IsNullOrWhiteSpace(_apiKey))
+            throw new InvalidOperationException("Splitwise API key is not configured. Please set the Splitwise__ApiKey configuration value.");
         
         var client = _httpClientFactory.CreateClient("SplitwiseApi");
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
         return client;
     }
     

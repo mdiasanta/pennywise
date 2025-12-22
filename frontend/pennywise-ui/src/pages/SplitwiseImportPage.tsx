@@ -37,22 +37,22 @@ import {
   CheckCircle2,
   Copy,
   ExternalLink,
-  Key,
   Loader2,
+  Settings,
   Upload,
   Users,
+  XCircle,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 export default function SplitwiseImportPage() {
   const { isAuthenticated } = useAuth();
   const { toast } = useToast();
 
-  // API key and connection state
-  const [apiKey, setApiKey] = useState('');
-  const [isValidating, setIsValidating] = useState(false);
+  // Configuration status
+  const [isConfigured, setIsConfigured] = useState<boolean | null>(null);
   const [splitwiseUser, setSplitwiseUser] = useState<SplitwiseCurrentUser | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
+  const [isCheckingStatus, setIsCheckingStatus] = useState(true);
 
   // Groups and members state
   const [groups, setGroups] = useState<SplitwiseGroup[]>([]);
@@ -72,44 +72,40 @@ export default function SplitwiseImportPage() {
   const [isImporting, setIsImporting] = useState(false);
   const [selectedExpenseIds, setSelectedExpenseIds] = useState<Set<number>>(new Set());
 
-  const handleConnect = async () => {
-    if (!apiKey.trim()) {
-      toast({
-        variant: 'destructive',
-        title: 'API key required',
-        description: 'Please enter your Splitwise API key.',
-      });
-      return;
-    }
-
-    setIsValidating(true);
+  const checkStatus = useCallback(async () => {
+    setIsCheckingStatus(true);
     try {
-      const swUser = await splitwiseApi.validateApiKey(apiKey);
-      setSplitwiseUser(swUser);
-      setIsConnected(true);
+      const status = await splitwiseApi.getStatus();
+      setIsConfigured(status.isConfigured);
+      setSplitwiseUser(status.user || null);
 
-      // Load groups
-      setIsLoadingGroups(true);
-      const groupsResponse = await splitwiseApi.getGroups(apiKey);
-      setGroups(groupsResponse.groups);
-
-      toast({
-        title: 'Connected to Splitwise',
-        description: `Welcome, ${swUser.displayName}!`,
-      });
+      if (status.isConfigured && status.user) {
+        // Load groups automatically
+        setIsLoadingGroups(true);
+        try {
+          const groupsResponse = await splitwiseApi.getGroups();
+          setGroups(groupsResponse.groups);
+        } finally {
+          setIsLoadingGroups(false);
+        }
+      }
     } catch (error) {
+      setIsConfigured(false);
       toast({
         variant: 'destructive',
-        title: 'Connection failed',
-        description: error instanceof Error ? error.message : 'Invalid API key.',
+        title: 'Connection error',
+        description: error instanceof Error ? error.message : 'Could not check Splitwise status.',
       });
-      setIsConnected(false);
-      setSplitwiseUser(null);
     } finally {
-      setIsValidating(false);
-      setIsLoadingGroups(false);
+      setIsCheckingStatus(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      checkStatus();
+    }
+  }, [isAuthenticated, checkStatus]);
 
   const handleGroupChange = async (groupId: string) => {
     setSelectedGroupId(groupId);
@@ -121,7 +117,7 @@ export default function SplitwiseImportPage() {
 
     setIsLoadingMembers(true);
     try {
-      const groupMembers = await splitwiseApi.getGroupMembers(apiKey, parseInt(groupId, 10));
+      const groupMembers = await splitwiseApi.getGroupMembers(parseInt(groupId, 10));
       setMembers(groupMembers);
     } catch (error) {
       toast({
@@ -150,7 +146,6 @@ export default function SplitwiseImportPage() {
 
     try {
       const result = await splitwiseApi.previewImport({
-        apiKey,
         groupId: parseInt(selectedGroupId, 10),
         splitwiseUserId: parseInt(selectedMemberId, 10),
         startDate: startDate || undefined,
@@ -191,7 +186,6 @@ export default function SplitwiseImportPage() {
     setIsImporting(true);
     try {
       const result = await splitwiseApi.importExpenses({
-        apiKey,
         groupId: parseInt(selectedGroupId, 10),
         splitwiseUserId: parseInt(selectedMemberId, 10),
         startDate: startDate || undefined,
@@ -323,85 +317,96 @@ export default function SplitwiseImportPage() {
     );
   }
 
+  // Show loading state
+  if (isCheckingStatus) {
+    return (
+      <AppLayout title="Splitwise Import" description="Import expenses from Splitwise">
+        <div className="mx-auto max-w-2xl py-12">
+          <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="mt-4 text-muted-foreground">Checking Splitwise configuration...</p>
+            </CardContent>
+          </Card>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  // Show not configured state
+  if (!isConfigured) {
+    return (
+      <AppLayout title="Splitwise Import" description="Import expenses from Splitwise">
+        <div className="mx-auto max-w-2xl py-12">
+          <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
+            <CardHeader className="text-center">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
+                <XCircle className="h-6 w-6 text-destructive" />
+              </div>
+              <CardTitle className="text-2xl">Splitwise Not Configured</CardTitle>
+              <CardDescription className="text-muted-foreground">
+                The Splitwise API key has not been configured on the server.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="rounded-lg border border-border/60 bg-card/60 p-4">
+                <h3 className="mb-2 flex items-center gap-2 font-semibold text-foreground">
+                  <Settings className="h-4 w-4" />
+                  Configuration Required
+                </h3>
+                <p className="mb-3 text-sm text-muted-foreground">
+                  To enable Splitwise import, ask your administrator to add the following
+                  environment variable:
+                </p>
+                <code className="block rounded bg-muted/50 p-2 text-sm text-foreground">
+                  Splitwise__ApiKey=your-splitwise-api-key
+                </code>
+                <p className="mt-3 text-sm text-muted-foreground">
+                  Get an API key from{' '}
+                  <a
+                    href="https://secure.splitwise.com/apps"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-primary hover:underline"
+                  >
+                    secure.splitwise.com/apps
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                </p>
+              </div>
+              <Button
+                onClick={checkStatus}
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                Retry Connection
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout title="Splitwise Import" description="Import expenses from Splitwise">
       <div className="mx-auto max-w-6xl space-y-6">
-        {/* Connection Card */}
+        {/* Connection Status Card */}
         <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Key className="h-5 w-5" />
-              Connect to Splitwise
+              <CheckCircle2 className="h-5 w-5 text-success-foreground" />
+              Connected to Splitwise
             </CardTitle>
             <CardDescription className="text-muted-foreground">
-              Enter your Splitwise API key to connect. Get your API key from{' '}
-              <a
-                href="https://secure.splitwise.com/apps"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:underline inline-flex items-center gap-1"
-              >
-                secure.splitwise.com/apps
-                <ExternalLink className="h-3 w-3" />
-              </a>
+              Your Splitwise account is connected and ready to import expenses.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-              <div className="flex-1 space-y-2">
-                <Label htmlFor="apiKey" className="text-muted-foreground">
-                  API Key
-                </Label>
-                <Input
-                  id="apiKey"
-                  type="password"
-                  placeholder="Enter your Splitwise API key..."
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  className="border-border/60 bg-card text-foreground placeholder:text-muted-foreground"
-                  disabled={isConnected}
-                />
-              </div>
-              {!isConnected ? (
-                <Button
-                  onClick={handleConnect}
-                  disabled={isValidating || !apiKey.trim()}
-                  className="bg-primary text-primary-foreground hover:bg-primary/90"
-                >
-                  {isValidating ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Connecting...
-                    </>
-                  ) : (
-                    'Connect'
-                  )}
-                </Button>
-              ) : (
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setIsConnected(false);
-                    setSplitwiseUser(null);
-                    setGroups([]);
-                    setSelectedGroupId('');
-                    setMembers([]);
-                    setSelectedMemberId('');
-                    setPreview(null);
-                    setApiKey('');
-                  }}
-                  className="border-border/60 bg-card/80 text-foreground hover:bg-card/70"
-                >
-                  Disconnect
-                </Button>
-              )}
-            </div>
-
-            {isConnected && splitwiseUser && (
+          <CardContent>
+            {splitwiseUser && (
               <div className="rounded-lg border border-success/60 bg-success/10 p-3">
                 <p className="text-sm text-success-foreground">
                   <CheckCircle2 className="mr-2 inline h-4 w-4" />
-                  Connected as <span className="font-semibold">{splitwiseUser.displayName}</span>
+                  Logged in as <span className="font-semibold">{splitwiseUser.displayName}</span>
                   {splitwiseUser.email && (
                     <span className="text-muted-foreground"> ({splitwiseUser.email})</span>
                   )}
@@ -412,122 +417,118 @@ export default function SplitwiseImportPage() {
         </Card>
 
         {/* Selection Card */}
-        {isConnected && (
-          <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Select Group and Member
-              </CardTitle>
-              <CardDescription className="text-muted-foreground">
-                Choose a Splitwise group and the member whose expenses you want to import.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <div className="space-y-2">
-                  <Label htmlFor="group" className="text-muted-foreground">
-                    Group
-                  </Label>
-                  <Select
-                    value={selectedGroupId}
-                    onValueChange={handleGroupChange}
-                    disabled={isLoadingGroups || groups.length === 0}
-                  >
-                    <SelectTrigger className="border-border/60 bg-card text-foreground">
-                      <SelectValue
-                        placeholder={isLoadingGroups ? 'Loading...' : 'Select a group'}
-                      />
-                    </SelectTrigger>
-                    <SelectContent className="border-border/60 bg-card text-foreground">
-                      {groups.map((group) => (
-                        <SelectItem key={group.id} value={group.id.toString()}>
-                          {group.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="member" className="text-muted-foreground">
-                    Import expenses for
-                  </Label>
-                  <Select
-                    value={selectedMemberId}
-                    onValueChange={setSelectedMemberId}
-                    disabled={!selectedGroupId || isLoadingMembers || members.length === 0}
-                  >
-                    <SelectTrigger className="border-border/60 bg-card text-foreground">
-                      <SelectValue
-                        placeholder={
-                          isLoadingMembers
-                            ? 'Loading...'
-                            : !selectedGroupId
-                              ? 'Select a group first'
-                              : 'Select a member'
-                        }
-                      />
-                    </SelectTrigger>
-                    <SelectContent className="border-border/60 bg-card text-foreground">
-                      {members.map((member) => (
-                        <SelectItem key={member.id} value={member.id.toString()}>
-                          {member.displayName}
-                          {member.email && (
-                            <span className="ml-1 text-muted-foreground">({member.email})</span>
-                          )}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="startDate" className="text-muted-foreground">
-                    Start Date (optional)
-                  </Label>
-                  <Input
-                    id="startDate"
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="border-border/60 bg-card text-foreground"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="endDate" className="text-muted-foreground">
-                    End Date (optional)
-                  </Label>
-                  <Input
-                    id="endDate"
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="border-border/60 bg-card text-foreground"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end">
-                <Button
-                  onClick={handlePreview}
-                  disabled={!selectedGroupId || !selectedMemberId || isPreviewLoading}
-                  className="bg-primary text-primary-foreground hover:bg-primary/90"
+        <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Select Group and Member
+            </CardTitle>
+            <CardDescription className="text-muted-foreground">
+              Choose a Splitwise group and the member whose expenses you want to import.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <div className="space-y-2">
+                <Label htmlFor="group" className="text-muted-foreground">
+                  Group
+                </Label>
+                <Select
+                  value={selectedGroupId}
+                  onValueChange={handleGroupChange}
+                  disabled={isLoadingGroups || groups.length === 0}
                 >
-                  {isPreviewLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Loading Preview...
-                    </>
-                  ) : (
-                    'Preview Expenses'
-                  )}
-                </Button>
+                  <SelectTrigger className="border-border/60 bg-card text-foreground">
+                    <SelectValue placeholder={isLoadingGroups ? 'Loading...' : 'Select a group'} />
+                  </SelectTrigger>
+                  <SelectContent className="border-border/60 bg-card text-foreground">
+                    {groups.map((group) => (
+                      <SelectItem key={group.id} value={group.id.toString()}>
+                        {group.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            </CardContent>
-          </Card>
-        )}
+
+              <div className="space-y-2">
+                <Label htmlFor="member" className="text-muted-foreground">
+                  Import expenses for
+                </Label>
+                <Select
+                  value={selectedMemberId}
+                  onValueChange={setSelectedMemberId}
+                  disabled={!selectedGroupId || isLoadingMembers || members.length === 0}
+                >
+                  <SelectTrigger className="border-border/60 bg-card text-foreground">
+                    <SelectValue
+                      placeholder={
+                        isLoadingMembers
+                          ? 'Loading...'
+                          : !selectedGroupId
+                            ? 'Select a group first'
+                            : 'Select a member'
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent className="border-border/60 bg-card text-foreground">
+                    {members.map((member) => (
+                      <SelectItem key={member.id} value={member.id.toString()}>
+                        {member.displayName}
+                        {member.email && (
+                          <span className="ml-1 text-muted-foreground">({member.email})</span>
+                        )}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="startDate" className="text-muted-foreground">
+                  Start Date (optional)
+                </Label>
+                <Input
+                  id="startDate"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="border-border/60 bg-card text-foreground"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="endDate" className="text-muted-foreground">
+                  End Date (optional)
+                </Label>
+                <Input
+                  id="endDate"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="border-border/60 bg-card text-foreground"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end">
+              <Button
+                onClick={handlePreview}
+                disabled={!selectedGroupId || !selectedMemberId || isPreviewLoading}
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                {isPreviewLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Loading Preview...
+                  </>
+                ) : (
+                  'Preview Expenses'
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Preview Card */}
         {preview && (
@@ -544,13 +545,13 @@ export default function SplitwiseImportPage() {
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
                 <div className="rounded-lg border border-border/60 bg-card/80 p-3">
                   <p className="text-xs text-muted-foreground">Group</p>
-                  <p className="mt-1 text-sm font-semibold text-foreground truncate">
+                  <p className="mt-1 truncate text-sm font-semibold text-foreground">
                     {preview.groupName}
                   </p>
                 </div>
                 <div className="rounded-lg border border-border/60 bg-card/80 p-3">
                   <p className="text-xs text-muted-foreground">User</p>
-                  <p className="mt-1 text-sm font-semibold text-foreground truncate">
+                  <p className="mt-1 truncate text-sm font-semibold text-foreground">
                     {preview.userName}
                   </p>
                 </div>
@@ -644,7 +645,7 @@ export default function SplitwiseImportPage() {
                         <TableRow
                           key={expense.id}
                           className={`border-border/60 ${
-                            expense.canImport ? 'hover:bg-card/80 cursor-pointer' : 'opacity-60'
+                            expense.canImport ? 'cursor-pointer hover:bg-card/80' : 'opacity-60'
                           }`}
                           onClick={() => toggleExpenseSelection(expense.id, expense.canImport)}
                         >
@@ -661,7 +662,7 @@ export default function SplitwiseImportPage() {
                           <TableCell className="font-medium text-foreground">
                             {formatDate(expense.date)}
                           </TableCell>
-                          <TableCell className="text-foreground max-w-xs truncate">
+                          <TableCell className="max-w-xs truncate text-foreground">
                             {expense.description}
                           </TableCell>
                           <TableCell className="text-muted-foreground">{expense.paidBy}</TableCell>

@@ -27,48 +27,41 @@ public class SplitwiseController : ControllerBase
     }
 
     /// <summary>
-    /// Validates a Splitwise API key and returns the current user info
+    /// Checks if Splitwise is configured and returns status with user info
     /// </summary>
-    [HttpPost("validate")]
-    public async Task<ActionResult<SplitwiseCurrentUserDto>> ValidateApiKey([FromBody] SplitwiseConnectRequest request)
+    [HttpGet("status")]
+    public async Task<ActionResult<SplitwiseStatusDto>> GetStatus()
     {
-        if (string.IsNullOrWhiteSpace(request.ApiKey))
+        if (!_splitwiseService.IsConfigured)
         {
-            return BadRequest("API key is required");
+            return Ok(new SplitwiseStatusDto { IsConfigured = false, User = null });
         }
 
         try
         {
-            var user = await _splitwiseService.ValidateApiKeyAsync(request.ApiKey);
-            
-            if (user == null)
-            {
-                return Unauthorized("Invalid API key. Please check your Splitwise API key.");
-            }
-            
-            return Ok(user);
+            var user = await _splitwiseService.ValidateApiKeyAsync();
+            return Ok(new SplitwiseStatusDto { IsConfigured = true, User = user });
         }
         catch (Exception)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError, 
-                "Failed to validate API key. Please try again.");
+            return Ok(new SplitwiseStatusDto { IsConfigured = true, User = null });
         }
     }
 
     /// <summary>
     /// Gets all Splitwise groups for the authenticated user
     /// </summary>
-    [HttpPost("groups")]
-    public async Task<ActionResult<SplitwiseGroupsResponseDto>> GetGroups([FromBody] SplitwiseConnectRequest request)
+    [HttpGet("groups")]
+    public async Task<ActionResult<SplitwiseGroupsResponseDto>> GetGroups()
     {
-        if (string.IsNullOrWhiteSpace(request.ApiKey))
+        if (!_splitwiseService.IsConfigured)
         {
-            return BadRequest("API key is required");
+            return BadRequest("Splitwise is not configured. Please set the Splitwise:ApiKey environment variable.");
         }
 
         try
         {
-            var groups = await _splitwiseService.GetGroupsAsync(request.ApiKey);
+            var groups = await _splitwiseService.GetGroupsAsync();
             return Ok(new SplitwiseGroupsResponseDto { Groups = groups });
         }
         catch (HttpRequestException ex)
@@ -85,14 +78,12 @@ public class SplitwiseController : ControllerBase
     /// <summary>
     /// Gets members of a specific Splitwise group
     /// </summary>
-    [HttpPost("groups/{groupId}/members")]
-    public async Task<ActionResult<List<SplitwiseGroupMemberDto>>> GetGroupMembers(
-        long groupId,
-        [FromBody] SplitwiseConnectRequest request)
+    [HttpGet("groups/{groupId}/members")]
+    public async Task<ActionResult<List<SplitwiseGroupMemberDto>>> GetGroupMembers(long groupId)
     {
-        if (string.IsNullOrWhiteSpace(request.ApiKey))
+        if (!_splitwiseService.IsConfigured)
         {
-            return BadRequest("API key is required");
+            return BadRequest("Splitwise is not configured. Please set the Splitwise:ApiKey environment variable.");
         }
 
         if (groupId <= 0)
@@ -102,7 +93,7 @@ public class SplitwiseController : ControllerBase
 
         try
         {
-            var members = await _splitwiseService.GetGroupMembersAsync(request.ApiKey, groupId);
+            var members = await _splitwiseService.GetGroupMembersAsync(groupId);
             return Ok(members);
         }
         catch (HttpRequestException ex)
@@ -126,9 +117,9 @@ public class SplitwiseController : ControllerBase
         if (userId == null)
             return Unauthorized();
 
-        if (string.IsNullOrWhiteSpace(request.ApiKey))
+        if (!_splitwiseService.IsConfigured)
         {
-            return BadRequest("API key is required");
+            return BadRequest("Splitwise is not configured. Please set the Splitwise:ApiKey environment variable.");
         }
 
         if (request.GroupId <= 0)
@@ -169,9 +160,9 @@ public class SplitwiseController : ControllerBase
         if (userId == null)
             return Unauthorized();
 
-        if (string.IsNullOrWhiteSpace(request.ApiKey))
+        if (!_splitwiseService.IsConfigured)
         {
-            return BadRequest("API key is required");
+            return BadRequest("Splitwise is not configured. Please set the Splitwise:ApiKey environment variable.");
         }
 
         if (request.GroupId <= 0)

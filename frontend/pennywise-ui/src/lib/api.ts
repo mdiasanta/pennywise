@@ -1474,6 +1474,11 @@ export interface SplitwiseCurrentUser {
   displayName: string;
 }
 
+export interface SplitwiseStatus {
+  isConfigured: boolean;
+  user?: SplitwiseCurrentUser | null;
+}
+
 export interface SplitwiseGroupMember {
   id: number;
   firstName: string;
@@ -1524,7 +1529,6 @@ export interface SplitwiseImportResponse {
 }
 
 export interface SplitwiseImportRequest {
-  apiKey: string;
   groupId: number;
   splitwiseUserId: number;
   startDate?: string;
@@ -1534,31 +1538,22 @@ export interface SplitwiseImportRequest {
 
 // Splitwise API
 export const splitwiseApi = {
-  async validateApiKey(apiKey: string): Promise<SplitwiseCurrentUser> {
-    const response = await fetch(`${API_BASE_URL}/splitwise/validate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ apiKey }),
+  async getStatus(): Promise<SplitwiseStatus> {
+    const response = await fetch(`${API_BASE_URL}/splitwise/status`, {
       credentials: 'include',
     });
-    return handleResponse<SplitwiseCurrentUser>(response);
+    return handleResponse<SplitwiseStatus>(response);
   },
 
-  async getGroups(apiKey: string): Promise<SplitwiseGroupsResponse> {
+  async getGroups(): Promise<SplitwiseGroupsResponse> {
     const response = await fetch(`${API_BASE_URL}/splitwise/groups`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ apiKey }),
       credentials: 'include',
     });
     return handleResponse<SplitwiseGroupsResponse>(response);
   },
 
-  async getGroupMembers(apiKey: string, groupId: number): Promise<SplitwiseGroupMember[]> {
+  async getGroupMembers(groupId: number): Promise<SplitwiseGroupMember[]> {
     const response = await fetch(`${API_BASE_URL}/splitwise/groups/${groupId}/members`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ apiKey }),
       credentials: 'include',
     });
     return handleResponse<SplitwiseGroupMember[]>(response);

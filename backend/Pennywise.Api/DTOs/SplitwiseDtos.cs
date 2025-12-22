@@ -3,26 +3,10 @@ namespace Pennywise.Api.DTOs;
 // Request DTOs
 
 /// <summary>
-/// Request to connect to Splitwise API
-/// </summary>
-public record SplitwiseConnectRequest
-{
-    /// <summary>
-    /// Splitwise API key from https://secure.splitwise.com/apps
-    /// </summary>
-    public required string ApiKey { get; init; }
-}
-
-/// <summary>
 /// Request to preview or import expenses from Splitwise
 /// </summary>
 public record SplitwiseImportRequest
 {
-    /// <summary>
-    /// Splitwise API key
-    /// </summary>
-    public required string ApiKey { get; init; }
-    
     /// <summary>
     /// Splitwise group ID to import from
     /// </summary>
@@ -61,6 +45,15 @@ public record SplitwiseImportRequest
 }
 
 // Response DTOs - Splitwise API responses
+
+/// <summary>
+/// Response indicating whether Splitwise is configured
+/// </summary>
+public record SplitwiseStatusDto
+{
+    public bool IsConfigured { get; init; }
+    public SplitwiseCurrentUserDto? User { get; init; }
+}
 
 /// <summary>
 /// Represents a Splitwise group
