@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { AverageExpenses } from '@/lib/api';
 import { summaryApi } from '@/lib/api';
-import { BarChart3, TrendingUp } from 'lucide-react';
+import { BarChart3, ChevronDown, ChevronUp, TrendingUp } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import {
   CartesianGrid,
@@ -43,9 +43,10 @@ const CATEGORY_NAME_MAX_LENGTH = 12;
 
 export function AverageExpensesChart({ userId, availableYears }: AverageExpensesChartProps) {
   const [selectedYears, setSelectedYears] = useState<number[]>([]);
-  const [viewMode, setViewMode] = useState<'month' | 'category'>('month');
+  const [viewMode, setViewMode] = useState<'month' | 'category' | 'year'>('month');
   const [averageData, setAverageData] = useState<AverageExpenses | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showAllCategories, setShowAllCategories] = useState(false);
 
   // Update selected years when availableYears changes (e.g., after data loads)
   // Default to the most recent 3 years available
@@ -73,8 +74,10 @@ export function AverageExpensesChart({ userId, availableYears }: AverageExpenses
 
     setLoading(true);
     try {
+      // 'year' view uses 'month' API mode since it only needs yearly totals which are always included
+      const apiViewMode = viewMode === 'year' ? 'month' : viewMode;
       const data = await summaryApi.getAverageExpenses(userId, {
-        viewMode,
+        viewMode: apiViewMode,
         years: selectedYears,
       });
       setAverageData(data);
@@ -164,7 +167,12 @@ export function AverageExpensesChart({ userId, availableYears }: AverageExpenses
   });
 
   // Prepare chart data for category view
-  const categoryChartData = averageData.categoryAverages.slice(0, MAX_CHART_CATEGORIES).map((c) => {
+  const categoriesToShow = showAllCategories
+    ? averageData.categoryAverages
+    : averageData.categoryAverages.slice(0, MAX_CHART_CATEGORIES);
+  const hasMoreCategories = averageData.categoryAverages.length > MAX_CHART_CATEGORIES;
+
+  const categoryChartData = categoriesToShow.map((c) => {
     const dataPoint: Record<string, string | number> = {
       name:
         c.categoryName.length > CATEGORY_NAME_MAX_LENGTH
@@ -182,6 +190,15 @@ export function AverageExpensesChart({ userId, availableYears }: AverageExpenses
     return dataPoint;
   });
 
+  // Prepare chart data for yearly view - shows yearly totals as a trend
+  const yearlyChartData = averageData.yearlyData
+    .slice()
+    .sort((a, b) => a.year - b.year)
+    .map((y) => ({
+      name: y.year.toString(),
+      Total: y.total,
+    }));
+
   return (
     <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
       <CardHeader className="space-y-4">
@@ -198,7 +215,7 @@ export function AverageExpensesChart({ userId, availableYears }: AverageExpenses
           {/* View Mode Toggle */}
           <Tabs
             value={viewMode}
-            onValueChange={(v) => setViewMode(v as 'month' | 'category')}
+            onValueChange={(v) => setViewMode(v as 'month' | 'category' | 'year')}
             className="w-full sm:w-auto"
           >
             <TabsList className="h-9 w-full sm:w-auto">
@@ -207,6 +224,9 @@ export function AverageExpensesChart({ userId, availableYears }: AverageExpenses
               </TabsTrigger>
               <TabsTrigger value="category" className="flex-1 text-xs sm:flex-none">
                 By Category
+              </TabsTrigger>
+              <TabsTrigger value="year" className="flex-1 text-xs sm:flex-none">
+                By Year
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -326,15 +346,12 @@ export function AverageExpensesChart({ userId, availableYears }: AverageExpenses
                   />
                 </LineChart>
               </ResponsiveContainer>
-            ) : (
+            ) : viewMode === 'year' ? (
               <ResponsiveContainer width="100%" height={350}>
-                <LineChart data={categoryChartData}>
+                <LineChart data={yearlyChartData}>
                   <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
                   <XAxis
                     dataKey="name"
-                    angle={-25}
-                    textAnchor="end"
-                    height={70}
                     tick={{ fill: '#cbd5f5', fontSize: 12 }}
                     axisLine={{ stroke: 'rgba(255,255,255,0.2)' }}
                     tickLine={false}
@@ -357,34 +374,112 @@ export function AverageExpensesChart({ userId, availableYears }: AverageExpenses
                     itemStyle={{ color: '#e2e8f0' }}
                   />
                   <Legend wrapperStyle={{ color: '#cbd5f5' }} />
-                  {/* Individual year lines */}
-                  {averageData.yearlyData.map((yearData) => (
-                    <Line
-                      key={yearData.year}
-                      type="monotone"
-                      dataKey={yearData.year.toString()}
-                      name={yearData.year.toString()}
-                      stroke={
-                        YEAR_COLORS[availableYears.indexOf(yearData.year) % YEAR_COLORS.length]
-                      }
-                      strokeWidth={2}
-                      dot={{ r: 4 }}
-                      activeDot={{ r: 6 }}
-                    />
-                  ))}
+                  <Line
+                    type="monotone"
+                    dataKey="Total"
+                    name="Yearly Total"
+                    stroke={YEAR_COLORS[0]}
+                    strokeWidth={3}
+                    dot={{ r: 6, fill: YEAR_COLORS[0] }}
+                    activeDot={{ r: 8 }}
+                  />
                   {/* Average line */}
                   <Line
                     type="monotone"
-                    dataKey="Average"
+                    dataKey={() => averageData.totalAverage}
                     name="Average"
                     stroke={AVERAGE_LINE_COLOR}
-                    strokeWidth={3}
+                    strokeWidth={2}
                     strokeDasharray="5 5"
-                    dot={{ r: 4, fill: AVERAGE_LINE_COLOR }}
-                    activeDot={{ r: 6 }}
+                    dot={false}
                   />
                 </LineChart>
               </ResponsiveContainer>
+            ) : (
+              <>
+                {/* Show All Toggle for Category View */}
+                {hasMoreCategories && (
+                  <div className="flex justify-end mb-2">
+                    <button
+                      onClick={() => setShowAllCategories(!showAllCategories)}
+                      className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showAllCategories ? (
+                        <>
+                          <ChevronUp className="h-4 w-4" />
+                          Show top {MAX_CHART_CATEGORIES}
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown className="h-4 w-4" />
+                          Show all {averageData.categoryAverages.length} categories
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+                <ResponsiveContainer
+                  width="100%"
+                  height={showAllCategories ? Math.max(350, categoriesToShow.length * 35) : 350}
+                >
+                  <LineChart data={categoryChartData}>
+                    <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
+                    <XAxis
+                      dataKey="name"
+                      angle={-25}
+                      textAnchor="end"
+                      height={70}
+                      tick={{ fill: '#cbd5f5', fontSize: 12 }}
+                      axisLine={{ stroke: 'rgba(255,255,255,0.2)' }}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      tickFormatter={(value) => `$${value}`}
+                      tick={{ fill: '#cbd5f5' }}
+                      axisLine={{ stroke: 'rgba(255,255,255,0.2)' }}
+                      tickLine={false}
+                    />
+                    <Tooltip
+                      formatter={(value) => formatCurrency(Number(value))}
+                      contentStyle={{
+                        backgroundColor: '#0f172a',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: 12,
+                        color: '#e2e8f0',
+                      }}
+                      labelStyle={{ color: '#e2e8f0' }}
+                      itemStyle={{ color: '#e2e8f0' }}
+                    />
+                    <Legend wrapperStyle={{ color: '#cbd5f5' }} />
+                    {/* Individual year lines */}
+                    {averageData.yearlyData.map((yearData) => (
+                      <Line
+                        key={yearData.year}
+                        type="monotone"
+                        dataKey={yearData.year.toString()}
+                        name={yearData.year.toString()}
+                        stroke={
+                          YEAR_COLORS[availableYears.indexOf(yearData.year) % YEAR_COLORS.length]
+                        }
+                        strokeWidth={2}
+                        dot={{ r: 4 }}
+                        activeDot={{ r: 6 }}
+                      />
+                    ))}
+                    {/* Average line */}
+                    <Line
+                      type="monotone"
+                      dataKey="Average"
+                      name="Average"
+                      stroke={AVERAGE_LINE_COLOR}
+                      strokeWidth={3}
+                      strokeDasharray="5 5"
+                      dot={{ r: 4, fill: AVERAGE_LINE_COLOR }}
+                      activeDot={{ r: 6 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </>
             )}
           </TabsContent>
 
@@ -405,6 +500,52 @@ export function AverageExpensesChart({ userId, availableYears }: AverageExpenses
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+            ) : viewMode === 'year' ? (
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium text-muted-foreground">Yearly Totals</h4>
+                <div className="grid gap-2 md:grid-cols-3 lg:grid-cols-4">
+                  {averageData.yearlyData
+                    .slice()
+                    .sort((a, b) => b.year - a.year)
+                    .map((y, index) => (
+                      <div
+                        key={y.year}
+                        className="rounded-lg border border-border/60 bg-card/30 p-3"
+                      >
+                        <div
+                          className="text-sm font-medium"
+                          style={{
+                            color: YEAR_COLORS[availableYears.indexOf(y.year) % YEAR_COLORS.length],
+                          }}
+                        >
+                          {y.year}
+                        </div>
+                        <div className="mt-1 text-lg font-semibold">{formatCurrency(y.total)}</div>
+                        {index < averageData.yearlyData.length - 1 && (
+                          <div className="mt-1 text-xs text-muted-foreground">
+                            {(() => {
+                              const sortedData = averageData.yearlyData
+                                .slice()
+                                .sort((a, b) => b.year - a.year);
+                              const prevYear = sortedData[index + 1];
+                              if (prevYear && prevYear.total > 0) {
+                                const diff = y.total - prevYear.total;
+                                const pctChange = (diff / prevYear.total) * 100;
+                                return (
+                                  <span className={diff < 0 ? 'text-green-400' : 'text-red-400'}>
+                                    {diff > 0 ? '+' : ''}
+                                    {pctChange.toFixed(1)}% vs {prevYear.year}
+                                  </span>
+                                );
+                              }
+                              return null;
+                            })()}
+                          </div>
+                        )}
+                      </div>
+                    ))}
                 </div>
               </div>
             ) : (

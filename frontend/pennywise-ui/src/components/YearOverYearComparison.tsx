@@ -9,7 +9,15 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { YearOverYearComparison as YearOverYearComparisonType } from '@/lib/api';
 import { summaryApi } from '@/lib/api';
-import { ArrowDownRight, ArrowUpRight, Calendar, TrendingDown, TrendingUp } from 'lucide-react';
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  Calendar,
+  ChevronDown,
+  ChevronUp,
+  TrendingDown,
+  TrendingUp,
+} from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import {
   Bar,
@@ -50,6 +58,7 @@ export function YearOverYearComparison({ userId, availableYears }: YearOverYearC
   const [selectedPreviousYear, setSelectedPreviousYear] = useState(currentYear - 1);
   const [comparison, setComparison] = useState<YearOverYearComparisonType | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showAllCategories, setShowAllCategories] = useState(false);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -111,7 +120,12 @@ export function YearOverYearComparison({ userId, availableYears }: YearOverYearC
     comparison;
 
   // Prepare chart data for category comparison
-  const categoryChartData = categoryComparisons.slice(0, MAX_CHART_CATEGORIES).map((cat) => ({
+  const categoriesToShow = showAllCategories
+    ? categoryComparisons
+    : categoryComparisons.slice(0, MAX_CHART_CATEGORIES);
+  const hasMoreCategories = categoryComparisons.length > MAX_CHART_CATEGORIES;
+
+  const categoryChartData = categoriesToShow.map((cat) => ({
     name:
       cat.categoryName.length > CATEGORY_NAME_MAX_LENGTH
         ? cat.categoryName.slice(0, CATEGORY_NAME_MAX_LENGTH) + '...'
@@ -292,8 +306,32 @@ export function YearOverYearComparison({ userId, availableYears }: YearOverYearC
               </div>
             ) : (
               <div className="space-y-4">
+                {/* Show All Toggle */}
+                {hasMoreCategories && (
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => setShowAllCategories(!showAllCategories)}
+                      className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showAllCategories ? (
+                        <>
+                          <ChevronUp className="h-4 w-4" />
+                          Show top {MAX_CHART_CATEGORIES}
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown className="h-4 w-4" />
+                          Show all {categoryComparisons.length} categories
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
                 {/* Category Bar Chart */}
-                <ResponsiveContainer width="100%" height={300}>
+                <ResponsiveContainer
+                  width="100%"
+                  height={showAllCategories ? Math.max(300, categoriesToShow.length * 35) : 300}
+                >
                   <BarChart data={categoryChartData}>
                     <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
                     <XAxis
