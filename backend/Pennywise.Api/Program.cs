@@ -46,6 +46,7 @@ builder.Services.AddScoped<INetWorthService, NetWorthService>();
 builder.Services.AddScoped<IRecurringTransactionService, RecurringTransactionService>();
 builder.Services.AddScoped<ITagService, TagService>();
 builder.Services.AddScoped<ISplitwiseService, SplitwiseService>();
+builder.Services.AddScoped<ICapitalOneImportService, CapitalOneImportService>();
 
 // Register background services
 builder.Services.AddHostedService<RecurringTransactionProcessor>();
