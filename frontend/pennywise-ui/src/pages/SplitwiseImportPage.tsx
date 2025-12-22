@@ -49,6 +49,13 @@ export default function SplitwiseImportPage() {
   const { isAuthenticated } = useAuth();
   const { toast } = useToast();
 
+  const getDefaultStartDate = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    return `${year}-${month}-01`;
+  };
+
   // Configuration status
   const [isConfigured, setIsConfigured] = useState<boolean | null>(null);
   const [splitwiseUser, setSplitwiseUser] = useState<SplitwiseCurrentUser | null>(null);
@@ -63,7 +70,7 @@ export default function SplitwiseImportPage() {
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
 
   // Date filter state
-  const [startDate, setStartDate] = useState('');
+  const [startDate, setStartDate] = useState(getDefaultStartDate);
   const [endDate, setEndDate] = useState('');
 
   // Preview and import state
