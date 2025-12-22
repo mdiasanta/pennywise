@@ -45,12 +45,14 @@ builder.Services.AddScoped<IAssetSnapshotImportService, AssetSnapshotImportServi
 builder.Services.AddScoped<INetWorthService, NetWorthService>();
 builder.Services.AddScoped<IRecurringTransactionService, RecurringTransactionService>();
 builder.Services.AddScoped<ITagService, TagService>();
+builder.Services.AddScoped<ISplitwiseService, SplitwiseService>();
 
 // Register background services
 builder.Services.AddHostedService<RecurringTransactionProcessor>();
 
 // Register Google token validator
 builder.Services.AddHttpClient("GoogleTokenValidator");
+builder.Services.AddHttpClient("SplitwiseApi");
 builder.Services.AddScoped<IGoogleTokenValidator, GoogleTokenValidator>();
 
 // Add cookie authentication

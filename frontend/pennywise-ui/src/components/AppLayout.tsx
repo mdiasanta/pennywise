@@ -11,6 +11,7 @@ import {
   Home,
   Menu,
   Palette,
+  Split,
   Tag,
   TrendingUp,
   Wallet,
@@ -32,6 +33,7 @@ const navItems: NavItem[] = [
   { to: '/categories', label: 'Categories', icon: Palette },
   { to: '/tags', label: 'Tags', icon: Tag },
   { to: '/networth', label: 'Net Worth', icon: TrendingUp },
+  { to: '/splitwise', label: 'Splitwise Import', icon: Split },
 ];
 
 interface AppLayoutProps {

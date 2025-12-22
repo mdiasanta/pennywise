@@ -229,7 +229,9 @@ public class PennywiseDbContext : DbContext
             new Category { Id = 4, Name = "Entertainment", Description = "Movies, games, hobbies, and recreation", Color = "#FFA07A", CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
             new Category { Id = 5, Name = "Bills & Utilities", Description = "Rent, electricity, water, internet", Color = "#98D8C8", CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
             new Category { Id = 6, Name = "Healthcare", Description = "Medical expenses, pharmacy, insurance", Color = "#F7DC6F", CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
-            new Category { Id = 7, Name = "Other", Description = "Miscellaneous expenses", Color = "#B19CD9", CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) }
+            new Category { Id = 7, Name = "Other", Description = "Miscellaneous expenses", Color = "#B19CD9", CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+            new Category { Id = 8, Name = "Vacation", Description = "Travel, lodging, and vacations", Color = "#11ff00", CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+            new Category { Id = 9, Name = "Alcohol", Description = "Alcoholic beverages and bar tabs", Color = "#ff0026", CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) }
         );
     }
 }
