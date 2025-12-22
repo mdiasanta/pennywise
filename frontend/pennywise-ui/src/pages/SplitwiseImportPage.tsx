@@ -610,7 +610,8 @@ export default function SplitwiseImportPage() {
                   >
                     splitwise
                   </Badge>{' '}
-                  and categorized as <span className="font-semibold">Alcohol</span> by default.
+                  and categorized automatically based on the Splitwise category (falling back to{' '}
+                  <span className="font-semibold">Other</span> when there isn’t a clear match).
                 </p>
               </div>
 
