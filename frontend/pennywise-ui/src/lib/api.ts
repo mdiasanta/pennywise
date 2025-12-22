@@ -1464,3 +1464,123 @@ export const tagApi = {
     return handleResponse<void>(response);
   },
 };
+
+// Splitwise Types
+export interface SplitwiseCurrentUser {
+  id: number;
+  firstName: string;
+  lastName?: string;
+  email?: string;
+  displayName: string;
+}
+
+export interface SplitwiseGroupMember {
+  id: number;
+  firstName: string;
+  lastName?: string;
+  email?: string;
+  displayName: string;
+}
+
+export interface SplitwiseGroup {
+  id: number;
+  name: string;
+  createdAt?: string;
+  updatedAt?: string;
+  members: SplitwiseGroupMember[];
+}
+
+export interface SplitwiseGroupsResponse {
+  groups: SplitwiseGroup[];
+}
+
+export interface SplitwiseExpensePreview {
+  id: number;
+  description: string;
+  totalCost: number;
+  userOwes: number;
+  date: string;
+  splitwiseCategory?: string;
+  paidBy?: string;
+  isPayment: boolean;
+  isDuplicate: boolean;
+  statusMessage?: string;
+  canImport: boolean;
+}
+
+export interface SplitwiseImportResponse {
+  dryRun: boolean;
+  groupName: string;
+  userName: string;
+  startDate?: string;
+  endDate?: string;
+  totalExpenses: number;
+  paymentsIgnored: number;
+  duplicatesFound: number;
+  importableCount: number;
+  importedCount: number;
+  totalAmount: number;
+  expenses: SplitwiseExpensePreview[];
+}
+
+export interface SplitwiseImportRequest {
+  apiKey: string;
+  groupId: number;
+  splitwiseUserId: number;
+  startDate?: string;
+  endDate?: string;
+  selectedExpenseIds?: number[];
+}
+
+// Splitwise API
+export const splitwiseApi = {
+  async validateApiKey(apiKey: string): Promise<SplitwiseCurrentUser> {
+    const response = await fetch(`${API_BASE_URL}/splitwise/validate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ apiKey }),
+      credentials: 'include',
+    });
+    return handleResponse<SplitwiseCurrentUser>(response);
+  },
+
+  async getGroups(apiKey: string): Promise<SplitwiseGroupsResponse> {
+    const response = await fetch(`${API_BASE_URL}/splitwise/groups`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ apiKey }),
+      credentials: 'include',
+    });
+    return handleResponse<SplitwiseGroupsResponse>(response);
+  },
+
+  async getGroupMembers(apiKey: string, groupId: number): Promise<SplitwiseGroupMember[]> {
+    const response = await fetch(`${API_BASE_URL}/splitwise/groups/${groupId}/members`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ apiKey }),
+      credentials: 'include',
+    });
+    return handleResponse<SplitwiseGroupMember[]>(response);
+  },
+
+  async previewImport(request: SplitwiseImportRequest): Promise<SplitwiseImportResponse> {
+    const response = await fetch(`${API_BASE_URL}/splitwise/preview`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+      credentials: 'include',
+    });
+    return handleResponse<SplitwiseImportResponse>(response);
+  },
+
+  async importExpenses(request: SplitwiseImportRequest): Promise<SplitwiseImportResponse> {
+    const response = await fetch(`${API_BASE_URL}/splitwise/import`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+      credentials: 'include',
+    });
+    return handleResponse<SplitwiseImportResponse>(response);
+  },
+};

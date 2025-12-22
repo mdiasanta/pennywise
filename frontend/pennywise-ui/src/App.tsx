@@ -10,6 +10,7 @@ import DashboardPage from './pages/DashboardPage';
 import ExpensesPage from './pages/ExpensesPage';
 import HomePage from './pages/HomePage';
 import NetWorthPage from './pages/NetWorthPage';
+import SplitwiseImportPage from './pages/SplitwiseImportPage';
 import TagsPage from './pages/TagsPage';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
@@ -27,6 +28,7 @@ function App() {
               <Route path="/categories" element={<CategoriesPage />} />
               <Route path="/tags" element={<TagsPage />} />
               <Route path="/networth" element={<NetWorthPage />} />
+              <Route path="/splitwise" element={<SplitwiseImportPage />} />
             </Routes>
             <Toaster />
             <OfflineIndicator />
