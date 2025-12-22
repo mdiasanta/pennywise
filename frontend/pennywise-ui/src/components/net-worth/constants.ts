@@ -116,7 +116,9 @@ export const getAvailableYearsFromDate = (earliestDate: string | null): number[]
   const years: number[] = [];
 
   if (earliestDate) {
-    const earliestYear = new Date(earliestDate).getFullYear();
+    // Parse year directly from ISO date string to avoid timezone issues
+    // e.g., "2023-01-15" -> 2023 (don't use new Date() which can shift dates)
+    const earliestYear = parseInt(earliestDate.substring(0, 4), 10);
     for (let year = currentYear; year >= earliestYear; year--) {
       years.push(year);
     }

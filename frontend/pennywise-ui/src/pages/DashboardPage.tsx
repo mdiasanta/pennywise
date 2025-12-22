@@ -1,4 +1,5 @@
 import { AppLayout } from '@/components/AppLayout';
+import { AverageExpensesChart } from '@/components/AverageExpensesChart';
 import { GoogleSignInButton } from '@/components/GoogleSignInButton';
 import {
   getAvailableYearsFromDate,
@@ -861,6 +862,14 @@ export default function DashboardPage() {
         {/* Year-over-Year Comparison */}
         {user && (
           <YearOverYearComparison
+            userId={user.id}
+            availableYears={getAvailableYearsFromDate(earliestDate)}
+          />
+        )}
+
+        {/* Average Expenses Chart */}
+        {user && (
+          <AverageExpensesChart
             userId={user.id}
             availableYears={getAvailableYearsFromDate(earliestDate)}
           />

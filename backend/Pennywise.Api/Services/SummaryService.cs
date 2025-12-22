@@ -225,4 +225,142 @@ public class SummaryService : ISummaryService
             MonthlyData = monthlyData
         };
     }
+
+    // Default number of years to include when none are specified
+    private const int DefaultYearsToInclude = 2;
+
+    public async Task<AverageExpensesResponseDto> GetAverageExpensesAsync(int userId, AverageExpensesRequestDto request)
+    {
+        var isCategoryMode = request.ViewMode?.ToLowerInvariant() == "category";
+        var selectedYears = request.Years?.Distinct().OrderBy(y => y).ToList() ?? [];
+
+        if (selectedYears.Count == 0)
+        {
+            // Default to current year and previous year(s)
+            var currentYear = DateTime.UtcNow.Year;
+            selectedYears = Enumerable.Range(currentYear - DefaultYearsToInclude + 1, DefaultYearsToInclude).ToList();
+        }
+
+        // Calculate date range for all selected years
+        var minYear = selectedYears.Min();
+        var maxYear = selectedYears.Max();
+        var startDate = new DateTime(minYear, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var endDate = new DateTime(maxYear, 12, 31, 23, 59, 59, DateTimeKind.Utc);
+
+        // Fetch expenses for all selected years
+        var allExpenses = await _context.Expenses
+            .AsNoTracking()
+            .Include(e => e.Category)
+            .Where(e => e.UserId == userId && e.Date >= startDate && e.Date <= endDate)
+            .ToListAsync();
+
+        // Filter to only selected years
+        var filteredExpenses = allExpenses
+            .Where(e => selectedYears.Contains(e.Date.Year))
+            .ToList();
+
+        var enUS = new CultureInfo("en-US");
+        var yearCount = selectedYears.Count;
+
+        // Build yearly data for line chart
+        var yearlyData = selectedYears.Select(year =>
+        {
+            var yearExpenses = filteredExpenses.Where(e => e.Date.Year == year).ToList();
+
+            var monthlyData = Enumerable.Range(1, 12).Select(month =>
+            {
+                var monthStart = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
+                var monthEnd = monthStart.AddMonths(1).AddTicks(-1);
+                var amount = yearExpenses.Where(e => e.Date >= monthStart && e.Date <= monthEnd).Sum(e => e.Amount);
+
+                return new MonthlyExpenseDataDto
+                {
+                    Month = month,
+                    MonthName = enUS.DateTimeFormat.GetAbbreviatedMonthName(month),
+                    Amount = amount
+                };
+            }).ToList();
+
+            var categoryData = yearExpenses
+                .Where(e => e.Category != null)
+                .GroupBy(e => new { e.Category!.Id, e.Category.Name, e.Category.Color })
+                .Select(g => new CategoryExpenseDataDto
+                {
+                    CategoryId = g.Key.Id,
+                    CategoryName = g.Key.Name,
+                    CategoryColor = g.Key.Color,
+                    Amount = g.Sum(e => e.Amount)
+                })
+                .OrderByDescending(c => c.Amount)
+                .ToList();
+
+            return new YearlyExpenseDataDto
+            {
+                Year = year,
+                Total = yearExpenses.Sum(e => e.Amount),
+                MonthlyData = monthlyData,
+                CategoryData = categoryData
+            };
+        }).ToList();
+
+        // Calculate monthly averages
+        var monthlyAverages = Enumerable.Range(1, 12).Select(month =>
+        {
+            var monthAmounts = yearlyData
+                .Select(y => y.MonthlyData.FirstOrDefault(m => m.Month == month)?.Amount ?? 0)
+                .ToList();
+
+            return new AverageExpensesByMonthDto
+            {
+                Month = month,
+                MonthName = enUS.DateTimeFormat.GetAbbreviatedMonthName(month),
+                Average = yearCount > 0 ? Math.Round(monthAmounts.Sum() / yearCount, 2) : 0,
+                Min = monthAmounts.Count > 0 ? monthAmounts.Min() : 0,
+                Max = monthAmounts.Count > 0 ? monthAmounts.Max() : 0
+            };
+        }).ToList();
+
+        // Calculate category averages
+        var allCategories = filteredExpenses
+            .Where(e => e.Category != null)
+            .Select(e => new { e.Category!.Id, e.Category.Name, e.Category.Color })
+            .Distinct()
+            .ToList();
+
+        var categoryAverages = allCategories.Select(cat =>
+        {
+            var categoryAmounts = selectedYears.Select(year =>
+            {
+                var yearData = yearlyData.FirstOrDefault(y => y.Year == year);
+                return yearData?.CategoryData.FirstOrDefault(c => c.CategoryId == cat.Id)?.Amount ?? 0;
+            }).ToList();
+
+            return new AverageExpensesByCategoryDto
+            {
+                CategoryId = cat.Id,
+                CategoryName = cat.Name,
+                CategoryColor = cat.Color,
+                Average = yearCount > 0 ? Math.Round(categoryAmounts.Sum() / yearCount, 2) : 0,
+                Min = categoryAmounts.Count > 0 ? categoryAmounts.Min() : 0,
+                Max = categoryAmounts.Count > 0 ? categoryAmounts.Max() : 0
+            };
+        })
+        .OrderByDescending(c => c.Average)
+        .ToList();
+
+        // Calculate total average
+        var totalAverage = yearCount > 0
+            ? Math.Round(yearlyData.Sum(y => y.Total) / yearCount, 2)
+            : 0;
+
+        return new AverageExpensesResponseDto
+        {
+            ViewMode = isCategoryMode ? "Category" : "Month",
+            SelectedYears = selectedYears,
+            TotalAverage = totalAverage,
+            MonthlyAverages = monthlyAverages,
+            CategoryAverages = categoryAverages,
+            YearlyData = yearlyData
+        };
+    }
 }
