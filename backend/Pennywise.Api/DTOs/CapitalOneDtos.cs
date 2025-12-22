@@ -40,6 +40,12 @@ public record CapitalOneImportRequest
     /// If provided, the import will use the specified Pennywise CategoryId for that row.
     /// </summary>
     public List<CapitalOneExpenseCategoryOverrideDto>? CategoryOverrides { get; init; }
+
+    /// <summary>
+    /// Optional per-expense amount splits chosen by the user in the preview UI.
+    /// If provided, the import will divide the amount by the specified value for that row.
+    /// </summary>
+    public List<CapitalOneExpenseAmountSplitDto>? AmountSplits { get; init; }
 }
 
 /// <summary>
@@ -49,6 +55,16 @@ public record CapitalOneExpenseCategoryOverrideDto
 {
     public required int RowNumber { get; init; }
     public required int CategoryId { get; init; }
+}
+
+/// <summary>
+/// Per-expense amount split divisor.
+/// When provided, the imported amount will be divided by this value.
+/// </summary>
+public record CapitalOneExpenseAmountSplitDto
+{
+    public required int RowNumber { get; init; }
+    public required int SplitBy { get; init; }
 }
 
 /// <summary>

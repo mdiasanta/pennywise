@@ -86,7 +86,8 @@ public class CapitalOneController : ControllerBase
         IFormFile file,
         [FromForm] string cardType,
         [FromForm] string? selectedRowNumbers,
-        [FromForm] string? categoryOverrides)
+        [FromForm] string? categoryOverrides,
+        [FromForm] string? amountSplits)
     {
         var userId = GetUserId();
         if (userId == null)
@@ -138,6 +139,22 @@ public class CapitalOneController : ControllerBase
             }
         }
 
+        // Parse amount splits
+        List<CapitalOneExpenseAmountSplitDto>? parsedAmountSplits = null;
+        if (!string.IsNullOrWhiteSpace(amountSplits))
+        {
+            try
+            {
+                parsedAmountSplits = System.Text.Json.JsonSerializer.Deserialize<List<CapitalOneExpenseAmountSplitDto>>(
+                    amountSplits,
+                    new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            }
+            catch
+            {
+                return BadRequest("Invalid format for amountSplits");
+            }
+        }
+
         try
         {
             await using var stream = file.OpenReadStream();
@@ -147,7 +164,8 @@ public class CapitalOneController : ControllerBase
                 UserId = userId.Value,
                 DryRun = false,
                 SelectedRowNumbers = parsedRowNumbers,
-                CategoryOverrides = parsedOverrides
+                CategoryOverrides = parsedOverrides,
+                AmountSplits = parsedAmountSplits
             };
 
             var result = await _capitalOneImportService.ImportAsync(stream, file.FileName, request);

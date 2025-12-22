@@ -1608,6 +1608,11 @@ export interface CapitalOneExpenseCategoryOverride {
   categoryId: number;
 }
 
+export interface CapitalOneExpenseAmountSplit {
+  rowNumber: number;
+  splitBy: number;
+}
+
 export interface CapitalOneImportResponse {
   dryRun: boolean;
   cardType: string;
@@ -1624,10 +1629,7 @@ export interface CapitalOneImportResponse {
 
 // Capital One API
 export const capitalOneApi = {
-  async previewImport(
-    file: File,
-    cardType: CapitalOneCardType
-  ): Promise<CapitalOneImportResponse> {
+  async previewImport(file: File, cardType: CapitalOneCardType): Promise<CapitalOneImportResponse> {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('cardType', cardType);
@@ -1650,7 +1652,8 @@ export const capitalOneApi = {
     file: File,
     cardType: CapitalOneCardType,
     selectedRowNumbers?: number[],
-    categoryOverrides?: CapitalOneExpenseCategoryOverride[]
+    categoryOverrides?: CapitalOneExpenseCategoryOverride[],
+    amountSplits?: CapitalOneExpenseAmountSplit[]
   ): Promise<CapitalOneImportResponse> {
     const formData = new FormData();
     formData.append('file', file);
@@ -1662,6 +1665,10 @@ export const capitalOneApi = {
 
     if (categoryOverrides && categoryOverrides.length > 0) {
       formData.append('categoryOverrides', JSON.stringify(categoryOverrides));
+    }
+
+    if (amountSplits && amountSplits.length > 0) {
+      formData.append('amountSplits', JSON.stringify(amountSplits));
     }
 
     const response = await fetch(`${API_BASE_URL}/capitalone/import`, {

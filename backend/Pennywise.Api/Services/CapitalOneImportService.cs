@@ -40,7 +40,7 @@ public class CapitalOneImportService : ICapitalOneImportService
     {
         // Parse the CSV
         var parsedRows = ParseCsv(fileStream);
-        
+
         if (parsedRows.Count == 0)
         {
             return new CapitalOneImportResponseDto
@@ -88,7 +88,7 @@ public class CapitalOneImportService : ICapitalOneImportService
         {
             // Check if this is a credit (payment/refund) - these have values in the Credit column
             var isCredit = row.CreditAmount.HasValue && row.CreditAmount.Value > 0;
-            
+
             // Get the debit amount (expense)
             var amount = row.DebitAmount ?? 0;
 
@@ -96,9 +96,9 @@ public class CapitalOneImportService : ICapitalOneImportService
             var mappedCategoryName = MapCapitalOneCategoryToPennywise(row.Category);
             var mappedCategory = GetCategoryByName(categoriesByName, mappedCategoryName) ?? fallbackCategory;
 
-            // Check for duplicates
-            var duplicateKey = BuildDuplicateKey(row.TransactionDate.Date, amount, row.Description);
-            var isDuplicate = existingKeys.Contains(duplicateKey);
+            // Check for duplicates - check both original amount and common split amounts
+            // This catches items that were previously imported with a split (e.g., $12 split by 2 = $6)
+            var isDuplicate = IsDuplicateWithSplits(existingKeys, row.TransactionDate.Date, amount, row.Description);
 
             if (isCredit)
                 creditsSkipped++;
@@ -149,6 +149,11 @@ public class CapitalOneImportService : ICapitalOneImportService
                 .GroupBy(o => o.RowNumber)
                 .ToDictionary(g => g.Key, g => g.Last().CategoryId);
 
+            var splitsByRowNumber = (request.AmountSplits ?? new List<CapitalOneExpenseAmountSplitDto>())
+                .Where(s => s.SplitBy > 1)
+                .GroupBy(s => s.RowNumber)
+                .ToDictionary(g => g.Key, g => g.Last().SplitBy);
+
             foreach (var expense in importableExpenses)
             {
                 var mappedCategoryName = MapCapitalOneCategoryToPennywise(expense.CapitalOneCategory);
@@ -162,11 +167,18 @@ public class CapitalOneImportService : ICapitalOneImportService
                     category = overrideCategory;
                 }
 
+                // Apply amount split if specified
+                var finalAmount = expense.Amount;
+                if (splitsByRowNumber.TryGetValue(expense.RowNumber, out var splitBy) && splitBy > 1)
+                {
+                    finalAmount = Math.Round(expense.Amount / splitBy, 2);
+                }
+
                 var newExpense = new Expense
                 {
                     Title = expense.Description,
                     Description = $"Imported from Capital One {request.CardType}. Card ending in {expense.CardNumber}. Original category: {expense.CapitalOneCategory}",
-                    Amount = expense.Amount,
+                    Amount = finalAmount,
                     Date = DateTime.SpecifyKind(expense.TransactionDate.Date, DateTimeKind.Utc),
                     UserId = request.UserId,
                     CategoryId = category.Id,
@@ -199,7 +211,7 @@ public class CapitalOneImportService : ICapitalOneImportService
     {
         stream.Position = 0;
         using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, leaveOpen: true);
-        
+
         var headerLine = reader.ReadLine();
         if (string.IsNullOrWhiteSpace(headerLine))
             return new List<ParsedCapitalOneRow>();
@@ -232,7 +244,7 @@ public class CapitalOneImportService : ICapitalOneImportService
                 continue;
 
             var values = SplitCsvLine(line);
-            
+
             var transactionDateStr = GetValue(values, headerIndices, "Transaction Date");
             var postedDateStr = GetValue(values, headerIndices, "Posted Date");
             var cardNo = GetValue(values, headerIndices, "Card No.");
@@ -339,6 +351,30 @@ public class CapitalOneImportService : ICapitalOneImportService
     private static string BuildDuplicateKey(DateTime date, decimal amount, string title)
     {
         return $"{date:yyyy-MM-dd}|{Math.Round(amount, 2)}|{title.Trim().ToLowerInvariant()}";
+    }
+
+    /// <summary>
+    /// Checks if an expense with the given date/amount/title already exists,
+    /// accounting for common split divisors (2-10). This catches items that were
+    /// previously imported with a split (e.g., a $12 expense split by 3 = $4).
+    /// </summary>
+    private static bool IsDuplicateWithSplits(HashSet<string> existingKeys, DateTime date, decimal amount, string title)
+    {
+        // Check exact match first (no split)
+        var exactKey = BuildDuplicateKey(date, amount, title);
+        if (existingKeys.Contains(exactKey))
+            return true;
+
+        // Check common split divisors (2-10) to catch previously split imports
+        for (int divisor = 2; divisor <= 10; divisor++)
+        {
+            var splitAmount = Math.Round(amount / divisor, 2);
+            var splitKey = BuildDuplicateKey(date, splitAmount, title);
+            if (existingKeys.Contains(splitKey))
+                return true;
+        }
+
+        return false;
     }
 
     private async Task<Tag> EnsureCardTagAsync(int userId, CapitalOneCardType cardType)

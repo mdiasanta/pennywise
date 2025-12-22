@@ -57,6 +57,7 @@ export default function CreditCardImportPage() {
   const [selectedCategoryByRowNumber, setSelectedCategoryByRowNumber] = useState<
     Record<number, number>
   >({});
+  const [splitByRowNumber, setSplitByRowNumber] = useState<Record<number, number>>({});
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -65,6 +66,7 @@ export default function CreditCardImportPage() {
       setPreview(null);
       setSelectedRowNumbers(new Set());
       setSelectedCategoryByRowNumber({});
+      setSplitByRowNumber({});
     }
   };
 
@@ -82,6 +84,7 @@ export default function CreditCardImportPage() {
     setPreview(null);
     setSelectedRowNumbers(new Set());
     setSelectedCategoryByRowNumber({});
+    setSplitByRowNumber({});
 
     try {
       const result = await capitalOneApi.previewImport(selectedFile, cardType);
@@ -95,7 +98,9 @@ export default function CreditCardImportPage() {
       setSelectedCategoryByRowNumber(initialCategorySelection);
 
       // Auto-select all importable expenses
-      const importableRowNumbers = result.expenses.filter((e) => e.canImport).map((e) => e.rowNumber);
+      const importableRowNumbers = result.expenses
+        .filter((e) => e.canImport)
+        .map((e) => e.rowNumber);
       setSelectedRowNumbers(new Set(importableRowNumbers));
 
       toast({
@@ -136,11 +141,20 @@ export default function CreditCardImportPage() {
           return expense ? o.categoryId !== expense.mappedCategoryId : false;
         });
 
+      // Build amount splits for selected expenses that have split values
+      const amountSplits = Object.entries(splitByRowNumber)
+        .filter(([rowNumber]) => selectedRowNumbers.has(parseInt(rowNumber, 10)))
+        .map(([rowNumber, splitBy]) => ({
+          rowNumber: parseInt(rowNumber, 10),
+          splitBy,
+        }));
+
       const result = await capitalOneApi.importExpenses(
         selectedFile,
         cardType,
         Array.from(selectedRowNumbers),
-        categoryOverrides.length > 0 ? categoryOverrides : undefined
+        categoryOverrides.length > 0 ? categoryOverrides : undefined,
+        amountSplits.length > 0 ? amountSplits : undefined
       );
 
       toast({
@@ -159,7 +173,16 @@ export default function CreditCardImportPage() {
     } finally {
       setIsImporting(false);
     }
-  }, [preview, selectedFile, cardType, selectedRowNumbers, selectedCategoryByRowNumber, toast, handlePreview]);
+  }, [
+    preview,
+    selectedFile,
+    cardType,
+    selectedRowNumbers,
+    selectedCategoryByRowNumber,
+    splitByRowNumber,
+    toast,
+    handlePreview,
+  ]);
 
   const toggleExpenseSelection = (rowNumber: number, canImport: boolean) => {
     if (!canImport) return;
@@ -180,10 +203,32 @@ export default function CreditCardImportPage() {
     }));
   };
 
+  const setSplitBy = (rowNumber: number, splitBy: number | undefined) => {
+    setSplitByRowNumber((prev) => {
+      const newState = { ...prev };
+      if (splitBy === undefined || splitBy <= 1) {
+        delete newState[rowNumber];
+      } else {
+        newState[rowNumber] = splitBy;
+      }
+      return newState;
+    });
+  };
+
+  const getEffectiveAmount = (expense: CapitalOneExpensePreview) => {
+    const splitBy = splitByRowNumber[expense.rowNumber];
+    if (splitBy && splitBy > 1) {
+      return expense.amount / splitBy;
+    }
+    return expense.amount;
+  };
+
   const toggleSelectAll = () => {
     if (!preview) return;
 
-    const importableRowNumbers = preview.expenses.filter((e) => e.canImport).map((e) => e.rowNumber);
+    const importableRowNumbers = preview.expenses
+      .filter((e) => e.canImport)
+      .map((e) => e.rowNumber);
 
     if (selectedRowNumbers.size === importableRowNumbers.length) {
       setSelectedRowNumbers(new Set());
@@ -268,7 +313,8 @@ export default function CreditCardImportPage() {
             <CardHeader className="text-center">
               <CardTitle className="text-2xl">Sign in to import from Capital One</CardTitle>
               <CardDescription className="text-muted-foreground">
-                Connect your account to import expenses from your Capital One credit card statements.
+                Connect your account to import expenses from your Capital One credit card
+                statements.
               </CardDescription>
             </CardHeader>
             <CardContent className="flex justify-center">
@@ -413,7 +459,7 @@ export default function CreditCardImportPage() {
                     {formatCurrency(
                       preview.expenses
                         .filter((e) => selectedRowNumbers.has(e.rowNumber))
-                        .reduce((sum, e) => sum + e.amount, 0)
+                        .reduce((sum, e) => sum + getEffectiveAmount(e), 0)
                     )}
                   </p>
                 </div>
@@ -471,6 +517,7 @@ export default function CreditCardImportPage() {
                         <TableHead className="text-muted-foreground">C1 Category</TableHead>
                         <TableHead className="text-muted-foreground">Pennywise Category</TableHead>
                         <TableHead className="text-right text-muted-foreground">Amount</TableHead>
+                        <TableHead className="w-20 text-muted-foreground">Split By</TableHead>
                         <TableHead className="text-muted-foreground">Status</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -534,7 +581,33 @@ export default function CreditCardImportPage() {
                             </Select>
                           </TableCell>
                           <TableCell className="text-right font-semibold text-foreground">
-                            {formatCurrency(expense.amount)}
+                            {splitByRowNumber[expense.rowNumber] &&
+                            splitByRowNumber[expense.rowNumber] > 1 ? (
+                              <div className="flex flex-col items-end">
+                                <span className="text-xs text-muted-foreground line-through">
+                                  {formatCurrency(expense.amount)}
+                                </span>
+                                <span>{formatCurrency(getEffectiveAmount(expense))}</span>
+                              </div>
+                            ) : (
+                              formatCurrency(expense.amount)
+                            )}
+                          </TableCell>
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <Input
+                              type="number"
+                              min="1"
+                              placeholder=""
+                              value={splitByRowNumber[expense.rowNumber] || ''}
+                              onChange={(e) => {
+                                const value = e.target.value
+                                  ? parseInt(e.target.value, 10)
+                                  : undefined;
+                                setSplitBy(expense.rowNumber, value);
+                              }}
+                              disabled={!expense.canImport}
+                              className="h-8 w-16 border-border/60 bg-card text-center text-foreground"
+                            />
                           </TableCell>
                           <TableCell>{getStatusBadge(expense)}</TableCell>
                         </TableRow>
@@ -561,7 +634,7 @@ export default function CreditCardImportPage() {
                       {formatCurrency(
                         preview.expenses
                           .filter((e) => selectedRowNumbers.has(e.rowNumber))
-                          .reduce((sum, e) => sum + e.amount, 0)
+                          .reduce((sum, e) => sum + getEffectiveAmount(e), 0)
                       )}
                     </p>
                   </div>
