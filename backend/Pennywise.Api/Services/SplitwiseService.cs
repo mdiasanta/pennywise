@@ -181,6 +181,8 @@ public class SplitwiseService : ISplitwiseService
 
         if (expensesResult?.Expenses == null || expensesResult.Expenses.Count == 0)
         {
+            var availableCategories = (await _categoryRepository.GetAllAsync(request.UserId)).ToList();
+
             return new SplitwiseImportResponseDto
             {
                 DryRun = request.DryRun,
@@ -194,7 +196,8 @@ public class SplitwiseService : ISplitwiseService
                 ImportableCount = 0,
                 ImportedCount = 0,
                 TotalAmount = 0,
-                Expenses = new List<SplitwiseExpensePreviewDto>()
+                Expenses = new List<SplitwiseExpensePreviewDto>(),
+                AvailableCategories = availableCategories.Select(MapToDto).ToList()
             };
         }
 
@@ -203,6 +206,21 @@ public class SplitwiseService : ISplitwiseService
         var existingKeys = existingExpenses
             .Select(e => BuildDuplicateKey(e.Date.Date, e.Amount, e.Title))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        // Load Pennywise categories once for mapping + dropdown options
+        var categories = (await _categoryRepository.GetAllAsync(request.UserId)).ToList();
+        if (categories.Count == 0)
+            throw new InvalidOperationException("No categories exist. Create at least one category before importing.");
+
+        var categoriesByName = categories
+            .GroupBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+
+        var categoriesById = categories
+            .GroupBy(c => c.Id)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        var fallbackCategory = GetCategoryByName(categoriesByName, FallbackCategoryName) ?? categories.First();
 
         var previewExpenses = new List<SplitwiseExpensePreviewDto>();
         int paymentsIgnored = 0;
@@ -236,6 +254,10 @@ public class SplitwiseService : ISplitwiseService
             // Get Splitwise category
             var categoryName = expense.Category?.Name;
 
+            // Map to Pennywise category
+            var mappedCategoryName = MapSplitwiseCategoryToPennywise(categoryName);
+            var mappedCategory = GetCategoryByName(categoriesByName, mappedCategoryName) ?? fallbackCategory;
+
             // Check for duplicates
             var duplicateKey = BuildDuplicateKey(expenseDate.Date, owedShare, description);
             var isDuplicate = existingKeys.Contains(duplicateKey);
@@ -253,6 +275,8 @@ public class SplitwiseService : ISplitwiseService
                 UserOwes = owedShare,
                 Date = expenseDate,
                 SplitwiseCategory = categoryName,
+                MappedCategoryId = mappedCategory.Id,
+                MappedCategoryName = mappedCategory.Name,
                 PaidBy = payerName,
                 IsPayment = isPayment,
                 IsDuplicate = isDuplicate,
@@ -283,22 +307,22 @@ public class SplitwiseService : ISplitwiseService
             // Ensure the "splitwise" tag exists
             var splitwiseTag = await EnsureSplitwiseTagAsync(request.UserId);
 
-            // Load categories once and map Splitwise category -> Pennywise category per expense
-            var categories = (await _categoryRepository.GetAllAsync(request.UserId)).ToList();
-            var categoriesByName = categories
-                .GroupBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
-
-            var fallbackCategory = GetCategoryByName(categoriesByName, FallbackCategoryName)
-                                   ?? categories.FirstOrDefault();
-
-            if (fallbackCategory == null)
-                throw new InvalidOperationException("No categories exist. Create at least one category before importing.");
+            var overridesByExpenseId = (request.CategoryOverrides ?? new List<SplitwiseExpenseCategoryOverrideDto>())
+                .GroupBy(o => o.ExpenseId)
+                .ToDictionary(g => g.Key, g => g.Last().CategoryId);
 
             foreach (var expense in importableExpenses)
             {
                 var mappedCategoryName = MapSplitwiseCategoryToPennywise(expense.SplitwiseCategory);
-                var category = GetCategoryByName(categoriesByName, mappedCategoryName) ?? fallbackCategory;
+                var mappedCategory = GetCategoryByName(categoriesByName, mappedCategoryName) ?? fallbackCategory;
+
+                // If the user selected a category override in the UI, honor it (when valid).
+                var category = mappedCategory;
+                if (overridesByExpenseId.TryGetValue(expense.Id, out var overrideCategoryId) &&
+                    categoriesById.TryGetValue(overrideCategoryId, out var overrideCategory))
+                {
+                    category = overrideCategory;
+                }
 
                 var newExpense = new Expense
                 {
@@ -330,7 +354,22 @@ public class SplitwiseService : ISplitwiseService
             ImportableCount = importableExpenses.Count,
             ImportedCount = importedCount,
             TotalAmount = totalAmount,
-            Expenses = previewExpenses
+            Expenses = previewExpenses,
+            AvailableCategories = categories.Select(MapToDto).ToList()
+        };
+    }
+
+    private static CategoryDto MapToDto(Category category)
+    {
+        return new CategoryDto
+        {
+            Id = category.Id,
+            Name = category.Name,
+            Description = category.Description,
+            Color = category.Color,
+            CreatedAt = category.CreatedAt,
+            UpdatedAt = category.UpdatedAt,
+            IsDefault = category.UserId == null
         };
     }
 

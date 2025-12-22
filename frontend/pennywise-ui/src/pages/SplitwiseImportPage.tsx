@@ -71,6 +71,9 @@ export default function SplitwiseImportPage() {
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [selectedExpenseIds, setSelectedExpenseIds] = useState<Set<number>>(new Set());
+  const [selectedCategoryByExpenseId, setSelectedCategoryByExpenseId] = useState<
+    Record<number, number>
+  >({});
 
   const checkStatus = useCallback(async () => {
     setIsCheckingStatus(true);
@@ -143,6 +146,7 @@ export default function SplitwiseImportPage() {
     setIsPreviewLoading(true);
     setPreview(null);
     setSelectedExpenseIds(new Set());
+    setSelectedCategoryByExpenseId({});
 
     try {
       const result = await splitwiseApi.previewImport({
@@ -153,6 +157,13 @@ export default function SplitwiseImportPage() {
       });
 
       setPreview(result);
+
+      // Initialize mapped-category selection to the server-provided default mapping
+      const initialCategorySelection: Record<number, number> = {};
+      result.expenses.forEach((expense) => {
+        initialCategorySelection[expense.id] = expense.mappedCategoryId;
+      });
+      setSelectedCategoryByExpenseId(initialCategorySelection);
 
       // Auto-select all importable expenses
       const importableIds = result.expenses.filter((e) => e.canImport).map((e) => e.id);
@@ -185,12 +196,24 @@ export default function SplitwiseImportPage() {
 
     setIsImporting(true);
     try {
+      const categoryOverrides = preview.expenses
+        .filter((e) => selectedExpenseIds.has(e.id) && e.canImport)
+        .map((e) => ({
+          expenseId: e.id,
+          categoryId: selectedCategoryByExpenseId[e.id] ?? e.mappedCategoryId,
+        }))
+        .filter((o) => {
+          const expense = preview.expenses.find((e) => e.id === o.expenseId);
+          return expense ? o.categoryId !== expense.mappedCategoryId : false;
+        });
+
       const result = await splitwiseApi.importExpenses({
         groupId: parseInt(selectedGroupId, 10),
         splitwiseUserId: parseInt(selectedMemberId, 10),
         startDate: startDate || undefined,
         endDate: endDate || undefined,
         selectedExpenseIds: Array.from(selectedExpenseIds),
+        categoryOverrides: categoryOverrides.length > 0 ? categoryOverrides : undefined,
       });
 
       toast({
@@ -221,6 +244,13 @@ export default function SplitwiseImportPage() {
       newSelection.add(id);
     }
     setSelectedExpenseIds(newSelection);
+  };
+
+  const setExpenseCategory = (expenseId: number, categoryId: number) => {
+    setSelectedCategoryByExpenseId((prev) => ({
+      ...prev,
+      [expenseId]: categoryId,
+    }));
   };
 
   const toggleSelectAll = () => {
@@ -406,10 +436,7 @@ export default function SplitwiseImportPage() {
               <div className="rounded-lg border border-success/60 bg-success/10 p-3">
                 <p className="text-sm text-success-foreground">
                   <CheckCircle2 className="mr-2 inline h-4 w-4" />
-                  Logged in as <span className="font-semibold">{splitwiseUser.displayName}</span>
-                  {splitwiseUser.email && (
-                    <span className="text-muted-foreground"> ({splitwiseUser.email})</span>
-                  )}
+                  Logged in to Splitwise
                 </p>
               </div>
             )}
@@ -611,7 +638,8 @@ export default function SplitwiseImportPage() {
                     splitwise
                   </Badge>{' '}
                   and categorized automatically based on the Splitwise category (falling back to{' '}
-                  <span className="font-semibold">Other</span> when there isn’t a clear match).
+                  <span className="font-semibold">Other</span> when there isn’t a clear match). You
+                  can adjust the category per expense below.
                 </p>
               </div>
 
@@ -636,6 +664,7 @@ export default function SplitwiseImportPage() {
                         <TableHead className="text-muted-foreground">Description</TableHead>
                         <TableHead className="text-muted-foreground">Paid By</TableHead>
                         <TableHead className="text-muted-foreground">Category</TableHead>
+                        <TableHead className="text-muted-foreground">Pennywise Category</TableHead>
                         <TableHead className="text-right text-muted-foreground">Total</TableHead>
                         <TableHead className="text-right text-muted-foreground">You Owe</TableHead>
                         <TableHead className="text-muted-foreground">Status</TableHead>
@@ -669,6 +698,31 @@ export default function SplitwiseImportPage() {
                           <TableCell className="text-muted-foreground">{expense.paidBy}</TableCell>
                           <TableCell className="text-muted-foreground">
                             {expense.splitwiseCategory || '-'}
+                          </TableCell>
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <Select
+                              value={String(
+                                selectedCategoryByExpenseId[expense.id] ?? expense.mappedCategoryId
+                              )}
+                              onValueChange={(value) =>
+                                setExpenseCategory(expense.id, parseInt(value, 10))
+                              }
+                              disabled={!expense.canImport}
+                            >
+                              <SelectTrigger
+                                className="border-border/60 bg-card text-foreground"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <SelectValue placeholder={expense.mappedCategoryName} />
+                              </SelectTrigger>
+                              <SelectContent className="border-border/60 bg-card text-foreground">
+                                {preview.availableCategories.map((category) => (
+                                  <SelectItem key={category.id} value={category.id.toString()}>
+                                    {category.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </TableCell>
                           <TableCell className="text-right text-muted-foreground">
                             {formatCurrency(expense.totalCost)}

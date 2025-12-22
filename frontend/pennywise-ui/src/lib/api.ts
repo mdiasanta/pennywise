@@ -1506,6 +1506,8 @@ export interface SplitwiseExpensePreview {
   userOwes: number;
   date: string;
   splitwiseCategory?: string;
+  mappedCategoryId: number;
+  mappedCategoryName: string;
   paidBy?: string;
   isPayment: boolean;
   isDuplicate: boolean;
@@ -1526,6 +1528,7 @@ export interface SplitwiseImportResponse {
   importedCount: number;
   totalAmount: number;
   expenses: SplitwiseExpensePreview[];
+  availableCategories: Category[];
 }
 
 export interface SplitwiseImportRequest {
@@ -1534,6 +1537,7 @@ export interface SplitwiseImportRequest {
   startDate?: string;
   endDate?: string;
   selectedExpenseIds?: number[];
+  categoryOverrides?: Array<{ expenseId: number; categoryId: number }>;
 }
 
 // Splitwise API
