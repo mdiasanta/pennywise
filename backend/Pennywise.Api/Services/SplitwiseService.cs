@@ -12,6 +12,15 @@ public class SplitwiseService : ISplitwiseService
 {
     private const string SplitwiseApiBaseUrl = "https://secure.splitwise.com/api/v3.0";
     private const string SplitwiseTagName = "splitwise";
+
+    private const string FoodAndDiningCategoryName = "Food & Dining";
+    private const string TransportationCategoryName = "Transportation";
+    private const string ShoppingCategoryName = "Shopping";
+    private const string EntertainmentCategoryName = "Entertainment";
+    private const string BillsAndUtilitiesCategoryName = "Bills & Utilities";
+    private const string HealthcareCategoryName = "Healthcare";
+    private const string VacationCategoryName = "Vacation";
+    private const string AlcoholCategoryName = "Alcohol";
     private const string FallbackCategoryName = "Other";
 
     private readonly IHttpClientFactory _httpClientFactory;
@@ -383,29 +392,37 @@ public class SplitwiseService : ISplitwiseService
 
         var normalized = splitwiseCategory.Trim().ToLowerInvariant();
 
+        // Vacation / Travel
+        if (ContainsAny(normalized, "travel", "vacation", "trip", "hotel", "lodging", "airbnb", "resort"))
+            return VacationCategoryName;
+
+        // Alcohol
+        if (ContainsAny(normalized, "alcohol", "bar", "beer", "wine", "liquor", "drinks", "cocktail"))
+            return AlcoholCategoryName;
+
         // Food & Dining
-        if (ContainsAny(normalized, "food", "dining", "restaurant", "grocer", "coffee", "bar", "alcohol", "drink"))
-            return "Food & Dining";
+        if (ContainsAny(normalized, "food", "dining", "restaurant", "grocer", "grocery", "coffee"))
+            return FoodAndDiningCategoryName;
 
         // Transportation
         if (ContainsAny(normalized, "transport", "transit", "gas", "fuel", "uber", "lyft", "taxi", "parking", "car", "train", "bus", "flight", "airfare"))
-            return "Transportation";
+            return TransportationCategoryName;
 
         // Bills & Utilities
         if (ContainsAny(normalized, "bill", "utility", "rent", "mortgage", "electric", "water", "internet", "phone", "cell", "wifi", "cable", "subscription", "insurance"))
-            return "Bills & Utilities";
+            return BillsAndUtilitiesCategoryName;
 
         // Healthcare
         if (ContainsAny(normalized, "health", "medical", "doctor", "dent", "pharmacy", "hospital", "therapy", "vision"))
-            return "Healthcare";
+            return HealthcareCategoryName;
 
         // Entertainment
-        if (ContainsAny(normalized, "entertain", "movie", "game", "music", "concert", "sport", "ticket", "hobby", "recreation", "travel", "vacation"))
-            return "Entertainment";
+        if (ContainsAny(normalized, "entertain", "movie", "game", "music", "concert", "sport", "ticket", "hobby", "recreation"))
+            return EntertainmentCategoryName;
 
         // Shopping
         if (ContainsAny(normalized, "shop", "clothing", "electronics", "amazon", "supplies", "home", "furnitur"))
-            return "Shopping";
+            return ShoppingCategoryName;
 
         return FallbackCategoryName;
     }
