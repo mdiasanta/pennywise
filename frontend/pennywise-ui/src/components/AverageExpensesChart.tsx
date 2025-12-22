@@ -160,6 +160,10 @@ export function AverageExpensesChart({ userId, availableYears }: AverageExpenses
     );
   }
 
+  // Filter yearlyData to only include years that are currently selected
+  // This ensures consistency even during state transitions or if API returns extra data
+  const filteredYearlyData = averageData.yearlyData.filter((yd) => selectedYears.includes(yd.year));
+
   // Prepare chart data for monthly view
   const monthlyChartData = averageData.monthlyAverages.map((m) => {
     const dataPoint: Record<string, string | number> = {
@@ -168,7 +172,7 @@ export function AverageExpensesChart({ userId, availableYears }: AverageExpenses
     };
 
     // Add individual year data
-    averageData.yearlyData.forEach((yearData) => {
+    filteredYearlyData.forEach((yearData) => {
       const monthData = yearData.monthlyData.find((md) => md.month === m.month);
       dataPoint[yearData.year.toString()] = monthData?.amount || 0;
     });
@@ -192,7 +196,7 @@ export function AverageExpensesChart({ userId, availableYears }: AverageExpenses
     };
 
     // Add individual year data
-    averageData.yearlyData.forEach((yearData) => {
+    filteredYearlyData.forEach((yearData) => {
       const catData = yearData.categoryData.find((cd) => cd.categoryId === c.categoryId);
       dataPoint[yearData.year.toString()] = catData?.amount || 0;
     });
@@ -201,7 +205,7 @@ export function AverageExpensesChart({ userId, availableYears }: AverageExpenses
   });
 
   // Prepare chart data for yearly view - shows yearly totals as a trend
-  const yearlyChartData = averageData.yearlyData
+  const yearlyChartData = filteredYearlyData
     .slice()
     .sort((a, b) => a.year - b.year)
     .map((y) => ({
@@ -219,7 +223,7 @@ export function AverageExpensesChart({ userId, availableYears }: AverageExpenses
 
   // Monthly standard deviation (across all selected years for each month)
   const monthlyStdDevData = averageData.monthlyAverages.map((m) => {
-    const monthValues = averageData.yearlyData
+    const monthValues = filteredYearlyData
       .map((yd) => yd.monthlyData.find((md) => md.month === m.month)?.amount || 0)
       .filter((v) => v > 0); // Only include months with data
     const stdDev = calculateStdDev(monthValues, m.average);
@@ -235,7 +239,7 @@ export function AverageExpensesChart({ userId, availableYears }: AverageExpenses
   });
 
   // Yearly standard deviation (across all yearly totals)
-  const yearlyTotals = averageData.yearlyData.map((y) => y.total);
+  const yearlyTotals = filteredYearlyData.map((y) => y.total);
   const yearlyMean = yearlyTotals.reduce((a, b) => a + b, 0) / yearlyTotals.length;
   const yearlyStdDev = calculateStdDev(yearlyTotals, yearlyMean);
 
@@ -470,7 +474,7 @@ export function AverageExpensesChart({ userId, availableYears }: AverageExpenses
                     }}
                   />
                   {/* Individual year lines */}
-                  {averageData.yearlyData.map((yearData) => (
+                  {filteredYearlyData.map((yearData) => (
                     <Line
                       key={yearData.year}
                       type="monotone"
@@ -631,7 +635,7 @@ export function AverageExpensesChart({ userId, availableYears }: AverageExpenses
                     />
                     <Legend wrapperStyle={{ color: '#cbd5f5' }} />
                     {/* Individual year lines */}
-                    {averageData.yearlyData.map((yearData) => (
+                    {filteredYearlyData.map((yearData) => (
                       <Line
                         key={yearData.year}
                         type="monotone"
@@ -772,7 +776,7 @@ export function AverageExpensesChart({ userId, availableYears }: AverageExpenses
                 )}
                 <h4 className="text-sm font-medium text-muted-foreground">Yearly Totals</h4>
                 <div className="grid gap-2 md:grid-cols-3 lg:grid-cols-4">
-                  {averageData.yearlyData
+                  {filteredYearlyData
                     .slice()
                     .sort((a, b) => b.year - a.year)
                     .map((y, index) => {
@@ -811,10 +815,10 @@ export function AverageExpensesChart({ userId, availableYears }: AverageExpenses
                           <div className="mt-1 text-lg font-semibold">
                             {formatCurrency(y.total)}
                           </div>
-                          {index < averageData.yearlyData.length - 1 && (
+                          {index < filteredYearlyData.length - 1 && (
                             <div className="mt-1 text-xs text-muted-foreground">
                               {(() => {
-                                const sortedData = averageData.yearlyData
+                                const sortedData = filteredYearlyData
                                   .slice()
                                   .sort((a, b) => b.year - a.year);
                                 const prevYear = sortedData[index + 1];
