@@ -2,12 +2,19 @@ import { PWAInstallButton } from '@/components/PWAInstallButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { UserMenu } from '@/components/UserMenu';
 import { Button } from '@/components/ui/button';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   BarChart3,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   CreditCard,
+  Download,
   Home,
   Menu,
   Palette,
@@ -26,6 +33,12 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
 }
 
+interface NavGroup {
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  items: NavItem[];
+}
+
 const navItems: NavItem[] = [
   { to: '/', label: 'Home', icon: Home },
   { to: '/dashboard', label: 'Dashboard', icon: BarChart3 },
@@ -33,8 +46,16 @@ const navItems: NavItem[] = [
   { to: '/categories', label: 'Categories', icon: Palette },
   { to: '/tags', label: 'Tags', icon: Tag },
   { to: '/networth', label: 'Net Worth', icon: TrendingUp },
-  { to: '/splitwise', label: 'Splitwise Import', icon: Split },
 ];
+
+const externalImportsGroup: NavGroup = {
+  label: 'External Imports',
+  icon: Download,
+  items: [
+    { to: '/splitwise', label: 'Splitwise Import', icon: Split },
+    { to: '/credit-card-import', label: 'Credit Card Import', icon: CreditCard },
+  ],
+};
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -46,6 +67,10 @@ export function AppLayout({ children, title, description }: AppLayoutProps) {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [externalImportsOpen, setExternalImportsOpen] = useState(() => {
+    // Open by default if we're on an external imports page
+    return externalImportsGroup.items.some((item) => location.pathname.startsWith(item.to));
+  });
 
   const isActive = (path: string) => {
     if (path === '/') {
@@ -53,6 +78,10 @@ export function AppLayout({ children, title, description }: AppLayoutProps) {
     }
     return location.pathname.startsWith(path);
   };
+
+  const isExternalImportsActive = externalImportsGroup.items.some((item) =>
+    isActive(item.to)
+  );
 
   return (
     <div className="relative min-h-screen bg-background text-foreground">
@@ -143,6 +172,86 @@ export function AppLayout({ children, title, description }: AppLayoutProps) {
                 </Link>
               );
             })}
+
+            {/* External Imports Collapsible Group */}
+            {sidebarCollapsed ? (
+              // When collapsed, show individual items with tooltips
+              externalImportsGroup.items.map((item) => {
+                const active = isActive(item.to);
+                return (
+                  <Tooltip key={item.to} delayDuration={0}>
+                    <TooltipTrigger asChild>
+                      <Link to={item.to} onClick={() => setSidebarOpen(false)}>
+                        <Button
+                          variant="ghost"
+                          className={`w-full gap-3 lg:justify-center lg:px-2 justify-start ${
+                            active
+                              ? 'bg-brand text-brand-foreground hover:bg-brand-hover'
+                              : 'text-muted-foreground hover:bg-card/70 hover:text-foreground'
+                          }`}
+                        >
+                          <item.icon className="h-4 w-4 shrink-0" />
+                          <span className="lg:hidden">{item.label}</span>
+                        </Button>
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="hidden lg:block">
+                      {item.label}
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              })
+            ) : (
+              // When expanded, show collapsible group
+              <Collapsible
+                open={externalImportsOpen}
+                onOpenChange={setExternalImportsOpen}
+                className="space-y-1"
+              >
+                <CollapsibleTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className={`w-full gap-3 justify-start ${
+                      isExternalImportsActive
+                        ? 'text-foreground'
+                        : 'text-muted-foreground hover:bg-card/70 hover:text-foreground'
+                    }`}
+                  >
+                    <externalImportsGroup.icon className="h-4 w-4 shrink-0" />
+                    <span className="hidden lg:inline flex-1 text-left">
+                      {externalImportsGroup.label}
+                    </span>
+                    <span className="lg:hidden flex-1 text-left">{externalImportsGroup.label}</span>
+                    <ChevronDown
+                      className={`h-4 w-4 shrink-0 transition-transform duration-200 ${
+                        externalImportsOpen ? 'rotate-180' : ''
+                      }`}
+                    />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-1 pl-4">
+                  {externalImportsGroup.items.map((item) => {
+                    const active = isActive(item.to);
+                    return (
+                      <Link key={item.to} to={item.to} onClick={() => setSidebarOpen(false)}>
+                        <Button
+                          variant="ghost"
+                          className={`w-full gap-3 justify-start ${
+                            active
+                              ? 'bg-brand text-brand-foreground hover:bg-brand-hover'
+                              : 'text-muted-foreground hover:bg-card/70 hover:text-foreground'
+                          }`}
+                        >
+                          <item.icon className="h-4 w-4 shrink-0" />
+                          <span className="hidden lg:inline">{item.label}</span>
+                          <span className="lg:hidden">{item.label}</span>
+                        </Button>
+                      </Link>
+                    );
+                  })}
+                </CollapsibleContent>
+              </Collapsible>
+            )}
           </nav>
 
           {/* Collapse toggle button - desktop only */}

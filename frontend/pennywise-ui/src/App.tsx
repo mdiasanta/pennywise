@@ -6,6 +6,7 @@ import { Toaster } from './components/ui/toaster';
 import { TooltipProvider } from './components/ui/tooltip';
 import { AuthProvider } from './hooks/use-auth';
 import CategoriesPage from './pages/CategoriesPage';
+import CreditCardImportPage from './pages/CreditCardImportPage';
 import DashboardPage from './pages/DashboardPage';
 import ExpensesPage from './pages/ExpensesPage';
 import HomePage from './pages/HomePage';
@@ -29,6 +30,7 @@ function App() {
               <Route path="/tags" element={<TagsPage />} />
               <Route path="/networth" element={<NetWorthPage />} />
               <Route path="/splitwise" element={<SplitwiseImportPage />} />
+              <Route path="/credit-card-import" element={<CreditCardImportPage />} />
             </Routes>
             <Toaster />
             <OfflineIndicator />

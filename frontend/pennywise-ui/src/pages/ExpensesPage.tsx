@@ -63,6 +63,18 @@ const US_TIMEZONES = [
   'America/Puerto_Rico',
 ];
 
+// Helper to get first day of current month in YYYY-MM-DD format
+const getFirstDayOfMonth = () => {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+};
+
+// Helper to get last day of current month in YYYY-MM-DD format
+const getLastDayOfMonth = () => {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+};
+
 export default function ExpensesPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -70,8 +82,8 @@ export default function ExpensesPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [filters, setFilters] = useState({
-    startDate: '',
-    endDate: '',
+    startDate: getFirstDayOfMonth(),
+    endDate: getLastDayOfMonth(),
     categoryId: 'all',
     search: '',
     tagIds: [] as number[],
@@ -198,14 +210,62 @@ export default function ExpensesPage() {
 
   const handleClearFilters = () => {
     const cleared = {
-      startDate: '',
-      endDate: '',
+      startDate: getFirstDayOfMonth(),
+      endDate: getLastDayOfMonth(),
       categoryId: 'all',
       search: '',
       tagIds: [] as number[],
     };
     setFilters(cleared);
     loadData(cleared);
+  };
+
+  // Quick filter handlers for common date ranges
+  const applyQuickFilter = (startDate: string, endDate: string) => {
+    const newFilters = { ...filters, startDate, endDate };
+    setFilters(newFilters);
+    loadData(newFilters);
+  };
+
+  const quickFilters = {
+    thisMonth: () => {
+      applyQuickFilter(getFirstDayOfMonth(), getLastDayOfMonth());
+    },
+    lastMonth: () => {
+      const now = new Date();
+      const firstDay = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+        .toISOString()
+        .split('T')[0];
+      const lastDay = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0];
+      applyQuickFilter(firstDay, lastDay);
+    },
+    last30Days: () => {
+      const end = new Date();
+      const start = new Date();
+      start.setDate(end.getDate() - 30);
+      applyQuickFilter(start.toISOString().split('T')[0], end.toISOString().split('T')[0]);
+    },
+    last90Days: () => {
+      const end = new Date();
+      const start = new Date();
+      start.setDate(end.getDate() - 90);
+      applyQuickFilter(start.toISOString().split('T')[0], end.toISOString().split('T')[0]);
+    },
+    thisYear: () => {
+      const now = new Date();
+      const firstDay = new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0];
+      const lastDay = new Date(now.getFullYear(), 11, 31).toISOString().split('T')[0];
+      applyQuickFilter(firstDay, lastDay);
+    },
+    lastYear: () => {
+      const now = new Date();
+      const firstDay = new Date(now.getFullYear() - 1, 0, 1).toISOString().split('T')[0];
+      const lastDay = new Date(now.getFullYear() - 1, 11, 31).toISOString().split('T')[0];
+      applyQuickFilter(firstDay, lastDay);
+    },
+    allTime: () => {
+      applyQuickFilter('', '');
+    },
   };
 
   const handleExport = async () => {
@@ -1137,6 +1197,70 @@ export default function ExpensesPage() {
                   </Select>
                 </div>
               </div>
+
+              {/* Quick date filters */}
+              <div className="space-y-2">
+                <Label className="text-muted-foreground">Quick filters</Label>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-border/60 bg-card/70 text-foreground hover:bg-card"
+                    onClick={quickFilters.thisMonth}
+                  >
+                    This Month
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-border/60 bg-card/70 text-foreground hover:bg-card"
+                    onClick={quickFilters.lastMonth}
+                  >
+                    Last Month
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-border/60 bg-card/70 text-foreground hover:bg-card"
+                    onClick={quickFilters.last30Days}
+                  >
+                    Last 30 Days
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-border/60 bg-card/70 text-foreground hover:bg-card"
+                    onClick={quickFilters.last90Days}
+                  >
+                    Last 90 Days
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-border/60 bg-card/70 text-foreground hover:bg-card"
+                    onClick={quickFilters.thisYear}
+                  >
+                    This Year
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-border/60 bg-card/70 text-foreground hover:bg-card"
+                    onClick={quickFilters.lastYear}
+                  >
+                    Last Year
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-border/60 bg-card/70 text-foreground hover:bg-card"
+                    onClick={quickFilters.allTime}
+                  >
+                    All Time
+                  </Button>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label className="text-muted-foreground">Filter by tags</Label>
                 <div className="flex flex-wrap gap-2">

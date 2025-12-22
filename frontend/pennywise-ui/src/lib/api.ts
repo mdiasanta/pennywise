@@ -1583,3 +1583,105 @@ export const splitwiseApi = {
     return handleResponse<SplitwiseImportResponse>(response);
   },
 };
+
+// Capital One Types
+export type CapitalOneCardType = 'QuickSilver' | 'VentureX';
+
+export interface CapitalOneExpensePreview {
+  rowNumber: number;
+  transactionDate: string;
+  postedDate: string;
+  cardNumber: string;
+  description: string;
+  capitalOneCategory: string;
+  amount: number;
+  mappedCategoryId: number;
+  mappedCategoryName: string;
+  isCredit: boolean;
+  isDuplicate: boolean;
+  statusMessage?: string;
+  canImport: boolean;
+}
+
+export interface CapitalOneExpenseCategoryOverride {
+  rowNumber: number;
+  categoryId: number;
+}
+
+export interface CapitalOneExpenseAmountSplit {
+  rowNumber: number;
+  splitBy: number;
+}
+
+export interface CapitalOneImportResponse {
+  dryRun: boolean;
+  cardType: string;
+  fileName: string;
+  totalTransactions: number;
+  creditsSkipped: number;
+  duplicatesFound: number;
+  importableCount: number;
+  importedCount: number;
+  totalAmount: number;
+  expenses: CapitalOneExpensePreview[];
+  availableCategories: Category[];
+}
+
+// Capital One API
+export const capitalOneApi = {
+  async previewImport(file: File, cardType: CapitalOneCardType): Promise<CapitalOneImportResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('cardType', cardType);
+
+    const response = await fetch(`${API_BASE_URL}/capitalone/preview`, {
+      method: 'POST',
+      body: formData,
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      const message = await response.text();
+      throw new Error(message || 'Failed to preview import');
+    }
+
+    return response.json() as Promise<CapitalOneImportResponse>;
+  },
+
+  async importExpenses(
+    file: File,
+    cardType: CapitalOneCardType,
+    selectedRowNumbers?: number[],
+    categoryOverrides?: CapitalOneExpenseCategoryOverride[],
+    amountSplits?: CapitalOneExpenseAmountSplit[]
+  ): Promise<CapitalOneImportResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('cardType', cardType);
+
+    if (selectedRowNumbers && selectedRowNumbers.length > 0) {
+      formData.append('selectedRowNumbers', selectedRowNumbers.join(','));
+    }
+
+    if (categoryOverrides && categoryOverrides.length > 0) {
+      formData.append('categoryOverrides', JSON.stringify(categoryOverrides));
+    }
+
+    if (amountSplits && amountSplits.length > 0) {
+      formData.append('amountSplits', JSON.stringify(amountSplits));
+    }
+
+    const response = await fetch(`${API_BASE_URL}/capitalone/import`, {
+      method: 'POST',
+      body: formData,
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      const message = await response.text();
+      throw new Error(message || 'Failed to import expenses');
+    }
+
+    return response.json() as Promise<CapitalOneImportResponse>;
+  },
+};
