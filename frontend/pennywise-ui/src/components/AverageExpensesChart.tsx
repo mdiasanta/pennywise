@@ -47,16 +47,18 @@ export function AverageExpensesChart({ userId, availableYears }: AverageExpenses
   const [averageData, setAverageData] = useState<AverageExpenses | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAllCategories, setShowAllCategories] = useState(false);
+  const [hasInitialized, setHasInitialized] = useState(false);
 
-  // Update selected years when availableYears changes (e.g., after data loads)
-  // Default to the most recent 3 years available
+  // Set default years only once when availableYears first becomes available
+  // Don't re-select if user manually deselects all years
   useEffect(() => {
-    if (availableYears.length > 0 && selectedYears.length === 0) {
+    if (availableYears.length > 0 && !hasInitialized) {
       // availableYears is in descending order (newest first), so slice(0, 3) gets the most recent
       const defaultYears = availableYears.slice(0, 3);
       setSelectedYears(defaultYears.sort((a, b) => a - b));
+      setHasInitialized(true);
     }
-  }, [availableYears, selectedYears.length]);
+  }, [availableYears, hasInitialized]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
