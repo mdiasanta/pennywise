@@ -3,17 +3,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+  Tooltip as UITooltip,
+} from '@/components/ui/tooltip';
 import type { AverageExpenses } from '@/lib/api';
 import { summaryApi } from '@/lib/api';
-import { BarChart3, ChevronDown, ChevronUp, TrendingUp } from 'lucide-react';
+import { BarChart3, ChevronDown, ChevronUp, HelpCircle, TrendingUp } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import {
   CartesianGrid,
   Legend,
   Line,
   LineChart,
+  Tooltip as RechartsTooltip,
+  ReferenceArea,
+  ReferenceLine,
   ResponsiveContainer,
-  Tooltip,
   XAxis,
   YAxis,
 } from 'recharts';
@@ -201,6 +209,55 @@ export function AverageExpensesChart({ userId, availableYears }: AverageExpenses
       Total: y.total,
     }));
 
+  // Calculate standard deviation for monthly averages
+  const calculateStdDev = (values: number[], mean: number): number => {
+    if (values.length < 2) return 0;
+    const squaredDiffs = values.map((v) => Math.pow(v - mean, 2));
+    const avgSquaredDiff = squaredDiffs.reduce((a, b) => a + b, 0) / values.length;
+    return Math.sqrt(avgSquaredDiff);
+  };
+
+  // Monthly standard deviation (across all selected years for each month)
+  const monthlyStdDevData = averageData.monthlyAverages.map((m) => {
+    const monthValues = averageData.yearlyData
+      .map((yd) => yd.monthlyData.find((md) => md.month === m.month)?.amount || 0)
+      .filter((v) => v > 0); // Only include months with data
+    const stdDev = calculateStdDev(monthValues, m.average);
+    return {
+      month: m.month,
+      average: m.average,
+      stdDev,
+      plus1Sigma: m.average + stdDev,
+      minus1Sigma: Math.max(0, m.average - stdDev),
+      plus2Sigma: m.average + 2 * stdDev,
+      minus2Sigma: Math.max(0, m.average - 2 * stdDev),
+    };
+  });
+
+  // Yearly standard deviation (across all yearly totals)
+  const yearlyTotals = averageData.yearlyData.map((y) => y.total);
+  const yearlyMean = yearlyTotals.reduce((a, b) => a + b, 0) / yearlyTotals.length;
+  const yearlyStdDev = calculateStdDev(yearlyTotals, yearlyMean);
+
+  // Add stdDev bands to monthly chart data
+  const monthlyChartDataWithBands = monthlyChartData.map((m, index) => ({
+    ...m,
+    plus1Sigma: monthlyStdDevData[index].plus1Sigma,
+    minus1Sigma: monthlyStdDevData[index].minus1Sigma,
+    plus2Sigma: monthlyStdDevData[index].plus2Sigma,
+    minus2Sigma: monthlyStdDevData[index].minus2Sigma,
+  }));
+
+  // Add stdDev bands to yearly chart data
+  const yearlyChartDataWithBands = yearlyChartData.map((y) => ({
+    ...y,
+    Average: yearlyMean,
+    plus1Sigma: yearlyMean + yearlyStdDev,
+    minus1Sigma: Math.max(0, yearlyMean - yearlyStdDev),
+    plus2Sigma: yearlyMean + 2 * yearlyStdDev,
+    minus2Sigma: Math.max(0, yearlyMean - 2 * yearlyStdDev),
+  }));
+
   return (
     <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
       <CardHeader className="space-y-4">
@@ -292,10 +349,79 @@ export function AverageExpensesChart({ userId, availableYears }: AverageExpenses
           </TabsList>
 
           <TabsContent value="line" className="mt-4">
+            {/* Standard Deviation Legend */}
+            {selectedYears.length >= 2 && (viewMode === 'month' || viewMode === 'year') && (
+              <TooltipProvider>
+                <div className="mb-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                  <span className="font-medium">Std Dev Bands:</span>
+                  <UITooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex cursor-help items-center gap-1">
+                        <div className="h-3 w-6 rounded bg-blue-500/20" />
+                        <span>±1σ (68%)</span>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p className="font-medium">Inner Band (±1 Standard Deviation)</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        About 68% of your spending falls within this range. Values inside this band
+                        are considered typical.
+                      </p>
+                    </TooltipContent>
+                  </UITooltip>
+                  <UITooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex cursor-help items-center gap-1">
+                        <div className="h-3 w-6 rounded bg-blue-500/10" />
+                        <span>±2σ (95%)</span>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p className="font-medium">Outer Band (±2 Standard Deviations)</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        About 95% of your spending falls within this range. Values outside this band
+                        may indicate unusual spending months.
+                      </p>
+                    </TooltipContent>
+                  </UITooltip>
+                  <UITooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="h-3.5 w-3.5 cursor-help text-muted-foreground hover:text-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-sm">
+                      <p className="font-medium">What do these bands mean?</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Standard deviation (σ) measures how much your spending varies from the
+                        average. Spending outside the bands may indicate one-time expenses, seasonal
+                        costs, or changes in spending habits worth reviewing.
+                      </p>
+                    </TooltipContent>
+                  </UITooltip>
+                </div>
+              </TooltipProvider>
+            )}
             {viewMode === 'month' ? (
               <ResponsiveContainer width="100%" height={350}>
-                <LineChart data={monthlyChartData}>
+                <LineChart data={monthlyChartDataWithBands}>
                   <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
+                  {/* ±2σ band (outer, lighter) */}
+                  {selectedYears.length >= 2 && (
+                    <ReferenceArea
+                      y1={Math.min(...monthlyStdDevData.map((d) => d.minus2Sigma))}
+                      y2={Math.max(...monthlyStdDevData.map((d) => d.plus2Sigma))}
+                      fill="#3b82f6"
+                      fillOpacity={0.05}
+                    />
+                  )}
+                  {/* ±1σ band (inner, darker) */}
+                  {selectedYears.length >= 2 && (
+                    <ReferenceArea
+                      y1={Math.min(...monthlyStdDevData.map((d) => d.minus1Sigma))}
+                      y2={Math.max(...monthlyStdDevData.map((d) => d.plus1Sigma))}
+                      fill="#3b82f6"
+                      fillOpacity={0.1}
+                    />
+                  )}
                   <XAxis
                     dataKey="name"
                     tick={{ fill: '#cbd5f5', fontSize: 12 }}
@@ -308,8 +434,18 @@ export function AverageExpensesChart({ userId, availableYears }: AverageExpenses
                     axisLine={{ stroke: 'rgba(255,255,255,0.2)' }}
                     tickLine={false}
                   />
-                  <Tooltip
-                    formatter={(value) => formatCurrency(Number(value))}
+                  <RechartsTooltip
+                    formatter={(value, name) => {
+                      if (
+                        name === 'plus1Sigma' ||
+                        name === 'minus1Sigma' ||
+                        name === 'plus2Sigma' ||
+                        name === 'minus2Sigma'
+                      ) {
+                        return null;
+                      }
+                      return formatCurrency(Number(value));
+                    }}
                     contentStyle={{
                       backgroundColor: '#0f172a',
                       border: '1px solid rgba(255,255,255,0.1)',
@@ -319,7 +455,20 @@ export function AverageExpensesChart({ userId, availableYears }: AverageExpenses
                     labelStyle={{ color: '#e2e8f0' }}
                     itemStyle={{ color: '#e2e8f0' }}
                   />
-                  <Legend wrapperStyle={{ color: '#cbd5f5' }} />
+                  <Legend
+                    wrapperStyle={{ color: '#cbd5f5' }}
+                    formatter={(value) => {
+                      if (
+                        value === 'plus1Sigma' ||
+                        value === 'minus1Sigma' ||
+                        value === 'plus2Sigma' ||
+                        value === 'minus2Sigma'
+                      ) {
+                        return null;
+                      }
+                      return value;
+                    }}
+                  />
                   {/* Individual year lines */}
                   {averageData.yearlyData.map((yearData) => (
                     <Line
@@ -350,8 +499,35 @@ export function AverageExpensesChart({ userId, availableYears }: AverageExpenses
               </ResponsiveContainer>
             ) : viewMode === 'year' ? (
               <ResponsiveContainer width="100%" height={350}>
-                <LineChart data={yearlyChartData}>
+                <LineChart data={yearlyChartDataWithBands}>
                   <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
+                  {/* ±2σ band (outer, lighter) */}
+                  {selectedYears.length >= 2 && (
+                    <ReferenceArea
+                      y1={Math.max(0, yearlyMean - 2 * yearlyStdDev)}
+                      y2={yearlyMean + 2 * yearlyStdDev}
+                      fill="#3b82f6"
+                      fillOpacity={0.05}
+                    />
+                  )}
+                  {/* ±1σ band (inner, darker) */}
+                  {selectedYears.length >= 2 && (
+                    <ReferenceArea
+                      y1={Math.max(0, yearlyMean - yearlyStdDev)}
+                      y2={yearlyMean + yearlyStdDev}
+                      fill="#3b82f6"
+                      fillOpacity={0.1}
+                    />
+                  )}
+                  {/* Average reference line */}
+                  {selectedYears.length >= 2 && (
+                    <ReferenceLine
+                      y={yearlyMean}
+                      stroke={AVERAGE_LINE_COLOR}
+                      strokeDasharray="5 5"
+                      strokeWidth={2}
+                    />
+                  )}
                   <XAxis
                     dataKey="name"
                     tick={{ fill: '#cbd5f5', fontSize: 12 }}
@@ -364,8 +540,19 @@ export function AverageExpensesChart({ userId, availableYears }: AverageExpenses
                     axisLine={{ stroke: 'rgba(255,255,255,0.2)' }}
                     tickLine={false}
                   />
-                  <Tooltip
-                    formatter={(value) => formatCurrency(Number(value))}
+                  <RechartsTooltip
+                    formatter={(value, name) => {
+                      if (
+                        name === 'Average' ||
+                        name === 'plus1Sigma' ||
+                        name === 'minus1Sigma' ||
+                        name === 'plus2Sigma' ||
+                        name === 'minus2Sigma'
+                      ) {
+                        return null;
+                      }
+                      return formatCurrency(Number(value));
+                    }}
                     contentStyle={{
                       backgroundColor: '#0f172a',
                       border: '1px solid rgba(255,255,255,0.1)',
@@ -384,16 +571,6 @@ export function AverageExpensesChart({ userId, availableYears }: AverageExpenses
                     strokeWidth={3}
                     dot={{ r: 6, fill: YEAR_COLORS[0] }}
                     activeDot={{ r: 8 }}
-                  />
-                  {/* Average line */}
-                  <Line
-                    type="monotone"
-                    dataKey={() => averageData.totalAverage}
-                    name="Average"
-                    stroke={AVERAGE_LINE_COLOR}
-                    strokeWidth={2}
-                    strokeDasharray="5 5"
-                    dot={false}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -441,7 +618,7 @@ export function AverageExpensesChart({ userId, availableYears }: AverageExpenses
                       axisLine={{ stroke: 'rgba(255,255,255,0.2)' }}
                       tickLine={false}
                     />
-                    <Tooltip
+                    <RechartsTooltip
                       formatter={(value) => formatCurrency(Number(value))}
                       contentStyle={{
                         backgroundColor: '#0f172a',
@@ -487,67 +664,177 @@ export function AverageExpensesChart({ userId, availableYears }: AverageExpenses
 
           <TabsContent value="details" className="mt-4">
             {viewMode === 'month' ? (
-              <div className="space-y-2">
-                <h4 className="text-sm font-medium text-muted-foreground">Monthly Averages</h4>
-                <div className="grid gap-2 md:grid-cols-3 lg:grid-cols-4">
-                  {averageData.monthlyAverages.map((m) => (
-                    <div
-                      key={m.month}
-                      className="rounded-lg border border-border/60 bg-card/30 p-3"
-                    >
-                      <div className="text-sm font-medium">{m.monthName}</div>
-                      <div className="mt-1 text-lg font-semibold">{formatCurrency(m.average)}</div>
-                      <div className="mt-1 text-xs text-muted-foreground">
-                        Range: {formatCurrency(m.min)} - {formatCurrency(m.max)}
+              <div className="space-y-4">
+                {/* Monthly Stats Summary */}
+                {selectedYears.length >= 2 && (
+                  <div className="rounded-lg border border-border/60 bg-card/50 p-4">
+                    <h4 className="mb-2 text-sm font-medium text-muted-foreground">
+                      Statistical Summary (across {selectedYears.length} years)
+                    </h4>
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      <div>
+                        <div className="text-xs text-muted-foreground">Average Monthly</div>
+                        <div className="text-lg font-semibold">
+                          {formatCurrency(
+                            monthlyStdDevData.reduce((sum, m) => sum + m.average, 0) / 12
+                          )}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-muted-foreground">Avg Std Dev (σ)</div>
+                        <div className="text-lg font-semibold">
+                          {formatCurrency(
+                            monthlyStdDevData.reduce((sum, m) => sum + m.stdDev, 0) / 12
+                          )}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-muted-foreground">Typical Range (±1σ)</div>
+                        <div className="text-sm font-medium">
+                          {formatCurrency(
+                            Math.max(
+                              0,
+                              monthlyStdDevData.reduce((sum, m) => sum + m.average, 0) / 12 -
+                                monthlyStdDevData.reduce((sum, m) => sum + m.stdDev, 0) / 12
+                            )
+                          )}{' '}
+                          -{' '}
+                          {formatCurrency(
+                            monthlyStdDevData.reduce((sum, m) => sum + m.average, 0) / 12 +
+                              monthlyStdDevData.reduce((sum, m) => sum + m.stdDev, 0) / 12
+                          )}
+                        </div>
                       </div>
                     </div>
-                  ))}
+                  </div>
+                )}
+                <h4 className="text-sm font-medium text-muted-foreground">Monthly Averages</h4>
+                <div className="grid gap-2 md:grid-cols-3 lg:grid-cols-4">
+                  {averageData.monthlyAverages.map((m, index) => {
+                    const stdDevInfo = monthlyStdDevData[index];
+                    const isHighVariance =
+                      selectedYears.length >= 2 && stdDevInfo.stdDev > stdDevInfo.average * 0.5;
+                    return (
+                      <div
+                        key={m.month}
+                        className="rounded-lg border border-border/60 bg-card/30 p-3"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="text-sm font-medium">{m.monthName}</div>
+                          {isHighVariance && (
+                            <span className="rounded bg-yellow-500/20 px-1.5 py-0.5 text-xs text-yellow-400">
+                              High variance
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-1 text-lg font-semibold">
+                          {formatCurrency(m.average)}
+                        </div>
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          Range: {formatCurrency(m.min)} - {formatCurrency(m.max)}
+                        </div>
+                        {selectedYears.length >= 2 && (
+                          <div className="mt-1 text-xs text-muted-foreground">
+                            σ: {formatCurrency(stdDevInfo.stdDev)}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ) : viewMode === 'year' ? (
-              <div className="space-y-2">
+              <div className="space-y-4">
+                {/* Yearly Stats Summary */}
+                {selectedYears.length >= 2 && (
+                  <div className="rounded-lg border border-border/60 bg-card/50 p-4">
+                    <h4 className="mb-2 text-sm font-medium text-muted-foreground">
+                      Statistical Summary ({selectedYears.length} years)
+                    </h4>
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      <div>
+                        <div className="text-xs text-muted-foreground">Average Yearly Total</div>
+                        <div className="text-lg font-semibold">{formatCurrency(yearlyMean)}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-muted-foreground">Std Dev (σ)</div>
+                        <div className="text-lg font-semibold">{formatCurrency(yearlyStdDev)}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-muted-foreground">Typical Range (±1σ)</div>
+                        <div className="text-sm font-medium">
+                          {formatCurrency(Math.max(0, yearlyMean - yearlyStdDev))} -{' '}
+                          {formatCurrency(yearlyMean + yearlyStdDev)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <h4 className="text-sm font-medium text-muted-foreground">Yearly Totals</h4>
                 <div className="grid gap-2 md:grid-cols-3 lg:grid-cols-4">
                   {averageData.yearlyData
                     .slice()
                     .sort((a, b) => b.year - a.year)
-                    .map((y, index) => (
-                      <div
-                        key={y.year}
-                        className="rounded-lg border border-border/60 bg-card/30 p-3"
-                      >
+                    .map((y, index) => {
+                      const zScore =
+                        selectedYears.length >= 2 && yearlyStdDev > 0
+                          ? (y.total - yearlyMean) / yearlyStdDev
+                          : 0;
+                      const isOutlier = Math.abs(zScore) > 1.5;
+                      return (
                         <div
-                          className="text-sm font-medium"
-                          style={{
-                            color: YEAR_COLORS[availableYears.indexOf(y.year) % YEAR_COLORS.length],
-                          }}
+                          key={y.year}
+                          className="rounded-lg border border-border/60 bg-card/30 p-3"
                         >
-                          {y.year}
-                        </div>
-                        <div className="mt-1 text-lg font-semibold">{formatCurrency(y.total)}</div>
-                        {index < averageData.yearlyData.length - 1 && (
-                          <div className="mt-1 text-xs text-muted-foreground">
-                            {(() => {
-                              const sortedData = averageData.yearlyData
-                                .slice()
-                                .sort((a, b) => b.year - a.year);
-                              const prevYear = sortedData[index + 1];
-                              if (prevYear && prevYear.total > 0) {
-                                const diff = y.total - prevYear.total;
-                                const pctChange = (diff / prevYear.total) * 100;
-                                return (
-                                  <span className={diff < 0 ? 'text-green-400' : 'text-red-400'}>
-                                    {diff > 0 ? '+' : ''}
-                                    {pctChange.toFixed(1)}% vs {prevYear.year}
-                                  </span>
-                                );
-                              }
-                              return null;
-                            })()}
+                          <div className="flex items-center justify-between">
+                            <div
+                              className="text-sm font-medium"
+                              style={{
+                                color:
+                                  YEAR_COLORS[availableYears.indexOf(y.year) % YEAR_COLORS.length],
+                              }}
+                            >
+                              {y.year}
+                            </div>
+                            {isOutlier && (
+                              <span
+                                className={`rounded px-1.5 py-0.5 text-xs ${
+                                  zScore > 0
+                                    ? 'bg-red-500/20 text-red-400'
+                                    : 'bg-green-500/20 text-green-400'
+                                }`}
+                              >
+                                {zScore > 0 ? 'High' : 'Low'} ({zScore.toFixed(1)}σ)
+                              </span>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    ))}
+                          <div className="mt-1 text-lg font-semibold">
+                            {formatCurrency(y.total)}
+                          </div>
+                          {index < averageData.yearlyData.length - 1 && (
+                            <div className="mt-1 text-xs text-muted-foreground">
+                              {(() => {
+                                const sortedData = averageData.yearlyData
+                                  .slice()
+                                  .sort((a, b) => b.year - a.year);
+                                const prevYear = sortedData[index + 1];
+                                if (prevYear && prevYear.total > 0) {
+                                  const diff = y.total - prevYear.total;
+                                  const pctChange = (diff / prevYear.total) * 100;
+                                  return (
+                                    <span className={diff < 0 ? 'text-green-400' : 'text-red-400'}>
+                                      {diff > 0 ? '+' : ''}
+                                      {pctChange.toFixed(1)}% vs {prevYear.year}
+                                    </span>
+                                  );
+                                }
+                                return null;
+                              })()}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                 </div>
               </div>
             ) : (
