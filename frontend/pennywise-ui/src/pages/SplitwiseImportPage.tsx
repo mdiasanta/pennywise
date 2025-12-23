@@ -607,6 +607,77 @@ export default function SplitwiseImportPage() {
           </CardContent>
         </Card>
 
+        {/* Group and Member Selection Card */}
+        <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Select Group and Member
+            </CardTitle>
+            <CardDescription className="text-muted-foreground">
+              Choose a Splitwise group and the member whose expenses you want to import.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="group" className="text-muted-foreground">
+                  Group
+                </Label>
+                <Select
+                  value={selectedGroupId}
+                  onValueChange={handleGroupChange}
+                  disabled={isLoadingGroups || groups.length === 0}
+                >
+                  <SelectTrigger className="border-border/60 bg-card text-foreground">
+                    <SelectValue placeholder={isLoadingGroups ? 'Loading...' : 'Select a group'} />
+                  </SelectTrigger>
+                  <SelectContent className="border-border/60 bg-card text-foreground">
+                    {groups.map((group) => (
+                      <SelectItem key={group.id} value={group.id.toString()}>
+                        {group.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="member" className="text-muted-foreground">
+                  Import expenses for
+                </Label>
+                <Select
+                  value={selectedMemberId}
+                  onValueChange={setSelectedMemberId}
+                  disabled={!selectedGroupId || isLoadingMembers || members.length === 0}
+                >
+                  <SelectTrigger className="border-border/60 bg-card text-foreground">
+                    <SelectValue
+                      placeholder={
+                        isLoadingMembers
+                          ? 'Loading...'
+                          : !selectedGroupId
+                            ? 'Select a group first'
+                            : 'Select a member'
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent className="border-border/60 bg-card text-foreground">
+                    {members.map((member) => (
+                      <SelectItem key={member.id} value={member.id.toString()}>
+                        {member.displayName}
+                        {member.email && (
+                          <span className="ml-1 text-muted-foreground">({member.email})</span>
+                        )}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Auto-Import Section */}
         <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
           <CardHeader>
@@ -638,7 +709,7 @@ export default function SplitwiseImportPage() {
                 <h4 className="font-semibold text-foreground">Configure New Auto-Import</h4>
                 {!selectedGroupId || !selectedMemberId ? (
                   <p className="text-sm text-muted-foreground">
-                    Please select a group and member in the section below first.
+                    Please select a group and member above first.
                   </p>
                 ) : (
                   <>
@@ -725,7 +796,7 @@ export default function SplitwiseImportPage() {
               <div className="rounded-lg border border-border/60 bg-card/60 p-6 text-center">
                 <Calendar className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
                 <p className="text-muted-foreground">
-                  No auto-imports configured. Select a group and member below, then click "New
+                  No auto-imports configured. Select a group and member above, then click "New
                   Auto-Import" to set up automatic syncing.
                 </p>
               </div>
@@ -809,74 +880,19 @@ export default function SplitwiseImportPage() {
           </CardContent>
         </Card>
 
-        {/* Selection Card */}
+        {/* Manual Import Card */}
         <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Manual Import - Select Group and Member
+              <Upload className="h-5 w-5" />
+              Manual Import
             </CardTitle>
             <CardDescription className="text-muted-foreground">
-              Choose a Splitwise group and the member whose expenses you want to import manually.
+              Preview and import expenses for a specific date range.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <div className="space-y-2">
-                <Label htmlFor="group" className="text-muted-foreground">
-                  Group
-                </Label>
-                <Select
-                  value={selectedGroupId}
-                  onValueChange={handleGroupChange}
-                  disabled={isLoadingGroups || groups.length === 0}
-                >
-                  <SelectTrigger className="border-border/60 bg-card text-foreground">
-                    <SelectValue placeholder={isLoadingGroups ? 'Loading...' : 'Select a group'} />
-                  </SelectTrigger>
-                  <SelectContent className="border-border/60 bg-card text-foreground">
-                    {groups.map((group) => (
-                      <SelectItem key={group.id} value={group.id.toString()}>
-                        {group.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="member" className="text-muted-foreground">
-                  Import expenses for
-                </Label>
-                <Select
-                  value={selectedMemberId}
-                  onValueChange={setSelectedMemberId}
-                  disabled={!selectedGroupId || isLoadingMembers || members.length === 0}
-                >
-                  <SelectTrigger className="border-border/60 bg-card text-foreground">
-                    <SelectValue
-                      placeholder={
-                        isLoadingMembers
-                          ? 'Loading...'
-                          : !selectedGroupId
-                            ? 'Select a group first'
-                            : 'Select a member'
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent className="border-border/60 bg-card text-foreground">
-                    {members.map((member) => (
-                      <SelectItem key={member.id} value={member.id.toString()}>
-                        {member.displayName}
-                        {member.email && (
-                          <span className="ml-1 text-muted-foreground">({member.email})</span>
-                        )}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
+            <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="startDate" className="text-muted-foreground">
                   Start Date (optional)
