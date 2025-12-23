@@ -9,6 +9,12 @@ public class Expense
     public DateTime Date { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+    
+    /// <summary>
+    /// External source identifier (e.g., "splitwise:123456" for Splitwise expense ID 123456)
+    /// Used for robust duplicate detection that survives category changes
+    /// </summary>
+    public string? ExternalSourceId { get; set; }
 
     // Foreign keys
     public int UserId { get; set; }

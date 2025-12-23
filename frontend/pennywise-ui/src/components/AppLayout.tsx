@@ -2,11 +2,7 @@ import { PWAInstallButton } from '@/components/PWAInstallButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { UserMenu } from '@/components/UserMenu';
 import { Button } from '@/components/ui/button';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   BarChart3,
@@ -79,9 +75,7 @@ export function AppLayout({ children, title, description }: AppLayoutProps) {
     return location.pathname.startsWith(path);
   };
 
-  const isExternalImportsActive = externalImportsGroup.items.some((item) =>
-    isActive(item.to)
-  );
+  const isExternalImportsActive = externalImportsGroup.items.some((item) => isActive(item.to));
 
   return (
     <div className="relative min-h-screen bg-background text-foreground">

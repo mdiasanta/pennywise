@@ -1540,6 +1540,46 @@ export interface SplitwiseImportRequest {
   categoryOverrides?: Array<{ expenseId: number; categoryId: number }>;
 }
 
+// Auto-Import Types
+export interface SplitwiseAutoImport {
+  id: number;
+  userId: number;
+  groupId: number;
+  groupName: string;
+  splitwiseUserId: number;
+  splitwiseMemberName: string;
+  startDate: string;
+  frequency: 'Daily' | 'Weekly' | 'Monthly';
+  isActive: boolean;
+  lastRunAt?: string;
+  nextRunAt: string;
+  lastRunImportedCount: number;
+  lastRunError?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateSplitwiseAutoImportRequest {
+  groupId: number;
+  splitwiseUserId: number;
+  startDate: string;
+  frequency?: 'Daily' | 'Weekly' | 'Monthly';
+}
+
+export interface UpdateSplitwiseAutoImportRequest {
+  isActive?: boolean;
+  frequency?: 'Daily' | 'Weekly' | 'Monthly';
+  startDate?: string;
+}
+
+export interface SplitwiseAutoImportRunResult {
+  success: boolean;
+  importedCount: number;
+  duplicatesFound: number;
+  errorMessage?: string;
+  runAt: string;
+}
+
 // Splitwise API
 export const splitwiseApi = {
   async getStatus(): Promise<SplitwiseStatus> {
@@ -1581,6 +1621,60 @@ export const splitwiseApi = {
       credentials: 'include',
     });
     return handleResponse<SplitwiseImportResponse>(response);
+  },
+
+  // Auto-Import Methods
+  async getAutoImports(): Promise<SplitwiseAutoImport[]> {
+    const response = await fetch(`${API_BASE_URL}/splitwise/auto-imports`, {
+      credentials: 'include',
+    });
+    return handleResponse<SplitwiseAutoImport[]>(response);
+  },
+
+  async getAutoImport(id: number): Promise<SplitwiseAutoImport> {
+    const response = await fetch(`${API_BASE_URL}/splitwise/auto-imports/${id}`, {
+      credentials: 'include',
+    });
+    return handleResponse<SplitwiseAutoImport>(response);
+  },
+
+  async createAutoImport(request: CreateSplitwiseAutoImportRequest): Promise<SplitwiseAutoImport> {
+    const response = await fetch(`${API_BASE_URL}/splitwise/auto-imports`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+      credentials: 'include',
+    });
+    return handleResponse<SplitwiseAutoImport>(response);
+  },
+
+  async updateAutoImport(
+    id: number,
+    request: UpdateSplitwiseAutoImportRequest
+  ): Promise<SplitwiseAutoImport> {
+    const response = await fetch(`${API_BASE_URL}/splitwise/auto-imports/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+      credentials: 'include',
+    });
+    return handleResponse<SplitwiseAutoImport>(response);
+  },
+
+  async deleteAutoImport(id: number): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/splitwise/auto-imports/${id}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+    return handleResponse<void>(response);
+  },
+
+  async runAutoImportNow(id: number): Promise<SplitwiseAutoImportRunResult> {
+    const response = await fetch(`${API_BASE_URL}/splitwise/auto-imports/${id}/run`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+    return handleResponse<SplitwiseAutoImportRunResult>(response);
   },
 };
 

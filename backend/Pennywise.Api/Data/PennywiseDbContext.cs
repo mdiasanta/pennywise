@@ -21,6 +21,7 @@ public class PennywiseDbContext : DbContext
     public DbSet<Asset> Assets { get; set; }
     public DbSet<AssetSnapshot> AssetSnapshots { get; set; }
     public DbSet<RecurringTransaction> RecurringTransactions { get; set; }
+    public DbSet<SplitwiseAutoImport> SplitwiseAutoImports { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -65,8 +66,12 @@ public class PennywiseDbContext : DbContext
             entity.Property(e => e.Description).HasMaxLength(1000);
             entity.Property(e => e.Amount).HasPrecision(18, 2);
             entity.Property(e => e.Date).IsRequired();
+            entity.Property(e => e.ExternalSourceId).HasMaxLength(100);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
             entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            
+            // Index for duplicate detection by external source
+            entity.HasIndex(e => new { e.UserId, e.ExternalSourceId });
 
             // Relationships
             entity.HasOne(e => e.User)
@@ -207,6 +212,26 @@ public class PennywiseDbContext : DbContext
             entity.HasIndex(e => e.IsActive);
         });
 
+        // SplitwiseAutoImport configuration
+        modelBuilder.Entity<SplitwiseAutoImport>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.GroupName).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.SplitwiseMemberName).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.LastRunError).HasMaxLength(1000);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+                
+            entity.HasIndex(e => e.NextRunAt);
+            entity.HasIndex(e => e.IsActive);
+            entity.HasIndex(e => new { e.UserId, e.GroupId, e.SplitwiseUserId }).IsUnique();
+        });
+
         // Seed data for asset categories
         modelBuilder.Entity<AssetCategory>().HasData(
             new AssetCategory { Id = 1, Name = "Checking", Description = "Checking accounts", Color = "#4ECDC4", IsLiability = false, SortOrder = 1, CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
@@ -223,7 +248,7 @@ public class PennywiseDbContext : DbContext
 
         // Seed data for categories
         modelBuilder.Entity<Category>().HasData(
-            new Category { Id = 1, Name = "Food & Dining", Description = "Groceries, restaurants, and dining out", Color = "#FF6B6B", CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+            new Category { Id = 1, Name = "Food & Dining", Description = "Restaurants and dining out", Color = "#FF6B6B", CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
             new Category { Id = 2, Name = "Transportation", Description = "Gas, public transport, car maintenance", Color = "#4ECDC4", CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
             new Category { Id = 3, Name = "Shopping", Description = "Clothing, electronics, and general shopping", Color = "#45B7D1", CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
             new Category { Id = 4, Name = "Entertainment", Description = "Movies, games, hobbies, and recreation", Color = "#FFA07A", CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
@@ -231,7 +256,8 @@ public class PennywiseDbContext : DbContext
             new Category { Id = 6, Name = "Healthcare", Description = "Medical expenses, pharmacy, insurance", Color = "#F7DC6F", CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
             new Category { Id = 7, Name = "Other", Description = "Miscellaneous expenses", Color = "#B19CD9", CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
             new Category { Id = 8, Name = "Vacation", Description = "Travel, lodging, and vacations", Color = "#11ff00", CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
-            new Category { Id = 9, Name = "Alcohol", Description = "Alcoholic beverages and bar tabs", Color = "#ff0026", CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) }
+            new Category { Id = 9, Name = "Alcohol", Description = "Alcoholic beverages and bar tabs", Color = "#ff0026", CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+            new Category { Id = 10, Name = "Groceries", Description = "Grocery shopping and supermarket purchases", Color = "#2ECC71", CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) }
         );
     }
 }

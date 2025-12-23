@@ -12,7 +12,9 @@ public class SplitwiseService : ISplitwiseService
 {
     private const string SplitwiseApiBaseUrl = "https://secure.splitwise.com/api/v3.0";
     private const string SplitwiseTagName = "splitwise";
+    private const string SplitwiseSourcePrefix = "splitwise:";
 
+    private const string GroceriesCategoryName = "Groceries";
     private const string FoodAndDiningCategoryName = "Food & Dining";
     private const string TransportationCategoryName = "Transportation";
     private const string ShoppingCategoryName = "Shopping";
@@ -201,11 +203,9 @@ public class SplitwiseService : ISplitwiseService
             };
         }
 
-        // Get existing expenses for duplicate detection
-        var existingExpenses = await _expenseRepository.GetAllAsync(request.UserId);
-        var existingKeys = existingExpenses
-            .Select(e => BuildDuplicateKey(e.Date.Date, e.Amount, e.Title))
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        // Get existing Splitwise source IDs for robust duplicate detection
+        // This survives category changes and other modifications to imported expenses
+        var existingSourceIds = await _expenseRepository.GetExternalSourceIdsAsync(request.UserId, SplitwiseSourcePrefix);
 
         // Load Pennywise categories once for mapping + dropdown options
         var categories = (await _categoryRepository.GetAllAsync(request.UserId)).ToList();
@@ -258,9 +258,9 @@ public class SplitwiseService : ISplitwiseService
             var mappedCategoryName = MapSplitwiseCategoryToPennywise(categoryName);
             var mappedCategory = GetCategoryByName(categoriesByName, mappedCategoryName) ?? fallbackCategory;
 
-            // Check for duplicates
-            var duplicateKey = BuildDuplicateKey(expenseDate.Date, owedShare, description);
-            var isDuplicate = existingKeys.Contains(duplicateKey);
+            // Check for duplicates using Splitwise expense ID (survives category changes)
+            var externalSourceId = $"{SplitwiseSourcePrefix}{expense.Id}";
+            var isDuplicate = existingSourceIds.Contains(externalSourceId);
 
             if (isPayment)
                 paymentsIgnored++;
@@ -332,6 +332,7 @@ public class SplitwiseService : ISplitwiseService
                     Date = DateTime.SpecifyKind(expense.Date.Date, DateTimeKind.Utc),
                     UserId = request.UserId,
                     CategoryId = category.Id,
+                    ExternalSourceId = $"{SplitwiseSourcePrefix}{expense.Id}",
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
@@ -359,6 +360,53 @@ public class SplitwiseService : ISplitwiseService
         };
     }
 
+    public async Task<SplitwiseAutoImportRunResult> RunAutoImportAsync(SplitwiseAutoImportDto autoImport)
+    {
+        if (!IsConfigured)
+        {
+            return new SplitwiseAutoImportRunResult
+            {
+                Success = false,
+                ErrorMessage = "Splitwise is not configured"
+            };
+        }
+
+        try
+        {
+            // Run the import with no end date (from start date to now)
+            var importRequest = new SplitwiseImportRequest
+            {
+                GroupId = autoImport.GroupId,
+                SplitwiseUserId = autoImport.SplitwiseUserId,
+                StartDate = autoImport.StartDate,
+                EndDate = null, // Import up to current date
+                UserId = autoImport.UserId,
+                DryRun = false,
+                SelectedExpenseIds = null, // Import all valid expenses
+                CategoryOverrides = null
+            };
+
+            var result = await ImportExpensesAsync(importRequest);
+
+            return new SplitwiseAutoImportRunResult
+            {
+                Success = true,
+                ImportedCount = result.ImportedCount,
+                DuplicatesFound = result.DuplicatesFound,
+                RunAt = DateTime.UtcNow
+            };
+        }
+        catch (Exception ex)
+        {
+            return new SplitwiseAutoImportRunResult
+            {
+                Success = false,
+                ErrorMessage = ex.Message,
+                RunAt = DateTime.UtcNow
+            };
+        }
+    }
+
     private static CategoryDto MapToDto(Category category)
     {
         return new CategoryDto
@@ -381,11 +429,6 @@ public class SplitwiseService : ISplitwiseService
         var client = _httpClientFactory.CreateClient("SplitwiseApi");
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
         return client;
-    }
-
-    private static string BuildDuplicateKey(DateTime date, decimal amount, string title)
-    {
-        return $"{date:yyyy-MM-dd}|{Math.Round(amount, 2)}|{title.Trim().ToLowerInvariant()}";
     }
 
     private static decimal ParseDecimal(string? value)
@@ -439,8 +482,12 @@ public class SplitwiseService : ISplitwiseService
         if (ContainsAny(normalized, "alcohol", "bar", "beer", "wine", "liquor", "drinks", "cocktail"))
             return AlcoholCategoryName;
 
-        // Food & Dining
-        if (ContainsAny(normalized, "food", "dining", "restaurant", "grocer", "grocery", "coffee"))
+        // Groceries - check before Food & Dining to ensure proper mapping
+        if (ContainsAny(normalized, "grocer", "grocery", "groceries", "supermarket"))
+            return GroceriesCategoryName;
+
+        // Food & Dining (restaurants, dining out, coffee shops - not groceries)
+        if (ContainsAny(normalized, "food", "dining", "restaurant", "coffee", "cafe", "takeout", "delivery"))
             return FoodAndDiningCategoryName;
 
         // Transportation

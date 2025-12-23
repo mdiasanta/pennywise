@@ -19,6 +19,8 @@ public interface IExpenseRepository
         string? search = null,
         IEnumerable<int>? tagIds = null);
     Task<Expense?> GetByIdAsync(int id, int userId);
+    Task<Expense?> GetByExternalSourceIdAsync(int userId, string externalSourceId);
+    Task<HashSet<string>> GetExternalSourceIdsAsync(int userId, string sourcePrefix);
     Task<Expense> CreateAsync(Expense expense, IEnumerable<int>? tagIds = null);
     Task<Expense?> UpdateAsync(Expense expense, IEnumerable<int>? tagIds = null);
     Task<bool> DeleteAsync(int id, int userId);
