@@ -103,14 +103,20 @@ public class SummaryService : ISummaryService
             previousEnd = new DateTime(previousYear, 12, 31, 23, 59, 59, DateTimeKind.Utc);
         }
 
-        // Fetch expenses for both periods
-        var allExpenses = await _context.Expenses
+        // Build query for expenses
+        var query = _context.Expenses
             .AsNoTracking()
             .Include(e => e.Category)
+            .Include(e => e.ExpenseTags)
             .Where(e => e.UserId == userId &&
                 ((e.Date >= currentStart && e.Date <= currentEnd) ||
-                 (e.Date >= previousStart && e.Date <= previousEnd)))
-            .ToListAsync();
+                 (e.Date >= previousStart && e.Date <= previousEnd)));
+
+        // Fetch expenses
+        var allExpenses = await query.ToListAsync();
+
+        // Apply tag filtering after fetching (for include/exclude logic)
+        allExpenses = ApplyTagFiltering(allExpenses, request.IncludedTagIds, request.ExcludedTagIds);
 
         var currentExpenses = allExpenses.Where(e => e.Date >= currentStart && e.Date <= currentEnd).ToList();
         var previousExpenses = allExpenses.Where(e => e.Date >= previousStart && e.Date <= previousEnd).ToList();
@@ -251,8 +257,12 @@ public class SummaryService : ISummaryService
         var allExpenses = await _context.Expenses
             .AsNoTracking()
             .Include(e => e.Category)
+            .Include(e => e.ExpenseTags)
             .Where(e => e.UserId == userId && e.Date >= startDate && e.Date <= endDate)
             .ToListAsync();
+
+        // Apply tag filtering
+        allExpenses = ApplyTagFiltering(allExpenses, request.IncludedTagIds, request.ExcludedTagIds);
 
         // Filter to only selected years
         var filteredExpenses = allExpenses
@@ -362,5 +372,40 @@ public class SummaryService : ISummaryService
             CategoryAverages = categoryAverages,
             YearlyData = yearlyData
         };
+    }
+
+    /// <summary>
+    /// Apply tag filtering to expenses list
+    /// </summary>
+    /// <param name="expenses">List of expenses to filter</param>
+    /// <param name="includedTagIds">Tag IDs to include (only expenses with these tags)</param>
+    /// <param name="excludedTagIds">Tag IDs to exclude (exclude expenses with these tags)</param>
+    /// <returns>Filtered list of expenses</returns>
+    private static List<Models.Expense> ApplyTagFiltering(
+        List<Models.Expense> expenses,
+        List<int>? includedTagIds,
+        List<int>? excludedTagIds)
+    {
+        var result = expenses;
+
+        // Apply inclusion filter (only include expenses with specified tags)
+        if (includedTagIds != null && includedTagIds.Count > 0)
+        {
+            var includedSet = includedTagIds.ToHashSet();
+            result = result
+                .Where(e => e.ExpenseTags.Any(et => includedSet.Contains(et.TagId)))
+                .ToList();
+        }
+
+        // Apply exclusion filter (exclude expenses with specified tags)
+        if (excludedTagIds != null && excludedTagIds.Count > 0)
+        {
+            var excludedSet = excludedTagIds.ToHashSet();
+            result = result
+                .Where(e => !e.ExpenseTags.Any(et => excludedSet.Contains(et.TagId)))
+                .ToList();
+        }
+
+        return result;
     }
 }

@@ -2,6 +2,13 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   TooltipContent,
@@ -9,9 +16,9 @@ import {
   TooltipTrigger,
   Tooltip as UITooltip,
 } from '@/components/ui/tooltip';
-import type { AverageExpenses } from '@/lib/api';
+import type { AverageExpenses, Tag } from '@/lib/api';
 import { summaryApi } from '@/lib/api';
-import { BarChart3, ChevronDown, ChevronUp, HelpCircle, TrendingUp } from 'lucide-react';
+import { BarChart3, ChevronDown, ChevronUp, Filter, HelpCircle, TrendingUp, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import {
   CartesianGrid,
@@ -29,7 +36,11 @@ import {
 interface AverageExpensesChartProps {
   userId: number;
   availableYears: number[];
+  tags: Tag[];
+  tagsLoading: boolean;
 }
+
+type TagFilterMode = 'include' | 'exclude';
 
 // Generate distinct colors for each year
 const YEAR_COLORS = [
@@ -49,13 +60,20 @@ const AVERAGE_LINE_COLOR = '#ef4444';
 const MAX_CHART_CATEGORIES = 10;
 const CATEGORY_NAME_MAX_LENGTH = 12;
 
-export function AverageExpensesChart({ userId, availableYears }: AverageExpensesChartProps) {
+export function AverageExpensesChart({
+  userId,
+  availableYears,
+  tags,
+  tagsLoading,
+}: AverageExpensesChartProps) {
   const [selectedYears, setSelectedYears] = useState<number[]>([]);
   const [viewMode, setViewMode] = useState<'month' | 'category' | 'year'>('month');
   const [averageData, setAverageData] = useState<AverageExpenses | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAllCategories, setShowAllCategories] = useState(false);
   const [hasInitialized, setHasInitialized] = useState(false);
+  const [tagFilterMode, setTagFilterMode] = useState<TagFilterMode>('include');
+  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
 
   // Set default years only once when availableYears first becomes available
   // Don't re-select if user manually deselects all years
@@ -89,6 +107,10 @@ export function AverageExpensesChart({ userId, availableYears }: AverageExpenses
       const data = await summaryApi.getAverageExpenses(userId, {
         viewMode: apiViewMode,
         years: selectedYears,
+        includedTagIds:
+          tagFilterMode === 'include' && selectedTagIds.length > 0 ? selectedTagIds : undefined,
+        excludedTagIds:
+          tagFilterMode === 'exclude' && selectedTagIds.length > 0 ? selectedTagIds : undefined,
       });
       setAverageData(data);
     } catch (error) {
@@ -96,7 +118,7 @@ export function AverageExpensesChart({ userId, availableYears }: AverageExpenses
     } finally {
       setLoading(false);
     }
-  }, [userId, viewMode, selectedYears]);
+  }, [userId, viewMode, selectedYears, tagFilterMode, selectedTagIds]);
 
   useEffect(() => {
     loadAverageExpenses();
@@ -317,6 +339,100 @@ export function AverageExpensesChart({ userId, availableYears }: AverageExpenses
             ))}
           </div>
         </div>
+
+        {/* Tag Filter */}
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">Tags:</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Select
+              value={tagFilterMode}
+              onValueChange={(v) => setTagFilterMode(v as TagFilterMode)}
+            >
+              <SelectTrigger className="w-[100px] border-border/60 bg-card/70 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="border-border/60 bg-card">
+                <SelectItem value="include">Include</SelectItem>
+                <SelectItem value="exclude">Exclude</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select
+              value=""
+              onValueChange={(value) => {
+                const tagId = parseInt(value, 10);
+                if (!selectedTagIds.includes(tagId)) {
+                  setSelectedTagIds((prev) => [...prev, tagId]);
+                }
+              }}
+              disabled={tagsLoading || tags.length === 0}
+            >
+              <SelectTrigger className="w-[140px] border-border/60 bg-card/70 text-xs">
+                <SelectValue placeholder="Select tag..." />
+              </SelectTrigger>
+              <SelectContent className="border-border/60 bg-card">
+                {tags
+                  .filter((t) => !selectedTagIds.includes(t.id))
+                  .map((tag) => (
+                    <SelectItem key={tag.id} value={tag.id.toString()}>
+                      {tag.name}
+                    </SelectItem>
+                  ))}
+                {tags.filter((t) => !selectedTagIds.includes(t.id)).length === 0 && (
+                  <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                    {tags.length === 0 ? 'No tags created yet' : 'All tags selected'}
+                  </div>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Selected Tags Display */}
+        {selectedTagIds.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-muted-foreground">
+              {tagFilterMode === 'include' ? 'Including:' : 'Excluding:'}
+            </span>
+            {selectedTagIds.map((tagId) => {
+              const tag = tags.find((t) => t.id === tagId);
+              return tag ? (
+                <Badge
+                  key={tagId}
+                  variant="secondary"
+                  className="border-border/60 bg-card/70 text-xs text-foreground"
+                  style={
+                    tag.color
+                      ? {
+                          backgroundColor: tag.color + '22',
+                          color: tag.color,
+                          borderColor: tag.color,
+                        }
+                      : undefined
+                  }
+                >
+                  {tag.name}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTagIds((prev) => prev.filter((id) => id !== tagId))}
+                    className="ml-1 hover:text-destructive"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ) : null;
+            })}
+            <button
+              type="button"
+              onClick={() => setSelectedTagIds([])}
+              className="text-xs text-muted-foreground hover:text-foreground"
+            >
+              Clear all
+            </button>
+          </div>
+        )}
       </CardHeader>
 
       <CardContent className="space-y-6">
@@ -361,7 +477,7 @@ export function AverageExpensesChart({ userId, availableYears }: AverageExpenses
                   <UITooltip>
                     <TooltipTrigger asChild>
                       <div className="flex cursor-help items-center gap-1">
-                        <div className="h-3 w-6 rounded bg-blue-500/20" />
+                        <div className="h-3 w-6 rounded bg-blue-500/30" />
                         <span>±1σ (68%)</span>
                       </div>
                     </TooltipTrigger>
@@ -376,7 +492,7 @@ export function AverageExpensesChart({ userId, availableYears }: AverageExpenses
                   <UITooltip>
                     <TooltipTrigger asChild>
                       <div className="flex cursor-help items-center gap-1">
-                        <div className="h-3 w-6 rounded bg-blue-500/10" />
+                        <div className="h-3 w-6 rounded bg-blue-500/15" />
                         <span>±2σ (95%)</span>
                       </div>
                     </TooltipTrigger>
@@ -414,7 +530,7 @@ export function AverageExpensesChart({ userId, availableYears }: AverageExpenses
                       y1={Math.min(...monthlyStdDevData.map((d) => d.minus2Sigma))}
                       y2={Math.max(...monthlyStdDevData.map((d) => d.plus2Sigma))}
                       fill="#3b82f6"
-                      fillOpacity={0.05}
+                      fillOpacity={0.12}
                     />
                   )}
                   {/* ±1σ band (inner, darker) */}
@@ -423,7 +539,7 @@ export function AverageExpensesChart({ userId, availableYears }: AverageExpenses
                       y1={Math.min(...monthlyStdDevData.map((d) => d.minus1Sigma))}
                       y2={Math.max(...monthlyStdDevData.map((d) => d.plus1Sigma))}
                       fill="#3b82f6"
-                      fillOpacity={0.1}
+                      fillOpacity={0.25}
                     />
                   )}
                   <XAxis
@@ -511,7 +627,7 @@ export function AverageExpensesChart({ userId, availableYears }: AverageExpenses
                       y1={Math.max(0, yearlyMean - 2 * yearlyStdDev)}
                       y2={yearlyMean + 2 * yearlyStdDev}
                       fill="#3b82f6"
-                      fillOpacity={0.05}
+                      fillOpacity={0.12}
                     />
                   )}
                   {/* ±1σ band (inner, darker) */}
@@ -520,7 +636,7 @@ export function AverageExpensesChart({ userId, availableYears }: AverageExpenses
                       y1={Math.max(0, yearlyMean - yearlyStdDev)}
                       y2={yearlyMean + yearlyStdDev}
                       fill="#3b82f6"
-                      fillOpacity={0.1}
+                      fillOpacity={0.25}
                     />
                   )}
                   {/* Average reference line */}

@@ -183,4 +183,14 @@ public class YearOverYearRequestDto
     /// The month for the previous period (defaults to currentMonth when mode is "month")
     /// </summary>
     public int? PreviousMonth { get; set; }
+
+    /// <summary>
+    /// Tag IDs to include in the comparison (only expenses with these tags)
+    /// </summary>
+    public List<int>? IncludedTagIds { get; set; }
+
+    /// <summary>
+    /// Tag IDs to exclude from the comparison (exclude expenses with these tags)
+    /// </summary>
+    public List<int>? ExcludedTagIds { get; set; }
 }

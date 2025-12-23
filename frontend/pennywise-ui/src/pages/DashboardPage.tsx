@@ -864,6 +864,8 @@ export default function DashboardPage() {
           <YearOverYearComparison
             userId={user.id}
             availableYears={getAvailableYearsFromDate(earliestDate)}
+            tags={tags}
+            tagsLoading={tagsLoading}
           />
         )}
 
@@ -872,6 +874,8 @@ export default function DashboardPage() {
           <AverageExpensesChart
             userId={user.id}
             availableYears={getAvailableYearsFromDate(earliestDate)}
+            tags={tags}
+            tagsLoading={tagsLoading}
           />
         )}
       </div>

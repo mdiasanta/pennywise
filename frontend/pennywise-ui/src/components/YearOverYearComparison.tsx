@@ -1,3 +1,4 @@
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
@@ -7,7 +8,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { YearOverYearComparison as YearOverYearComparisonType } from '@/lib/api';
+import type { Tag, YearOverYearComparison as YearOverYearComparisonType } from '@/lib/api';
 import { summaryApi } from '@/lib/api';
 import {
   ArrowDownRight,
@@ -15,8 +16,10 @@ import {
   Calendar,
   ChevronDown,
   ChevronUp,
+  Filter,
   TrendingDown,
   TrendingUp,
+  X,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import {
@@ -34,7 +37,11 @@ import {
 interface YearOverYearComparisonProps {
   userId: number;
   availableYears: number[];
+  tags: Tag[];
+  tagsLoading: boolean;
 }
+
+type TagFilterMode = 'include' | 'exclude';
 
 const COLORS = {
   current: '#0088FE',
@@ -48,7 +55,12 @@ const CATEGORY_NAME_MAX_LENGTH = 12;
 const MAX_CHART_CATEGORIES = 8;
 const MAX_CATEGORY_CHANGES = 6;
 
-export function YearOverYearComparison({ userId, availableYears }: YearOverYearComparisonProps) {
+export function YearOverYearComparison({
+  userId,
+  availableYears,
+  tags,
+  tagsLoading,
+}: YearOverYearComparisonProps) {
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
 
@@ -59,6 +71,8 @@ export function YearOverYearComparison({ userId, availableYears }: YearOverYearC
   const [comparison, setComparison] = useState<YearOverYearComparisonType | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAllCategories, setShowAllCategories] = useState(false);
+  const [tagFilterMode, setTagFilterMode] = useState<TagFilterMode>('include');
+  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -81,6 +95,10 @@ export function YearOverYearComparison({ userId, availableYears }: YearOverYearC
         currentMonth: mode === 'month' ? selectedCurrentMonth : undefined,
         previousYear: selectedPreviousYear,
         previousMonth: mode === 'month' ? selectedCurrentMonth : undefined,
+        includedTagIds:
+          tagFilterMode === 'include' && selectedTagIds.length > 0 ? selectedTagIds : undefined,
+        excludedTagIds:
+          tagFilterMode === 'exclude' && selectedTagIds.length > 0 ? selectedTagIds : undefined,
       });
       setComparison(data);
     } catch (error) {
@@ -88,7 +106,15 @@ export function YearOverYearComparison({ userId, availableYears }: YearOverYearC
     } finally {
       setLoading(false);
     }
-  }, [userId, mode, selectedCurrentYear, selectedCurrentMonth, selectedPreviousYear]);
+  }, [
+    userId,
+    mode,
+    selectedCurrentYear,
+    selectedCurrentMonth,
+    selectedPreviousYear,
+    tagFilterMode,
+    selectedTagIds,
+  ]);
 
   useEffect(() => {
     loadComparison();
@@ -231,6 +257,100 @@ export function YearOverYearComparison({ userId, availableYears }: YearOverYearC
             </Select>
           </div>
         </div>
+
+        {/* Tag Filter */}
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">Tags:</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Select
+              value={tagFilterMode}
+              onValueChange={(v) => setTagFilterMode(v as TagFilterMode)}
+            >
+              <SelectTrigger className="w-[100px] border-border/60 bg-card/70 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="border-border/60 bg-card">
+                <SelectItem value="include">Include</SelectItem>
+                <SelectItem value="exclude">Exclude</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select
+              value=""
+              onValueChange={(value) => {
+                const tagId = parseInt(value, 10);
+                if (!selectedTagIds.includes(tagId)) {
+                  setSelectedTagIds((prev) => [...prev, tagId]);
+                }
+              }}
+              disabled={tagsLoading || tags.length === 0}
+            >
+              <SelectTrigger className="w-[140px] border-border/60 bg-card/70 text-xs">
+                <SelectValue placeholder="Select tag..." />
+              </SelectTrigger>
+              <SelectContent className="border-border/60 bg-card">
+                {tags
+                  .filter((t) => !selectedTagIds.includes(t.id))
+                  .map((tag) => (
+                    <SelectItem key={tag.id} value={tag.id.toString()}>
+                      {tag.name}
+                    </SelectItem>
+                  ))}
+                {tags.filter((t) => !selectedTagIds.includes(t.id)).length === 0 && (
+                  <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                    {tags.length === 0 ? 'No tags created yet' : 'All tags selected'}
+                  </div>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Selected Tags Display */}
+        {selectedTagIds.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-muted-foreground">
+              {tagFilterMode === 'include' ? 'Including:' : 'Excluding:'}
+            </span>
+            {selectedTagIds.map((tagId) => {
+              const tag = tags.find((t) => t.id === tagId);
+              return tag ? (
+                <Badge
+                  key={tagId}
+                  variant="secondary"
+                  className="border-border/60 bg-card/70 text-xs text-foreground"
+                  style={
+                    tag.color
+                      ? {
+                          backgroundColor: tag.color + '22',
+                          color: tag.color,
+                          borderColor: tag.color,
+                        }
+                      : undefined
+                  }
+                >
+                  {tag.name}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTagIds((prev) => prev.filter((id) => id !== tagId))}
+                    className="ml-1 hover:text-destructive"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ) : null;
+            })}
+            <button
+              type="button"
+              onClick={() => setSelectedTagIds([])}
+              className="text-xs text-muted-foreground hover:text-foreground"
+            >
+              Clear all
+            </button>
+          </div>
+        )}
       </CardHeader>
 
       <CardContent className="space-y-6">
