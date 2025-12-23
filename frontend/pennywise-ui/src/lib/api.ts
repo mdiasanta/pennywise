@@ -572,6 +572,8 @@ export const summaryApi = {
       currentMonth?: number;
       previousYear?: number;
       previousMonth?: number;
+      includedTagIds?: number[];
+      excludedTagIds?: number[];
     }
   ): Promise<YearOverYearComparison> {
     const params = new URLSearchParams();
@@ -580,6 +582,12 @@ export const summaryApi = {
     if (options?.currentMonth) params.set('currentMonth', options.currentMonth.toString());
     if (options?.previousYear) params.set('previousYear', options.previousYear.toString());
     if (options?.previousMonth) params.set('previousMonth', options.previousMonth.toString());
+    if (options?.includedTagIds && options.includedTagIds.length > 0) {
+      params.set('includedTagIds', options.includedTagIds.join(','));
+    }
+    if (options?.excludedTagIds && options.excludedTagIds.length > 0) {
+      params.set('excludedTagIds', options.excludedTagIds.join(','));
+    }
 
     const query = params.toString();
     const url = query
@@ -597,12 +605,20 @@ export const summaryApi = {
     options?: {
       viewMode?: 'month' | 'category';
       years?: number[];
+      includedTagIds?: number[];
+      excludedTagIds?: number[];
     }
   ): Promise<AverageExpenses> {
     const params = new URLSearchParams();
     if (options?.viewMode) params.set('viewMode', options.viewMode);
     if (options?.years && options.years.length > 0) {
       params.set('years', options.years.join(','));
+    }
+    if (options?.includedTagIds && options.includedTagIds.length > 0) {
+      params.set('includedTagIds', options.includedTagIds.join(','));
+    }
+    if (options?.excludedTagIds && options.excludedTagIds.length > 0) {
+      params.set('excludedTagIds', options.excludedTagIds.join(','));
     }
 
     const query = params.toString();

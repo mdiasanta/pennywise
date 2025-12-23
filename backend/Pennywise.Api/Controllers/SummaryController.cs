@@ -31,7 +31,9 @@ public class SummaryController : ControllerBase
         [FromQuery] int? currentYear = null,
         [FromQuery] int? currentMonth = null,
         [FromQuery] int? previousYear = null,
-        [FromQuery] int? previousMonth = null)
+        [FromQuery] int? previousMonth = null,
+        [FromQuery] string? includedTagIds = null,
+        [FromQuery] string? excludedTagIds = null)
     {
         var request = new YearOverYearRequestDto
         {
@@ -39,7 +41,9 @@ public class SummaryController : ControllerBase
             CurrentYear = currentYear ?? DateTime.UtcNow.Year,
             CurrentMonth = currentMonth,
             PreviousYear = previousYear,
-            PreviousMonth = previousMonth
+            PreviousMonth = previousMonth,
+            IncludedTagIds = ParseTagIds(includedTagIds),
+            ExcludedTagIds = ParseTagIds(excludedTagIds)
         };
 
         var comparison = await _summaryService.GetYearOverYearComparisonAsync(userId, request);
@@ -50,7 +54,9 @@ public class SummaryController : ControllerBase
     public async Task<ActionResult<AverageExpensesResponseDto>> GetAverageExpenses(
         int userId,
         [FromQuery] string viewMode = "month",
-        [FromQuery] string? years = null)
+        [FromQuery] string? years = null,
+        [FromQuery] string? includedTagIds = null,
+        [FromQuery] string? excludedTagIds = null)
     {
         var yearsList = new List<int>();
         var invalidYears = new List<string>();
@@ -80,10 +86,35 @@ public class SummaryController : ControllerBase
         var request = new AverageExpensesRequestDto
         {
             ViewMode = viewMode,
-            Years = yearsList
+            Years = yearsList,
+            IncludedTagIds = ParseTagIds(includedTagIds),
+            ExcludedTagIds = ParseTagIds(excludedTagIds)
         };
 
         var averages = await _summaryService.GetAverageExpensesAsync(userId, request);
         return Ok(averages);
+    }
+
+    /// <summary>
+    /// Parse comma-separated tag IDs string into a list of integers
+    /// </summary>
+    private static List<int>? ParseTagIds(string? tagIds)
+    {
+        if (string.IsNullOrWhiteSpace(tagIds))
+        {
+            return null;
+        }
+
+        var result = new List<int>();
+        var parts = tagIds.Split(',', StringSplitOptions.RemoveEmptyEntries);
+        foreach (var part in parts)
+        {
+            if (int.TryParse(part.Trim(), out var tagId))
+            {
+                result.Add(tagId);
+            }
+        }
+
+        return result.Count > 0 ? result : null;
     }
 }

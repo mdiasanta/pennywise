@@ -14,6 +14,16 @@ public class AverageExpensesRequestDto
     /// List of years to include in the average calculation
     /// </summary>
     public List<int> Years { get; set; } = [];
+
+    /// <summary>
+    /// Tag IDs to include in the calculation (only expenses with these tags)
+    /// </summary>
+    public List<int>? IncludedTagIds { get; set; }
+
+    /// <summary>
+    /// Tag IDs to exclude from the calculation (exclude expenses with these tags)
+    /// </summary>
+    public List<int>? ExcludedTagIds { get; set; }
 }
 
 /// <summary>
