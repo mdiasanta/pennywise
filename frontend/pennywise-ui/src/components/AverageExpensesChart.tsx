@@ -477,7 +477,7 @@ export function AverageExpensesChart({
                   <UITooltip>
                     <TooltipTrigger asChild>
                       <div className="flex cursor-help items-center gap-1">
-                        <div className="h-3 w-6 rounded bg-blue-500/20" />
+                        <div className="h-3 w-6 rounded bg-blue-500/30" />
                         <span>±1σ (68%)</span>
                       </div>
                     </TooltipTrigger>
@@ -492,7 +492,7 @@ export function AverageExpensesChart({
                   <UITooltip>
                     <TooltipTrigger asChild>
                       <div className="flex cursor-help items-center gap-1">
-                        <div className="h-3 w-6 rounded bg-blue-500/10" />
+                        <div className="h-3 w-6 rounded bg-blue-500/15" />
                         <span>±2σ (95%)</span>
                       </div>
                     </TooltipTrigger>
@@ -530,7 +530,7 @@ export function AverageExpensesChart({
                       y1={Math.min(...monthlyStdDevData.map((d) => d.minus2Sigma))}
                       y2={Math.max(...monthlyStdDevData.map((d) => d.plus2Sigma))}
                       fill="#3b82f6"
-                      fillOpacity={0.05}
+                      fillOpacity={0.12}
                     />
                   )}
                   {/* ±1σ band (inner, darker) */}
@@ -539,7 +539,7 @@ export function AverageExpensesChart({
                       y1={Math.min(...monthlyStdDevData.map((d) => d.minus1Sigma))}
                       y2={Math.max(...monthlyStdDevData.map((d) => d.plus1Sigma))}
                       fill="#3b82f6"
-                      fillOpacity={0.1}
+                      fillOpacity={0.25}
                     />
                   )}
                   <XAxis
@@ -627,7 +627,7 @@ export function AverageExpensesChart({
                       y1={Math.max(0, yearlyMean - 2 * yearlyStdDev)}
                       y2={yearlyMean + 2 * yearlyStdDev}
                       fill="#3b82f6"
-                      fillOpacity={0.05}
+                      fillOpacity={0.12}
                     />
                   )}
                   {/* ±1σ band (inner, darker) */}
@@ -636,7 +636,7 @@ export function AverageExpensesChart({
                       y1={Math.max(0, yearlyMean - yearlyStdDev)}
                       y2={yearlyMean + yearlyStdDev}
                       fill="#3b82f6"
-                      fillOpacity={0.1}
+                      fillOpacity={0.25}
                     />
                   )}
                   {/* Average reference line */}
