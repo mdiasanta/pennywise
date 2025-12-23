@@ -681,7 +681,7 @@ export default function SplitwiseImportPage() {
         {/* Auto-Import Section */}
         <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <CardTitle className="flex items-center gap-2">
                   <RefreshCw className="h-5 w-5" />
@@ -696,6 +696,7 @@ export default function SplitwiseImportPage() {
                 variant="outline"
                 size="sm"
                 disabled={!selectedGroupId || !selectedMemberId}
+                className="w-full sm:w-auto"
               >
                 <Plus className="mr-2 h-4 w-4" />
                 New Auto-Import
@@ -713,7 +714,7 @@ export default function SplitwiseImportPage() {
                   </p>
                 ) : (
                   <>
-                    <div className="grid gap-4 md:grid-cols-3">
+                    <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
                       <div className="space-y-2">
                         <Label className="text-muted-foreground">Start Date</Label>
                         <Input
@@ -747,12 +748,12 @@ export default function SplitwiseImportPage() {
                           How often to check for new expenses
                         </p>
                       </div>
-                      <div className="flex items-end">
-                        <div className="flex gap-2">
+                      <div className="flex items-end sm:col-span-2 md:col-span-1">
+                        <div className="flex gap-2 w-full sm:w-auto">
                           <Button
                             onClick={handleCreateAutoImport}
                             disabled={isCreatingAutoImport}
-                            className="bg-primary text-primary-foreground hover:bg-primary/90"
+                            className="bg-primary text-primary-foreground hover:bg-primary/90 flex-1 sm:flex-none"
                           >
                             {isCreatingAutoImport ? (
                               <>
@@ -766,7 +767,11 @@ export default function SplitwiseImportPage() {
                               </>
                             )}
                           </Button>
-                          <Button variant="outline" onClick={() => setShowAutoImportSetup(false)}>
+                          <Button
+                            variant="outline"
+                            onClick={() => setShowAutoImportSetup(false)}
+                            className="flex-1 sm:flex-none"
+                          >
                             Cancel
                           </Button>
                         </div>
@@ -811,38 +816,48 @@ export default function SplitwiseImportPage() {
                         : 'border-muted/40 bg-muted/20 opacity-70'
                     }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex items-start gap-3 sm:items-center sm:gap-4">
                         <Switch
                           checked={ai.isActive}
                           onCheckedChange={() => handleToggleAutoImport(ai)}
+                          className="mt-1 sm:mt-0"
                         />
-                        <div>
-                          <p className="font-semibold text-foreground">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-foreground break-words">
                             {ai.groupName} → {ai.splitwiseMemberName}
                           </p>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-sm text-muted-foreground">
                             <span className="flex items-center gap-1">
                               <Clock className="h-3 w-3" />
                               {ai.frequency}
                             </span>
                             <span>Since {formatDate(ai.startDate)}</span>
-                            {ai.lastRunAt && <span>Last run: {formatDateTime(ai.lastRunAt)}</span>}
+                            {ai.lastRunAt && (
+                              <span className="hidden sm:inline">
+                                Last run: {formatDateTime(ai.lastRunAt)}
+                              </span>
+                            )}
                             {ai.lastRunImportedCount > 0 && (
                               <Badge variant="secondary" className="text-xs">
                                 {ai.lastRunImportedCount} imported
                               </Badge>
                             )}
                           </div>
+                          {ai.lastRunAt && (
+                            <p className="text-xs text-muted-foreground mt-1 sm:hidden">
+                              Last run: {formatDateTime(ai.lastRunAt)}
+                            </p>
+                          )}
                           {ai.lastRunError && (
                             <p className="text-xs text-destructive mt-1 flex items-center gap-1">
-                              <XCircle className="h-3 w-3" />
-                              {ai.lastRunError}
+                              <XCircle className="h-3 w-3 flex-shrink-0" />
+                              <span className="break-words">{ai.lastRunError}</span>
                             </p>
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 self-end sm:self-auto">
                         <Button
                           variant="outline"
                           size="sm"
