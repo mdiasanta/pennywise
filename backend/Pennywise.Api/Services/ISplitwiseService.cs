@@ -28,4 +28,9 @@ public interface ISplitwiseService
     /// Previews or imports expenses from Splitwise
     /// </summary>
     Task<SplitwiseImportResponseDto> ImportExpensesAsync(SplitwiseImportRequest request);
+    
+    /// <summary>
+    /// Runs an auto-import for the given configuration
+    /// </summary>
+    Task<SplitwiseAutoImportRunResult> RunAutoImportAsync(SplitwiseAutoImportDto autoImport);
 }

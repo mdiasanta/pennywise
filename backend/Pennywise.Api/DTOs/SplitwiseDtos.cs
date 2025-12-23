@@ -262,3 +262,86 @@ public record SplitwiseCurrentUserDto
         ? FirstName
         : $"{FirstName} {LastName}";
 }
+
+// Auto-Import DTOs
+
+/// <summary>
+/// DTO for Splitwise auto-import configuration
+/// </summary>
+public record SplitwiseAutoImportDto
+{
+    public int Id { get; init; }
+    public int UserId { get; init; }
+    public long GroupId { get; init; }
+    public string GroupName { get; init; } = string.Empty;
+    public long SplitwiseUserId { get; init; }
+    public string SplitwiseMemberName { get; init; } = string.Empty;
+    public DateTime StartDate { get; init; }
+    public string Frequency { get; init; } = "Daily";
+    public bool IsActive { get; init; } = true;
+    public DateTime? LastRunAt { get; init; }
+    public DateTime NextRunAt { get; init; }
+    public int LastRunImportedCount { get; init; }
+    public string? LastRunError { get; init; }
+    public DateTime CreatedAt { get; init; }
+    public DateTime UpdatedAt { get; init; }
+}
+
+/// <summary>
+/// Request to create or update a Splitwise auto-import
+/// </summary>
+public record CreateSplitwiseAutoImportRequest
+{
+    /// <summary>
+    /// Splitwise group ID to import from
+    /// </summary>
+    public required long GroupId { get; init; }
+    
+    /// <summary>
+    /// Splitwise user ID whose share of expenses to import
+    /// </summary>
+    public required long SplitwiseUserId { get; init; }
+    
+    /// <summary>
+    /// Start date from which to import expenses (inclusive)
+    /// </summary>
+    public required DateTime StartDate { get; init; }
+    
+    /// <summary>
+    /// Frequency of auto-import: Daily, Weekly, or Monthly
+    /// </summary>
+    public string Frequency { get; init; } = "Daily";
+}
+
+/// <summary>
+/// Request to update a Splitwise auto-import
+/// </summary>
+public record UpdateSplitwiseAutoImportRequest
+{
+    /// <summary>
+    /// Whether the auto-import is active
+    /// </summary>
+    public bool? IsActive { get; init; }
+    
+    /// <summary>
+    /// Frequency of auto-import: Daily, Weekly, or Monthly
+    /// </summary>
+    public string? Frequency { get; init; }
+    
+    /// <summary>
+    /// Start date from which to import expenses
+    /// </summary>
+    public DateTime? StartDate { get; init; }
+}
+
+/// <summary>
+/// Result of running an auto-import
+/// </summary>
+public record SplitwiseAutoImportRunResult
+{
+    public bool Success { get; init; }
+    public int ImportedCount { get; init; }
+    public int DuplicatesFound { get; init; }
+    public string? ErrorMessage { get; init; }
+    public DateTime RunAt { get; init; } = DateTime.UtcNow;
+}

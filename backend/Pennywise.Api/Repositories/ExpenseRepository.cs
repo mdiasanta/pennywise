@@ -156,6 +156,29 @@ public class ExpenseRepository : IExpenseRepository
             .FirstOrDefaultAsync();
     }
 
+    public async Task<Expense?> GetByExternalSourceIdAsync(int userId, string externalSourceId)
+    {
+        return await _context.Expenses
+            .AsNoTracking()
+            .Include(e => e.Category)
+            .Include(e => e.ExpenseTags)
+                .ThenInclude(et => et.Tag)
+            .FirstOrDefaultAsync(e => e.UserId == userId && e.ExternalSourceId == externalSourceId);
+    }
+
+    public async Task<HashSet<string>> GetExternalSourceIdsAsync(int userId, string sourcePrefix)
+    {
+        var ids = await _context.Expenses
+            .AsNoTracking()
+            .Where(e => e.UserId == userId && 
+                       e.ExternalSourceId != null && 
+                       e.ExternalSourceId.StartsWith(sourcePrefix))
+            .Select(e => e.ExternalSourceId!)
+            .ToListAsync();
+            
+        return ids.ToHashSet(StringComparer.OrdinalIgnoreCase);
+    }
+
     private IQueryable<Expense> BuildQuery(
         int userId,
         DateTime? startDate,

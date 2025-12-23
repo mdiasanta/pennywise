@@ -29,6 +29,7 @@ builder.Services.AddScoped<IAssetRepository, AssetRepository>();
 builder.Services.AddScoped<IAssetSnapshotRepository, AssetSnapshotRepository>();
 builder.Services.AddScoped<IRecurringTransactionRepository, RecurringTransactionRepository>();
 builder.Services.AddScoped<ITagRepository, TagRepository>();
+builder.Services.AddScoped<ISplitwiseAutoImportRepository, SplitwiseAutoImportRepository>();
 
 // Register services
 builder.Services.AddScoped<IExpenseService, ExpenseService>();
@@ -50,6 +51,7 @@ builder.Services.AddScoped<ICapitalOneImportService, CapitalOneImportService>();
 
 // Register background services
 builder.Services.AddHostedService<RecurringTransactionProcessor>();
+builder.Services.AddHostedService<SplitwiseAutoImportProcessor>();
 
 // Register Google token validator
 builder.Services.AddHttpClient("GoogleTokenValidator");

@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import {
   Table,
   TableBody,
@@ -24,6 +25,7 @@ import {
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import type {
+  SplitwiseAutoImport,
   SplitwiseCurrentUser,
   SplitwiseExpensePreview,
   SplitwiseGroup,
@@ -34,11 +36,17 @@ import { splitwiseApi } from '@/lib/api';
 import {
   AlertTriangle,
   Ban,
+  Calendar,
   CheckCircle2,
+  Clock,
   Copy,
   ExternalLink,
   Loader2,
+  Play,
+  Plus,
+  RefreshCw,
   Settings,
+  Trash2,
   Upload,
   Users,
   XCircle,
@@ -70,7 +78,7 @@ export default function SplitwiseImportPage() {
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
 
   // Date filter state
-  const [startDate, setStartDate] = useState(getDefaultStartDate);
+  const [startDate, setStartDate] = useState(() => getDefaultStartDate());
   const [endDate, setEndDate] = useState('');
 
   // Preview and import state
@@ -82,6 +90,33 @@ export default function SplitwiseImportPage() {
     Record<number, number>
   >({});
 
+  // Auto-import state
+  const [autoImports, setAutoImports] = useState<SplitwiseAutoImport[]>([]);
+  const [isLoadingAutoImports, setIsLoadingAutoImports] = useState(false);
+  const [showAutoImportSetup, setShowAutoImportSetup] = useState(false);
+  const [autoImportFrequency, setAutoImportFrequency] = useState<'Daily' | 'Weekly' | 'Monthly'>(
+    'Daily'
+  );
+  const [autoImportStartDate, setAutoImportStartDate] = useState(() => getDefaultStartDate());
+  const [isCreatingAutoImport, setIsCreatingAutoImport] = useState(false);
+  const [runningAutoImportId, setRunningAutoImportId] = useState<number | null>(null);
+
+  const loadAutoImports = useCallback(async () => {
+    setIsLoadingAutoImports(true);
+    try {
+      const imports = await splitwiseApi.getAutoImports();
+      setAutoImports(imports);
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Failed to load auto-imports',
+        description: error instanceof Error ? error.message : 'Could not fetch auto-imports.',
+      });
+    } finally {
+      setIsLoadingAutoImports(false);
+    }
+  }, [toast]);
+
   const checkStatus = useCallback(async () => {
     setIsCheckingStatus(true);
     try {
@@ -90,7 +125,7 @@ export default function SplitwiseImportPage() {
       setSplitwiseUser(status.user || null);
 
       if (status.isConfigured && status.user) {
-        // Load groups automatically
+        // Load groups and auto-imports automatically
         setIsLoadingGroups(true);
         try {
           const groupsResponse = await splitwiseApi.getGroups();
@@ -98,6 +133,8 @@ export default function SplitwiseImportPage() {
         } finally {
           setIsLoadingGroups(false);
         }
+        // Load auto-imports
+        loadAutoImports();
       }
     } catch (error) {
       setIsConfigured(false);
@@ -109,7 +146,7 @@ export default function SplitwiseImportPage() {
     } finally {
       setIsCheckingStatus(false);
     }
-  }, [toast]);
+  }, [toast, loadAutoImports]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -137,6 +174,115 @@ export default function SplitwiseImportPage() {
       });
     } finally {
       setIsLoadingMembers(false);
+    }
+  };
+
+  const handleCreateAutoImport = async () => {
+    if (!selectedGroupId || !selectedMemberId) {
+      toast({
+        variant: 'destructive',
+        title: 'Selection required',
+        description: 'Please select a group and a member for auto-import.',
+      });
+      return;
+    }
+
+    setIsCreatingAutoImport(true);
+    try {
+      await splitwiseApi.createAutoImport({
+        groupId: parseInt(selectedGroupId, 10),
+        splitwiseUserId: parseInt(selectedMemberId, 10),
+        startDate: autoImportStartDate,
+        frequency: autoImportFrequency,
+      });
+
+      toast({
+        title: 'Auto-import created!',
+        description: `New expenses will be imported ${autoImportFrequency.toLowerCase()} from Splitwise.`,
+      });
+
+      setShowAutoImportSetup(false);
+      loadAutoImports();
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Failed to create auto-import',
+        description: error instanceof Error ? error.message : 'Could not create auto-import.',
+      });
+    } finally {
+      setIsCreatingAutoImport(false);
+    }
+  };
+
+  const handleToggleAutoImport = async (autoImport: SplitwiseAutoImport) => {
+    try {
+      await splitwiseApi.updateAutoImport(autoImport.id, {
+        isActive: !autoImport.isActive,
+      });
+
+      toast({
+        title: autoImport.isActive ? 'Auto-import paused' : 'Auto-import resumed',
+        description: autoImport.isActive
+          ? 'The auto-import has been paused.'
+          : 'The auto-import will run on schedule.',
+      });
+
+      loadAutoImports();
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Failed to update auto-import',
+        description: error instanceof Error ? error.message : 'Could not update auto-import.',
+      });
+    }
+  };
+
+  const handleDeleteAutoImport = async (id: number) => {
+    try {
+      await splitwiseApi.deleteAutoImport(id);
+
+      toast({
+        title: 'Auto-import deleted',
+        description: 'The auto-import schedule has been removed.',
+      });
+
+      loadAutoImports();
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Failed to delete auto-import',
+        description: error instanceof Error ? error.message : 'Could not delete auto-import.',
+      });
+    }
+  };
+
+  const handleRunAutoImportNow = async (id: number) => {
+    setRunningAutoImportId(id);
+    try {
+      const result = await splitwiseApi.runAutoImportNow(id);
+
+      if (result.success) {
+        toast({
+          title: 'Import completed!',
+          description: `Imported ${result.importedCount} expense${result.importedCount !== 1 ? 's' : ''} (${result.duplicatesFound} duplicate${result.duplicatesFound !== 1 ? 's' : ''} skipped).`,
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Import failed',
+          description: result.errorMessage || 'An error occurred during import.',
+        });
+      }
+
+      loadAutoImports();
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Failed to run import',
+        description: error instanceof Error ? error.message : 'Could not run import.',
+      });
+    } finally {
+      setRunningAutoImportId(null);
     }
   };
 
@@ -286,6 +432,17 @@ export default function SplitwiseImportPage() {
       month: 'short',
       day: 'numeric',
       timeZone: 'UTC',
+    }).format(date);
+  };
+
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
     }).format(date);
   };
 
@@ -450,7 +607,7 @@ export default function SplitwiseImportPage() {
           </CardContent>
         </Card>
 
-        {/* Selection Card */}
+        {/* Group and Member Selection Card */}
         <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -462,7 +619,7 @@ export default function SplitwiseImportPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="group" className="text-muted-foreground">
                   Group
@@ -517,7 +674,225 @@ export default function SplitwiseImportPage() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+          </CardContent>
+        </Card>
 
+        {/* Auto-Import Section */}
+        <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <RefreshCw className="h-5 w-5" />
+                  Automatic Import
+                </CardTitle>
+                <CardDescription className="text-muted-foreground">
+                  Set up scheduled imports to automatically sync new Splitwise expenses.
+                </CardDescription>
+              </div>
+              <Button
+                onClick={() => setShowAutoImportSetup(!showAutoImportSetup)}
+                variant="outline"
+                size="sm"
+                disabled={!selectedGroupId || !selectedMemberId}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                New Auto-Import
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Setup Form (conditionally shown) */}
+            {showAutoImportSetup && (
+              <div className="rounded-lg border border-primary/40 bg-primary/5 p-4 space-y-4">
+                <h4 className="font-semibold text-foreground">Configure New Auto-Import</h4>
+                {!selectedGroupId || !selectedMemberId ? (
+                  <p className="text-sm text-muted-foreground">
+                    Please select a group and member above first.
+                  </p>
+                ) : (
+                  <>
+                    <div className="grid gap-4 md:grid-cols-3">
+                      <div className="space-y-2">
+                        <Label className="text-muted-foreground">Start Date</Label>
+                        <Input
+                          type="date"
+                          value={autoImportStartDate}
+                          onChange={(e) => setAutoImportStartDate(e.target.value)}
+                          className="border-border/60 bg-card text-foreground"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Import expenses from this date onwards
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-muted-foreground">Frequency</Label>
+                        <Select
+                          value={autoImportFrequency}
+                          onValueChange={(v) =>
+                            setAutoImportFrequency(v as 'Daily' | 'Weekly' | 'Monthly')
+                          }
+                        >
+                          <SelectTrigger className="border-border/60 bg-card text-foreground">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="border-border/60 bg-card text-foreground">
+                            <SelectItem value="Daily">Daily</SelectItem>
+                            <SelectItem value="Weekly">Weekly</SelectItem>
+                            <SelectItem value="Monthly">Monthly</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">
+                          How often to check for new expenses
+                        </p>
+                      </div>
+                      <div className="flex items-end">
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={handleCreateAutoImport}
+                            disabled={isCreatingAutoImport}
+                            className="bg-primary text-primary-foreground hover:bg-primary/90"
+                          >
+                            {isCreatingAutoImport ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Creating...
+                              </>
+                            ) : (
+                              <>
+                                <Plus className="mr-2 h-4 w-4" />
+                                Create
+                              </>
+                            )}
+                          </Button>
+                          <Button variant="outline" onClick={() => setShowAutoImportSetup(false)}>
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Will import expenses for{' '}
+                      <span className="font-semibold">
+                        {members.find((m) => m.id.toString() === selectedMemberId)?.displayName}
+                      </span>{' '}
+                      from{' '}
+                      <span className="font-semibold">
+                        {groups.find((g) => g.id.toString() === selectedGroupId)?.name}
+                      </span>
+                    </p>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* List of existing auto-imports */}
+            {isLoadingAutoImports ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : autoImports.length === 0 ? (
+              <div className="rounded-lg border border-border/60 bg-card/60 p-6 text-center">
+                <Calendar className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+                <p className="text-muted-foreground">
+                  No auto-imports configured. Select a group and member above, then click "New
+                  Auto-Import" to set up automatic syncing.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {autoImports.map((ai) => (
+                  <div
+                    key={ai.id}
+                    className={`rounded-lg border p-4 ${
+                      ai.isActive
+                        ? 'border-border/60 bg-card/60'
+                        : 'border-muted/40 bg-muted/20 opacity-70'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <Switch
+                          checked={ai.isActive}
+                          onCheckedChange={() => handleToggleAutoImport(ai)}
+                        />
+                        <div>
+                          <p className="font-semibold text-foreground">
+                            {ai.groupName} → {ai.splitwiseMemberName}
+                          </p>
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {ai.frequency}
+                            </span>
+                            <span>Since {formatDate(ai.startDate)}</span>
+                            {ai.lastRunAt && <span>Last run: {formatDateTime(ai.lastRunAt)}</span>}
+                            {ai.lastRunImportedCount > 0 && (
+                              <Badge variant="secondary" className="text-xs">
+                                {ai.lastRunImportedCount} imported
+                              </Badge>
+                            )}
+                          </div>
+                          {ai.lastRunError && (
+                            <p className="text-xs text-destructive mt-1 flex items-center gap-1">
+                              <XCircle className="h-3 w-3" />
+                              {ai.lastRunError}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRunAutoImportNow(ai.id)}
+                          disabled={runningAutoImportId === ai.id}
+                        >
+                          {runningAutoImportId === ai.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              <Play className="mr-1 h-3 w-3" />
+                              Run Now
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteAutoImport(ai.id)}
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    {ai.isActive && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Next scheduled run: {formatDateTime(ai.nextRunAt)}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Manual Import Card */}
+        <Card className="border-border/60 bg-card/80 text-foreground shadow-lg shadow-black/20 backdrop-blur">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Upload className="h-5 w-5" />
+              Manual Import
+            </CardTitle>
+            <CardDescription className="text-muted-foreground">
+              Preview and import expenses for a specific date range.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="startDate" className="text-muted-foreground">
                   Start Date (optional)
