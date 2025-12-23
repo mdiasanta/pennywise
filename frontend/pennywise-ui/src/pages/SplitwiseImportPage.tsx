@@ -78,7 +78,7 @@ export default function SplitwiseImportPage() {
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
 
   // Date filter state
-  const [startDate, setStartDate] = useState(getDefaultStartDate);
+  const [startDate, setStartDate] = useState(() => getDefaultStartDate());
   const [endDate, setEndDate] = useState('');
 
   // Preview and import state
@@ -97,7 +97,7 @@ export default function SplitwiseImportPage() {
   const [autoImportFrequency, setAutoImportFrequency] = useState<'Daily' | 'Weekly' | 'Monthly'>(
     'Daily'
   );
-  const [autoImportStartDate, setAutoImportStartDate] = useState(getDefaultStartDate);
+  const [autoImportStartDate, setAutoImportStartDate] = useState(() => getDefaultStartDate());
   const [isCreatingAutoImport, setIsCreatingAutoImport] = useState(false);
   const [runningAutoImportId, setRunningAutoImportId] = useState<number | null>(null);
 
