@@ -59,17 +59,16 @@ builder.Services.AddHttpClient("SplitwiseApi");
 builder.Services.AddScoped<IGoogleTokenValidator, GoogleTokenValidator>();
 
 // Add cookie authentication
+// For self-hosted deployments (e.g., Raspberry Pi) without HTTPS, set Authentication:RequireHttps=false
+var requireHttps = builder.Configuration.GetValue("Authentication:RequireHttps", !builder.Environment.IsDevelopment());
+
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
         options.Cookie.Name = "pennywise_auth";
         options.Cookie.HttpOnly = true;
-        options.Cookie.SameSite = builder.Environment.IsDevelopment()
-            ? SameSiteMode.Lax
-            : SameSiteMode.None;
-        options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
-            ? CookieSecurePolicy.SameAsRequest
-            : CookieSecurePolicy.Always;
+        options.Cookie.SameSite = requireHttps ? SameSiteMode.None : SameSiteMode.Lax;
+        options.Cookie.SecurePolicy = requireHttps ? CookieSecurePolicy.Always : CookieSecurePolicy.SameAsRequest;
         options.ExpireTimeSpan = TimeSpan.FromDays(7);
         options.SlidingExpiration = true;
         options.Events.OnRedirectToLogin = context =>
