@@ -236,6 +236,9 @@ restore_with_docker() {
     fi
     
     # Step 4: Restore from backup
+    # Note: stdout/stderr are redirected to /dev/null to keep output clean.
+    # If restore fails, the error message will be logged by our log_error function.
+    # For detailed debugging, remove "> /dev/null 2>&1" from the commands below.
     log_info "Restoring from backup..."
     case "$BACKUP_FILE" in
         *.sql.gz)
@@ -306,6 +309,9 @@ restore_direct() {
     fi
     
     # Step 4: Restore from backup
+    # Note: stdout/stderr are redirected to /dev/null to keep output clean.
+    # If restore fails, the error message will be logged by our log_error function.
+    # For detailed debugging, remove "> /dev/null 2>&1" from the commands below.
     log_info "Restoring from backup..."
     case "$BACKUP_FILE" in
         *.sql.gz)
