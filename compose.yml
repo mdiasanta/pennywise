@@ -76,6 +76,49 @@ services:
     profiles:
       - devcontainer
 
+  # Database Backup Service
+  backup:
+    image: postgres:16-alpine
+    container_name: pennywise-backup
+    env_file:
+      - .env
+    volumes:
+      - ./backups:/backups
+    networks:
+      - pennywise-network
+    entrypoint: /bin/sh
+    command: >
+      -c "
+      run_backup() {
+        echo \"[INFO] Running backup at $$(date)\";
+        PGPASSWORD=$$POSTGRES_PASSWORD pg_dump -h postgres -U $$POSTGRES_USER $$POSTGRES_DB | gzip > /backups/$${POSTGRES_DB}_$$(date +%Y%m%d_%H%M%S).sql.gz;
+        if [ $$? -eq 0 ]; then
+          echo '[INFO] Backup completed successfully';
+          echo '[INFO] Cleaning up backups older than 7 days...';
+          find /backups -name \"$${POSTGRES_DB}_*.sql.gz\" -type f -mtime +7 -delete;
+          echo '[INFO] Cleanup completed';
+        else
+          echo '[ERROR] Backup failed' >&2;
+        fi;
+      };
+      echo 'Backup service started. Running initial backup...';
+      run_backup;
+      while true; do
+        NEXT_2AM=$$(date -d 'tomorrow 02:00' +%s 2>/dev/null || date -d '2:00' +%s);
+        NOW=$$(date +%s);
+        SLEEP_SECS=$$((NEXT_2AM - NOW));
+        if [ $$SLEEP_SECS -le 0 ]; then
+          SLEEP_SECS=$$((SLEEP_SECS + 86400));
+        fi;
+        echo \"[INFO] Next backup at 2:00 AM (sleeping $$SLEEP_SECS seconds)\";
+        sleep $$SLEEP_SECS;
+        run_backup;
+      done
+      "
+    restart: unless-stopped
+    profiles:
+      - backup
+
 networks:
   pennywise-network:
     driver: bridge
