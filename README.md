@@ -188,39 +188,44 @@ All services communicate through a dedicated Docker network (`pennywise-network`
 
 ## Database Backup and Restore
 
-Pennywise includes comprehensive backup and restore capabilities for the PostgreSQL database.
+### Automated Daily Backups
 
-### Quick Start
+To enable automated daily backups with automatic cleanup of backups older than 7 days:
 
-**Create a Manual Backup:**
-```bash
-export POSTGRES_PASSWORD=pennywise_password
-./scripts/backup-postgres.sh
-```
-
-**Restore from a Backup:**
-```bash
-export POSTGRES_PASSWORD=pennywise_password
-./scripts/restore-postgres.sh backups/pennywise_20260102_143000.sql.gz
-```
-
-**Enable Automated Daily Backups:**
 ```bash
 docker compose --profile app --profile backup up -d
 ```
 
-### Features
+Backups are saved to the `./backups` directory.
 
-- ✅ **Automated backups** with Docker Compose service (daily schedule)
-- ✅ **Manual backups** via shell scripts
-- ✅ **Compressed backups** using gzip to save space
-- ✅ **Automatic cleanup** of old backups (configurable retention)
-- ✅ **Safe restore** with confirmation prompts
-- ✅ **Multiple formats** supported (.sql.gz, .sql, .dump)
+### Manual Backup
 
-### Documentation
+Create a compressed backup of the PostgreSQL database:
 
-For comprehensive backup documentation, including production best practices, automated backups, and troubleshooting, see **[docs/BACKUP.md](docs/BACKUP.md)**.
+```bash
+# Backup to a timestamped file
+docker compose exec postgres pg_dump -U pennywise pennywise | gzip > backups/pennywise_$(date +%Y%m%d_%H%M%S).sql.gz
+
+# Or backup to a specific filename
+docker compose exec postgres pg_dump -U pennywise pennywise > backups/backup.sql
+```
+
+### Restore from Backup
+
+To restore the database from a backup file:
+
+```bash
+# Terminate active connections and recreate the database
+docker compose exec -T postgres psql -U pennywise -d postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'pennywise' AND pid <> pg_backend_pid();"
+docker compose exec -T postgres psql -U pennywise -d postgres -c "DROP DATABASE IF EXISTS pennywise;"
+docker compose exec -T postgres psql -U pennywise -d postgres -c "CREATE DATABASE pennywise;"
+
+# Restore from compressed backup
+gunzip -c backups/pennywise_20260102_143000.sql.gz | docker compose exec -T postgres psql -U pennywise pennywise
+
+# Or restore from uncompressed backup
+docker compose exec -T postgres psql -U pennywise pennywise < backups/backup.sql
+```
 
 ## Stopping the Application
 
