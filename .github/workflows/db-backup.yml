@@ -48,7 +48,7 @@ jobs:
           
           # Verify backup was created
           if [ -f "backups/${BACKUP_FILE}" ]; then
-            SIZE=$(stat -f%z "backups/${BACKUP_FILE}" 2>/dev/null || stat -c%s "backups/${BACKUP_FILE}" 2>/dev/null)
+            SIZE=$(stat -c%s "backups/${BACKUP_FILE}" 2>/dev/null || echo "unknown")
             echo "Backup created successfully: ${BACKUP_FILE} (${SIZE} bytes)"
             echo "BACKUP_FILE=${BACKUP_FILE}" >> $GITHUB_ENV
           else

@@ -263,9 +263,15 @@ ls -lht backups/
 
 **Example: Upload to AWS S3**
 ```bash
-# After creating backup, upload to S3
-aws s3 cp backups/pennywise_$(date +%Y%m%d_%H%M%S).sql.gz \
-  s3://your-backup-bucket/pennywise/
+# Create backup and save the filename
+export POSTGRES_PASSWORD=pennywise_password
+./scripts/backup-postgres.sh
+
+# Get the most recent backup file
+LATEST_BACKUP=$(ls -t backups/pennywise_*.sql.gz | head -1)
+
+# Upload to S3
+aws s3 cp "$LATEST_BACKUP" s3://your-backup-bucket/pennywise/
 ```
 
 ### 2. Test Your Backups Regularly

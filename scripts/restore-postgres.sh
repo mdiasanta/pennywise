@@ -257,11 +257,20 @@ restore_with_docker() {
             fi
             ;;
         *.dump)
-            if docker exec -i "$CONTAINER_NAME" pg_restore -U "$PG_USER" -d "$PG_DATABASE" < "$BACKUP_FILE" > /dev/null 2>&1; then
-                log_info "Restore completed successfully"
-                return 0
+            # For .dump files, we need to copy the file into the container first
+            log_info "Copying dump file to container..."
+            if docker cp "$BACKUP_FILE" "$CONTAINER_NAME:/tmp/restore.dump"; then
+                if docker exec "$CONTAINER_NAME" pg_restore -U "$PG_USER" -d "$PG_DATABASE" /tmp/restore.dump > /dev/null 2>&1; then
+                    docker exec "$CONTAINER_NAME" rm -f /tmp/restore.dump
+                    log_info "Restore completed successfully"
+                    return 0
+                else
+                    docker exec "$CONTAINER_NAME" rm -f /tmp/restore.dump
+                    log_error "Restore failed"
+                    return 1
+                fi
             else
-                log_error "Restore failed"
+                log_error "Failed to copy dump file to container"
                 return 1
             fi
             ;;
