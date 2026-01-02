@@ -76,6 +76,43 @@ services:
     profiles:
       - devcontainer
 
+  # Database Backup Service
+  backup:
+    image: postgres:16-alpine
+    container_name: pennywise-backup
+    env_file:
+      - .env
+    volumes:
+      - ./backups:/backups
+      - ./scripts:/scripts:ro
+    networks:
+      - pennywise-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    entrypoint: /bin/sh
+    command: >
+      -c "
+      echo 'Backup service started. Waiting for scheduled backup time...';
+      while true; do
+        echo '[INFO] Running scheduled backup at $(date)';
+        PGPASSWORD=$$POSTGRES_PASSWORD pg_dump -h postgres -U $$POSTGRES_USER $$POSTGRES_DB | gzip > /backups/$${POSTGRES_DB}_$$(date +%Y%m%d_%H%M%S).sql.gz;
+        if [ $$? -eq 0 ]; then
+          echo '[INFO] Backup completed successfully';
+          echo '[INFO] Cleaning up backups older than 7 days...';
+          find /backups -name '$${POSTGRES_DB}_*.sql.gz' -type f -mtime +7 -delete;
+          echo '[INFO] Cleanup completed';
+        else
+          echo '[ERROR] Backup failed' >&2;
+        fi;
+        echo '[INFO] Next backup in 24 hours';
+        sleep 86400;
+      done
+      "
+    restart: unless-stopped
+    profiles:
+      - backup
+
 networks:
   pennywise-network:
     driver: bridge
